@@ -1,0 +1,30 @@
+[package]
+name = "purrmint"
+version = "0.1.0"
+edition = "2021"
+authors = ["PurrMint Developers"]
+description = "High-level Cashu NIP-74 mint service suitable for Android (via JNI)"
+license = "MIT"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+async-trait = "0.1"
+tracing = "0.1"
+
+nostr = { path = "../nostr/crates/nostr", features = ["std", "nip44"] }
+nostr-sdk = { path = "../nostr/crates/nostr-sdk", features = ["all-nips"] }
+nostr-connect = { path = "../nostr/crates/nostr-connect" }
+
+cashu-mint-nip74 = { path = "../cdk/crates/cashu-mint-nip74" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+# Logging
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+
+[features]
+# Feature to build JNI bindings later
+jni-support = [] 
