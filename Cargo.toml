@@ -17,6 +17,9 @@ nostr-sdk = { path = "../nostr/crates/nostr-sdk", features = ["all-nips"] }
 nostr-connect = { path = "../nostr/crates/nostr-connect" }
 
 cashu-mint-nip74 = { path = "../cdk/crates/cashu-mint-nip74" }
+cdk = { path = "../cdk/crates/cdk" }
+cdk-sqlite = { path = "../cdk/crates/cdk-sqlite" }
+cdk-fake-wallet = { path = "../cdk/crates/cdk-fake-wallet" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -24,6 +27,8 @@ thiserror = "2"
 
 # Logging
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+
+rand = "0.8"
 
 [features]
 # Feature to build JNI bindings later

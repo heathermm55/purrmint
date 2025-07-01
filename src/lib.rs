@@ -28,6 +28,8 @@ use tokio::task::JoinHandle;
 /// Re-export NIP-74 types.
 pub use cashu_mint_nip74::{OperationMethod, ResultStatus};
 
+pub mod handler;
+
 /// Errors raised by the [`MintService`].
 #[derive(Debug, Error)]
 pub enum ServiceError {
