@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cashu_mint_nip74::{new_request_id, OperationMethod, OperationRequest};
+use purrmint::{new_request_id, OperationMethod, OperationRequest};
 use nostr::prelude::*;
 use nostr_sdk::{Client, Options, RelayPoolNotification};
 use tokio::time::timeout;
@@ -26,8 +26,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mint_pubkey = mint_pubkey_str.parse::<PublicKey>()?;
     let relay = args.get(2).cloned().unwrap_or_else(|| "ws://127.0.0.1:7777".to_string());
 
+    println!("Using Mint public key: {}", mint_pubkey);
+    println!("Connecting to Relay: {}", relay);
+
     // Generate temporary client keys.
     let keys = Keys::parse("5b710e6de48418b70182584fdf06c692bc422478be42729939203b4c2aa496c1")?;
+    println!("Client public key: {}", keys.public_key());
+    
     let client = Client::builder()
         .signer(keys.clone())   
         .opts(Options::default())
@@ -37,28 +42,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     client.connect().await;
     // Wait up to 5 seconds for the relay connection to establish.
     client.wait_for_connection(Duration::from_secs(5)).await;
+    println!("Connected to relay");
 
     // Subscribe for OperationResult events addressed to us
     let sub_filter = Filter::new()
         .kind(Kind::from(27402u16))
         .pubkey(keys.public_key()); // 'p' tag contains our pubkey
     client.subscribe(sub_filter, None).await?;
+    println!("Subscribed to 27402 events");
 
     // Compose request.
+    let request_id = new_request_id();
+    println!("Request ID: {}", request_id);
+    
     let request = OperationRequest {
         method: OperationMethod::Info,
-        request_id: new_request_id(),
-        data: serde_json::json!({}),
+        request_id: request_id,
+        data: Some(serde_json::json!({})),
     };
+
+    println!("Request content: {}", serde_json::to_string_pretty(&request)?);
 
     // Serialize and encrypt payload with NIP-44.
     let plaintext = serde_json::to_string(&request)?;
+    // Use NIP-44 encryption
     let ciphertext = nostr::nips::nip44::encrypt(keys.secret_key(), &mint_pubkey, plaintext, Default::default())?;
 
     // Build event.
     let event = EventBuilder::new(Kind::from(27401u16), ciphertext)
         .tag(Tag::public_key(mint_pubkey))
         .sign_with_keys(&keys)?;
+
+    println!("Event ID: {}", event.id);
+    println!("Event tags: {:?}", event.tags);
 
     let output = client.send_event(&event).await?;
     println!("27401 sent, success relays: {:?}, failed: {:?}", output.success, output.failed);
@@ -68,15 +84,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match timeout(Duration::from_secs(30), async move {
         while let Ok(notif) = notifications.recv().await {
             if let RelayPoolNotification::Event { event, .. } = notif {
+                println!("Received event: kind={}, id={}", event.kind, event.id);
                 if event.kind == Kind::from(27402u16) {
-                    // Decrypt and display.
+                    println!("Received 27402 response event, tags: {:?}", event.tags);
+                    // Decrypt with NIP-44
                     if let Ok(decrypted) = nostr::nips::nip44::decrypt(
                         keys.secret_key(),
                         &mint_pubkey,
                         &event.content,
                     ) {
-                        println!("Got OperationResult: {decrypted}");
+                        println!("Decryption successful! OperationResult: {decrypted}");
                         return Some(());
+                    } else {
+                        println!("Decryption failed!");
                     }
                 }
             }
@@ -90,4 +110,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
-} 
+}

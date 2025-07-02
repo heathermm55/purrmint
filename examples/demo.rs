@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::collections::{HashMap, HashSet};
 
-use cashu_mint_nip74::MintInfo;
 use cdk::mint::{MintBuilder, MintMeltLimits};
 use cdk::nuts::{CurrencyUnit, PaymentMethod};
 use cdk::types::FeeReserve;
@@ -11,6 +10,7 @@ use cdk_fake_wallet::FakeWallet;
 use cdk_sqlite::mint::memory;
 use nostr::prelude::*;
 use purrmint::{handler::DefaultMintHandler, DynSigner, MintService};
+use purrmint::MintInfo;
 use rand::Rng;
 
 #[tokio::main]
@@ -70,19 +70,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ---------------------------------------------------------------------
     // NIP-74 MintInfo – advertise demo mint on Nostr.
     // ---------------------------------------------------------------------
-    let mint_info = MintInfo {
-        identifier: "demo-mint".into(),
-        name: "PurrMint Demo".into(),
-        description: "Demo Cashu mint using NIP-74".into(),
-        icon: None,
-        version: "0.1.0".into(),
-        units: vec!["sat".into()],
-        contacts: vec![format!("npub{}", keys.public_key())],
-        nuts: vec!["03".into(), "04".into(), "05".into()],
-        url: None,
-        relays: vec!["ws://127.0.0.1:7777".into()],
-        status: "running".into(),
-    };
+    let mint_info = MintInfo::new()
+        .name("PurrMint Demo")
+        .description("Demo Cashu mint using NIP-74");
 
     // ---------------------------------------------------------------------
     // Relay list – the service will connect to those and stay online.

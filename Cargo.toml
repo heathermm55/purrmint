@@ -16,7 +16,6 @@ nostr = { path = "../nostr/crates/nostr", features = ["std", "nip44"] }
 nostr-sdk = { path = "../nostr/crates/nostr-sdk", features = ["all-nips"] }
 nostr-connect = { path = "../nostr/crates/nostr-connect" }
 
-cashu-mint-nip74 = { path = "../cdk/crates/cashu-mint-nip74" }
 cdk = { path = "../cdk/crates/cdk" }
 cdk-sqlite = { path = "../cdk/crates/cdk-sqlite" }
 cdk-fake-wallet = { path = "../cdk/crates/cdk-fake-wallet" }
@@ -29,6 +28,7 @@ thiserror = "2"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 
 rand = "0.8"
+uuid = { version = "1" }
 
 [features]
 # Feature to build JNI bindings later
