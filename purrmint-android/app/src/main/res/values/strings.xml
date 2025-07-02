@@ -4,4 +4,54 @@
     <string name="create_account">Create Account</string>
     <string name="get_info">Get Info</string>
     <string name="get_status">Get Status</string>
+    
+    <!-- Login Activity -->
+    <string name="welcome_to_purrmint">Welcome to PurrMint</string>
+    <string name="login_subtitle">Create a new Nostr account or import an existing one</string>
+    <string name="create_new_account">Create New Account</string>
+    <string name="create_account_description">Generate a new Nostr account with fresh keys</string>
+    <string name="import_existing_account">Import Existing Account</string>
+    <string name="import_account_description">Import your existing Nostr account using your secret key</string>
+    <string name="secret_key_hint">Enter your secret key (nsec...)</string>
+    <string name="import_account">Import Account</string>
+    <string name="or">OR</string>
+    
+    <!-- Main Activity -->
+    <string name="dashboard">Dashboard</string>
+    <string name="account_info">Account Info</string>
+    <string name="mint_configuration">Mint Configuration</string>
+    <string name="service_control">Service Control</string>
+    <string name="service_logs">Service Logs</string>
+    <string name="logout">Logout</string>
+    
+    <!-- Service Control -->
+    <string name="start_service">Start Service</string>
+    <string name="stop_service">Stop Service</string>
+    <string name="pause_service">Pause Service</string>
+    <string name="service_running">Service Running</string>
+    <string name="service_stopped">Service Stopped</string>
+    <string name="service_paused">Service Paused</string>
+    
+    <!-- Configuration -->
+    <string name="mint_identifier">Mint Identifier</string>
+    <string name="mint_identifier_hint">Enter mint identifier</string>
+    <string name="relay_urls">Relay URLs</string>
+    <string name="relay_urls_hint">Enter relay URLs (one per line)</string>
+    <string name="lightning_backend">Lightning Backend</string>
+    <string name="lightning_backend_hint">Select lightning backend</string>
+    <string name="save_configuration">Save Configuration</string>
+    <string name="configuration_saved">Configuration saved successfully</string>
+    <string name="configuration_error">Error saving configuration</string>
+    
+    <!-- Logs -->
+    <string name="clear_logs">Clear Logs</string>
+    <string name="export_logs">Export Logs</string>
+    <string name="no_logs_available">No logs available</string>
+    
+    <!-- Common -->
+    <string name="loading">Loading...</string>
+    <string name="error">Error</string>
+    <string name="success">Success</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
 </resources> 

@@ -37,7 +37,8 @@ tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 rand = "0.8"
 uuid = { version = "1" }
 once_cell = "1.21.3"
+jni = { version = "0.21", optional = true }
 
 [features]
 # Feature to build JNI bindings later
-jni-support = [] 
+jni-support = ["jni"] 

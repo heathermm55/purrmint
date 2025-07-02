@@ -37,6 +37,19 @@ object PurrmintNative {
     external fun getMintStatus(): String
     
     /**
+     * Get current Nostr account information
+     * @return JSON string with account info
+     */
+    external fun getCurrentAccount(): String
+    
+    /**
+     * Import an existing Nostr account
+     * @param secretKey Secret key string
+     * @return NostrAccount object or null if failed
+     */
+    external fun importAccount(secretKey: String): NostrAccount?
+    
+    /**
      * Configure the mint service
      * @param configJson JSON configuration string
      * @return FfiError code

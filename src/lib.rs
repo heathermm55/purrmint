@@ -6,6 +6,9 @@ pub mod service;
 pub mod handler;
 pub mod ffi;
 
+#[cfg(feature = "jni-support")]
+pub mod jni;
+
 pub use types::*;
 pub use helpers::*;
 pub use service::*;
