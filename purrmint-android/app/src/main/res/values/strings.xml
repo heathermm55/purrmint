@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">PurrMint</string>
+    <string name="test_ffi">Test FFI</string>
+    <string name="create_account">Create Account</string>
+    <string name="get_info">Get Info</string>
+    <string name="get_status">Get Status</string>
+</resources> 

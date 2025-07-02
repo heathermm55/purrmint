@@ -6,6 +6,13 @@ authors = ["PurrMint Developers"]
 description = "High-level Cashu NIP-74 mint service suitable for Android (via JNI)"
 license = "MIT"
 
+[lib]
+name = "purrmint"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[build-dependencies]
+cbindgen = "0.24"
+
 [dependencies]
 # Async runtime
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }

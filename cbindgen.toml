@@ -1,0 +1,6 @@
+language = "C"
+autogen_warning = "// Auto-generated file, do not edit manually"
+tab_width = 4
+documentation = true
+documentation_style = "doxy"
+line_length = 100 
