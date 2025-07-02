@@ -1,6 +1,32 @@
 #include <jni.h>
 #include <string>
-#include "purrmint.h"
+
+// Declare Rust FFI functions (do not include purrmint.h, only declare signatures)
+extern "C" {
+    char *mint_test_ffi(void);
+    void mint_free_string(char *s);
+    struct NostrAccount {
+        char *pubkey;
+        char *secret_key;
+        bool is_imported;
+    };
+    struct NostrAccount *nostr_create_account(void);
+    void nostr_free_account(struct NostrAccount *account);
+    char *mint_get_info(void);
+    char *mint_get_status(void);
+    int mint_configure(const char *config_json);
+    int mint_start(void);
+    int mint_stop(void);
+}
+
+// FfiError enum for error code mapping
+enum FfiError {
+    Success = 0,
+    NullPointer = 1,
+    InvalidInput = 2,
+    ServiceError = 3,
+    NotInitialized = 4,
+};
 
 extern "C" {
 
@@ -97,7 +123,7 @@ Java_com_example_purrmint_PurrmintNative_configureMint(JNIEnv *env, jclass clazz
         return static_cast<jint>(FfiError::NullPointer);
     }
     
-    FfiError result = mint_configure(config_str);
+    int result = mint_configure(config_str);
     env->ReleaseStringUTFChars(config_json, config_str);
     
     return static_cast<jint>(result);
@@ -106,14 +132,14 @@ Java_com_example_purrmint_PurrmintNative_configureMint(JNIEnv *env, jclass clazz
 // Start mint service
 JNIEXPORT jint JNICALL
 Java_com_example_purrmint_PurrmintNative_startMint(JNIEnv *env, jclass clazz) {
-    FfiError result = mint_start();
+    int result = mint_start();
     return static_cast<jint>(result);
 }
 
 // Stop mint service
 JNIEXPORT jint JNICALL
 Java_com_example_purrmint_PurrmintNative_stopMint(JNIEnv *env, jclass clazz) {
-    FfiError result = mint_stop();
+    int result = mint_stop();
     return static_cast<jint>(result);
 }
 
