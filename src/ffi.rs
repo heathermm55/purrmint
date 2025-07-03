@@ -17,6 +17,7 @@ use crate::lightning::LightningConfig;
 
 /// FFI Error codes
 #[repr(C)]
+#[derive(PartialEq)]
 pub enum FfiError {
     Success = 0,
     NullPointer = 1,
@@ -128,7 +129,7 @@ pub extern "C" fn nostr_import_account(secret_key_str: *const c_char) -> *mut No
     };
     
     let pubkey = CString::new(keys.public_key().to_string()).unwrap();
-    let secret_key = CString::new(keys.secret_key().to_secret_hex()).unwrap();
+    let secret_key = CString::new(secret_str.to_string()).unwrap(); // Keep original format
     
     let account = Box::new(NostrAccount {
         pubkey: pubkey.into_raw(),
@@ -142,7 +143,7 @@ pub extern "C" fn nostr_import_account(secret_key_str: *const c_char) -> *mut No
             if let Ok(mut guard) = account_guard.lock() {
                 *guard = Some(NostrAccount {
                     pubkey: CString::new(keys.public_key().to_string()).unwrap().into_raw(),
-                    secret_key: CString::new(keys.secret_key().to_secret_hex()).unwrap().into_raw(),
+                    secret_key: CString::new(secret_str.to_string()).unwrap().into_raw(), // Keep original format
                     is_imported: true,
                 });
             }
@@ -473,6 +474,92 @@ pub extern "C" fn mint_is_mintd_running() -> bool {
     false
 }
 
+/// Generate mintd config for Android with proper paths
+#[no_mangle]
+pub extern "C" fn mint_generate_android_config(
+    config_dir: *const c_char,
+    mnemonic: *const c_char,
+    port: u16
+) -> FfiError {
+    if config_dir.is_null() || mnemonic.is_null() {
+        return FfiError::NullPointer;
+    }
+    
+    let config_dir_str = unsafe { CStr::from_ptr(config_dir) }.to_str().unwrap_or("");
+    let mnemonic_str = unsafe { CStr::from_ptr(mnemonic) }.to_str().unwrap_or("");
+    
+    if config_dir_str.is_empty() || mnemonic_str.is_empty() {
+        return FfiError::InvalidInput;
+    }
+    
+    let config_path = PathBuf::from(config_dir_str);
+    
+    // Create config directory if it doesn't exist
+    if let Err(_) = std::fs::create_dir_all(&config_path) {
+        return FfiError::ServiceError;
+    }
+    
+    // Generate mintd config for Android
+    let mintd_config = format!(r#"[info]
+url = "https://purrmint.android/"
+listen_host = "127.0.0.1"
+listen_port = {}
+mnemonic = "{}"
+
+[mint_info]
+name = "PurrMint Android"
+description = "PurrMint Cashu Mint for Android"
+description_long = "A Cashu mint service running on Android device"
+
+[database]
+engine = "sqlite"
+
+[ln]
+ln_backend = "fakewallet"
+min_mint = 1
+max_mint = 1000000
+min_melt = 1
+max_melt = 1000000
+
+[fake_wallet]
+supported_units = ["sat"]
+fee_percent = 0.0
+reserve_fee_min = 0
+min_delay_time = 1
+max_delay_time = 3
+"#, port, mnemonic_str);
+    
+    // Write config file
+    let config_file = config_path.join("mintd.toml");
+    if let Err(_) = std::fs::write(&config_file, mintd_config) {
+        return FfiError::ServiceError;
+    }
+    
+    FfiError::Success
+}
+
+/// Start mint service with Android-optimized configuration
+#[no_mangle]
+pub extern "C" fn mint_start_android(
+    mode: FfiServiceMode,
+    config_dir: *const c_char,
+    mnemonic: *const c_char,
+    port: u16
+) -> FfiError {
+    if config_dir.is_null() || mnemonic.is_null() {
+        return FfiError::NullPointer;
+    }
+    
+    // Generate Android config first
+    let config_result = mint_generate_android_config(config_dir, mnemonic, port);
+    if config_result != FfiError::Success {
+        return config_result;
+    }
+    
+    // Start service with generated config
+    mint_start_with_mode(mode, config_dir, port)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -538,6 +625,7 @@ mod tests {
             let secret_key = CStr::from_ptr(account.secret_key).to_str().unwrap();
             
             assert!(!pubkey.is_empty());
+            // The secret key should be returned in the same format as input
             assert_eq!(secret_key, test_secret);
             assert!(account.is_imported);
             

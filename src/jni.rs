@@ -350,4 +350,73 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_isMintdRunning(
 ) -> jboolean {
     let running = crate::ffi::mint_is_mintd_running();
     running as jboolean
+}
+
+/// Start mint service with Android-optimized configuration
+#[no_mangle]
+pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMintAndroid(
+    _env: JNIEnv,
+    _class: JClass,
+    mode: jint,
+    config_dir: JString,
+    mnemonic: JString,
+    port: jint,
+) -> jint {
+    let config_dir_str = java_string_to_rust_string(&mut _env, config_dir);
+    let mnemonic_str = java_string_to_rust_string(&mut _env, mnemonic);
+    
+    let config_dir_cstr = CString::new(config_dir_str).unwrap();
+    let mnemonic_cstr = CString::new(mnemonic_str).unwrap();
+    
+    let ffi_mode = match mode {
+        0 => crate::ffi::FfiServiceMode::MintdOnly,
+        1 => crate::ffi::FfiServiceMode::Nip74Only,
+        2 => crate::ffi::FfiServiceMode::MintdAndNip74,
+        _ => crate::ffi::FfiServiceMode::MintdOnly,
+    };
+    
+    let result = crate::ffi::mint_start_android(
+        ffi_mode,
+        config_dir_cstr.as_ptr(),
+        mnemonic_cstr.as_ptr(),
+        port as u16,
+    );
+    
+    result as jint
+}
+
+/// Generate Android mintd configuration
+#[no_mangle]
+pub extern "system" fn Java_com_example_purrmint_PurrmintNative_generateAndroidConfig(
+    _env: JNIEnv,
+    _class: JClass,
+    config_dir: JString,
+    mnemonic: JString,
+    port: jint,
+) -> jint {
+    let config_dir_str = java_string_to_rust_string(&mut _env, config_dir);
+    let mnemonic_str = java_string_to_rust_string(&mut _env, mnemonic);
+    
+    let config_dir_cstr = CString::new(config_dir_str).unwrap();
+    let mnemonic_cstr = CString::new(mnemonic_str).unwrap();
+    
+    let result = crate::ffi::mint_generate_android_config(
+        config_dir_cstr.as_ptr(),
+        mnemonic_cstr.as_ptr(),
+        port as u16,
+    );
+    
+    result as jint
+}
+
+/// Get Android app data directory path
+#[no_mangle]
+pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getAndroidDataDir(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jstring {
+    // This should be called from Android context to get the actual data directory
+    // For now, return a placeholder that Android should replace
+    let placeholder = "/data/data/com.example.purrmint/files";
+    _env.new_string(placeholder).unwrap().into_raw()
 } 

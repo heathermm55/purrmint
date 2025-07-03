@@ -1,34 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Primary colors -->
+    <color name="primary_color">#2196F3</color>
+    <color name="primary_dark">#1976D2</color>
+    <color name="primary_light">#BBDEFB</color>
+    <color name="accent_color">#FF9800</color>
     
-    <!-- App Theme Colors -->
-    <color name="primary">#FF6200EE</color>
-    <color name="primary_variant">#FF3700B3</color>
-    <color name="secondary">#FF03DAC5</color>
-    <color name="secondary_variant">#FF018786</color>
-    <color name="background">#FFFFFFFF</color>
-    <color name="surface">#FFFFFFFF</color>
-    <color name="error">#FFB00020</color>
-    <color name="on_primary">#FFFFFFFF</color>
-    <color name="on_secondary">#FF000000</color>
-    <color name="on_background">#FF000000</color>
-    <color name="on_surface">#FF000000</color>
-    <color name="on_error">#FFFFFFFF</color>
+    <!-- Text colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#BDBDBD</color>
     
-    <!-- Text Colors -->
-    <color name="text_primary">#DE000000</color>
-    <color name="text_secondary">#99000000</color>
-    <color name="text_disabled">#61000000</color>
+    <!-- Background colors -->
+    <color name="background_light">#FAFAFA</color>
+    <color name="background_dark">#303030</color>
+    <color name="surface_color">#FFFFFF</color>
     
-    <!-- Status Colors -->
-    <color name="success">#FF4CAF50</color>
-    <color name="warning">#FFFF9800</color>
-    <color name="info">#FF2196F3</color>
+    <!-- Status colors -->
+    <color name="success_color">#4CAF50</color>
+    <color name="warning_color">#FF9800</color>
+    <color name="error_color">#F44336</color>
+    <color name="info_color">#2196F3</color>
+    
+    <!-- Common colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+    <color name="divider_color">#BDBDBD</color>
+    
+    <!-- Material Design colors -->
+    <color name="material_blue">#2196F3</color>
+    <color name="material_green">#4CAF50</color>
+    <color name="material_orange">#FF9800</color>
+    <color name="material_red">#F44336</color>
+    <color name="material_purple">#9C27B0</color>
+    <color name="material_teal">#009688</color>
+    <color name="material_indigo">#3F51B5</color>
+    <color name="material_pink">#E91E63</color>
 </resources> 
