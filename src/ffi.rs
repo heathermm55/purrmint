@@ -10,6 +10,7 @@ use std::path::PathBuf;
 
 use nostr::prelude::*;
 use serde_json::{json, Value};
+use tracing::{info, error};
 
 use crate::service::{MintService, ServiceMode};
 use crate::handler::default::DefaultRequestHandler;
@@ -274,7 +275,10 @@ pub extern "C" fn mint_start_with_mode(mode: FfiServiceMode, config_dir: *const 
     
     match service_result {
         Ok(_) => FfiError::Success,
-        Err(_) => FfiError::ServiceError,
+        Err(e) => {
+            error!("Failed to start mint service: {:?}", e);
+            FfiError::ServiceError
+        }
     }
 }
 

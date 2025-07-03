@@ -44,7 +44,7 @@ for i in "${!RUST_TARGETS[@]}"; do
     abi=${ANDROID_ABIS[$i]}
     
     echo -e "${YELLOW}Building standard for $target ($abi)...${NC}"
-    cargo ndk --target $target --platform 21 build --release
+    cargo ndk --target $target --platform 21 build --release --features jni-support
     
     # Create output directory
     mkdir -p $ANDROID_PROJECT_DIR/app/src/main/jniLibs/$abi
@@ -64,7 +64,7 @@ for i in "${!RUST_TARGETS[@]}"; do
     abi=${ANDROID_ABIS[$i]}
     
     echo -e "${YELLOW}Building large page for $target ($abi)...${NC}"
-    cargo ndk --target $target --platform 21 build --release
+    cargo ndk --target $target --platform 21 build --release --features jni-support
     
     # Copy with different name
     cp target/$target/release/libpurrmint.so $ANDROID_PROJECT_DIR/app/src/main/jniLibs/$abi/libpurrmint_16k.so

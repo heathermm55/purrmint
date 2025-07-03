@@ -5,8 +5,8 @@ set -e
 
 export RUSTFLAGS="-C link-arg=-z -C link-arg=max-page-size=16384"
 
-# Only build for arm64-v8a
-cargo ndk -t aarch64-linux-android -o ./target build --release
+# Only build for arm64-v8a with JNI support
+cargo ndk -t aarch64-linux-android -o ./target build --release --features jni-support
 
 # Copy so to Android project
 cp target/aarch64-linux-android/release/libpurrmint.so purrmint-android/app/jniLibs/arm64-v8a/
