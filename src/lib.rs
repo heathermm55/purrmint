@@ -5,7 +5,8 @@ pub mod helpers;
 pub mod service;
 pub mod handler;
 pub mod ffi;
-pub mod mintd_integration;
+pub mod mintd_service;
+pub mod mintd_jni;
 
 #[cfg(feature = "jni-support")]
 pub mod jni;

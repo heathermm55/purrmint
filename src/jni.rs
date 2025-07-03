@@ -200,25 +200,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_stopMint(
     result as jint
 }
 
-/// Get mint information
-#[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getMintInfo(
-    _env: JNIEnv,
-    _class: JClass,
-) -> jstring {
-    let info = crate::ffi::mint_get_info();
-    if info.is_null() {
-        return ptr::null_mut();
-    }
-    
-    let info_str = unsafe { CStr::from_ptr(info) }.to_str().unwrap_or("{}");
-    let java_string = _env.new_string(info_str).unwrap();
-    let java_string_ptr = java_string.into_raw();
-    
-    mint_free_string(info);
-    
-    java_string_ptr
-}
+
 
 /// Get mint status
 #[no_mangle]
