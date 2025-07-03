@@ -7,9 +7,81 @@ use cdk::nuts::{MintQuoteBolt11Request, MeltQuoteBolt11Request, MintRequest, Mel
 use serde_json::Value;
 use uuid::Uuid;
 use serde::de::Error as _;
+use reqwest;
 
-use crate::{RequestHandler, Nip74Result};
+use crate::{RequestHandler, Nip74Result, Nip74Error};
 use crate::{OperationMethod, OperationRequest, OperationResult, ResultStatus, ResultError};
+
+/// Default request handler that proxies requests to local mintd HTTP API
+pub struct DefaultRequestHandler {
+    mintd_port: u16,
+}
+
+impl DefaultRequestHandler {
+    pub fn new(mintd_port: u16) -> Self {
+        Self { mintd_port }
+    }
+
+    /// Convert NIP-74 operation to mintd HTTP endpoint
+    fn get_mintd_endpoint(&self, method: &OperationMethod) -> String {
+        match method {
+            OperationMethod::Info => "/v1/info".to_string(),
+            OperationMethod::GetMintQuote => "/v1/mint/quote".to_string(),
+            OperationMethod::CheckMintQuote => "/v1/mint/quote/check".to_string(),
+            OperationMethod::Mint => "/v1/mint".to_string(),
+            OperationMethod::GetMeltQuote => "/v1/melt/quote".to_string(),
+            OperationMethod::CheckMeltQuote => "/v1/melt/quote/check".to_string(),
+            OperationMethod::Melt => "/v1/melt".to_string(),
+        }
+    }
+
+    /// Make HTTP request to mintd
+    async fn call_mintd(&self, endpoint: &str, payload: Value) -> Result<Value, Nip74Error> {
+        let url = format!("http://127.0.0.1:{}{}", self.mintd_port, endpoint);
+        
+        let client = reqwest::Client::new();
+        let response = client
+            .post(&url)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| Nip74Error::Serde(serde_json::Error::custom(format!("HTTP request failed: {}", e))))?;
+
+        let status = response.status();
+        let text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        if status.is_success() {
+            let result: Value = serde_json::from_str(&text)
+                .map_err(|e| Nip74Error::Serde(serde_json::Error::custom(format!("Failed to parse response: {}", e))))?;
+            Ok(result)
+        } else {
+            Err(Nip74Error::Serde(serde_json::Error::custom(format!("Mintd request failed: {} - {}", status, text))))
+        }
+    }
+}
+
+#[async_trait]
+impl RequestHandler for DefaultRequestHandler {
+    async fn handle(&self, req: OperationRequest) -> Nip74Result<OperationResult> {
+        let endpoint = self.get_mintd_endpoint(&req.method);
+        
+        // Convert OperationRequest to mintd payload
+        let payload = serde_json::json!({
+            "request_id": req.request_id,
+            "data": req.data,
+        });
+
+        // Call mintd
+        let result = self.call_mintd(&endpoint, payload).await?;
+
+        // Convert mintd response to OperationResult
+        Ok(OperationResult {
+            status: ResultStatus::Success,
+            request_id: req.request_id,
+            data: Some(result),
+            error: None,
+        })
+    }
+}
 
 /// Default handler that bridges NIP-74 requests to the underlying Cashu `Mint` implementation.
 pub struct DefaultMintHandler {

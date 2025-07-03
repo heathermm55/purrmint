@@ -5,9 +5,12 @@ pub mod helpers;
 pub mod service;
 pub mod handler;
 pub mod ffi;
+pub mod mintd_integration;
 
 #[cfg(feature = "jni-support")]
 pub mod jni;
+
+pub mod lightning;
 
 pub use types::*;
 pub use helpers::*;

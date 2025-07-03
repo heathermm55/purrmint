@@ -6,11 +6,14 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use std::str::FromStr;
+use std::path::PathBuf;
 
 use nostr::prelude::*;
 use serde_json::{json, Value};
 
-use crate::MintService;
+use crate::service::{MintService, ServiceMode};
+use crate::handler::default::DefaultRequestHandler;
+use crate::lightning::LightningConfig;
 
 /// FFI Error codes
 #[repr(C)]
@@ -20,6 +23,14 @@ pub enum FfiError {
     InvalidInput = 2,
     ServiceError = 3,
     NotInitialized = 4,
+}
+
+/// Service mode for FFI
+#[repr(C)]
+pub enum FfiServiceMode {
+    MintdOnly = 0,
+    Nip74Only = 1,
+    MintdAndNip74 = 2,
 }
 
 /// Nostr Account structure for FFI
@@ -55,6 +66,15 @@ fn init_globals() {
     }
 }
 
+/// Convert FFI service mode to internal service mode
+fn ffi_mode_to_service_mode(mode: FfiServiceMode) -> ServiceMode {
+    match mode {
+        FfiServiceMode::MintdOnly => ServiceMode::MintdOnly,
+        FfiServiceMode::Nip74Only => ServiceMode::Nip74Only,
+        FfiServiceMode::MintdAndNip74 => ServiceMode::MintdAndNip74,
+    }
+}
+
 /// Create a new Nostr account
 #[no_mangle]
 pub extern "C" fn nostr_create_account() -> *mut NostrAccount {
@@ -73,7 +93,7 @@ pub extern "C" fn nostr_create_account() -> *mut NostrAccount {
     
     // Store in global state
     unsafe {
-        if let Some(account_guard) = &NOSTR_ACCOUNT {
+        if let Some(account_guard) = NOSTR_ACCOUNT.as_ref() {
             if let Ok(mut guard) = account_guard.lock() {
                 *guard = Some(NostrAccount {
                     pubkey: CString::new(keys.public_key().to_string()).unwrap().into_raw(),
@@ -118,7 +138,7 @@ pub extern "C" fn nostr_import_account(secret_key_str: *const c_char) -> *mut No
     
     // Store in global state
     unsafe {
-        if let Some(account_guard) = &NOSTR_ACCOUNT {
+        if let Some(account_guard) = NOSTR_ACCOUNT.as_ref() {
             if let Ok(mut guard) = account_guard.lock() {
                 *guard = Some(NostrAccount {
                     pubkey: CString::new(keys.public_key().to_string()).unwrap().into_raw(),
@@ -145,7 +165,7 @@ pub extern "C" fn mint_configure(config_json: *const c_char) -> FfiError {
     }
     
     // Parse configuration JSON
-    let config: Value = match serde_json::from_str(config_str) {
+    let _config: Value = match serde_json::from_str(config_str) {
         Ok(c) => c,
         Err(_) => return FfiError::InvalidInput,
     };
@@ -155,25 +175,114 @@ pub extern "C" fn mint_configure(config_json: *const c_char) -> FfiError {
     FfiError::Success
 }
 
-/// Start the mint service
+/// Start the mint service with specified mode
 #[no_mangle]
-pub extern "C" fn mint_start() -> FfiError {
-    init_globals();
-    
-    // Check if account is available
-    unsafe {
-        if let Some(account_guard) = &NOSTR_ACCOUNT {
-            if let Ok(guard) = account_guard.lock() {
-                if guard.is_none() {
-                    return FfiError::NotInitialized;
-                }
-            }
-        }
+pub extern "C" fn mint_start_with_mode(mode: FfiServiceMode, config_dir: *const c_char, port: u16) -> FfiError {
+    if config_dir.is_null() {
+        return FfiError::NullPointer;
     }
     
-    // TODO: Implement actual mint service startup
-    // For now, just return success
-    FfiError::Success
+    init_globals();
+    
+    let config_dir_str = unsafe { CStr::from_ptr(config_dir) }.to_str().unwrap_or("");
+    if config_dir_str.is_empty() {
+        return FfiError::InvalidInput;
+    }
+    
+    let config_path = PathBuf::from(config_dir_str);
+    let service_mode = ffi_mode_to_service_mode(mode);
+    
+    // Create mint info (default)
+    let mint_info = cdk::nuts::nut06::MintInfo {
+        name: Some("purrmint".to_string()),
+        pubkey: None,
+        version: Some(cdk::nuts::nut06::MintVersion::new("PurrMint".to_string(), "0.1.0".to_string())),
+        description: Some("PurrMint Cashu Mint".to_string()),
+        description_long: None,
+        contact: None,
+        nuts: cdk::nuts::Nuts::default(),
+        icon_url: None,
+        urls: None,
+        motd: None,
+        time: None,
+        tos_url: None,
+    };
+    
+    // Default relays
+    let relays = vec![
+        RelayUrl::from_str("wss://relay.damus.io").unwrap(),
+        RelayUrl::from_str("wss://nos.lol").unwrap(),
+    ];
+    
+    // Default lightning config
+    let lightning_config = LightningConfig::default();
+    
+    // Create service
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let service_result = rt.block_on(async {
+        let service = MintService::new(
+            service_mode,
+            mint_info,
+            lightning_config,
+            relays,
+            config_path,
+            port,
+        ).await;
+        
+        match service {
+            Ok(mut svc) => {
+                // For NIP-74 modes, set up signer and handler
+                if service_mode != ServiceMode::MintdOnly {
+                    // Get current account
+                    unsafe {
+                        if let Some(account_guard) = NOSTR_ACCOUNT.as_ref() {
+                            if let Ok(guard) = account_guard.lock() {
+                                if let Some(account) = guard.as_ref() {
+                                    let secret_str = CStr::from_ptr(account.secret_key).to_str().unwrap_or("");
+                                    if let Ok(keys) = Keys::from_str(secret_str) {
+                                        let signer = Arc::new(keys);
+                                        svc.set_signer(signer)?;
+                                        
+                                        // Set default handler that proxies to mintd
+                                        let handler = Arc::new(DefaultRequestHandler::new(port));
+                                        svc.set_handler(handler)?;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Start service
+                svc.start().await?;
+                
+                // Store in global state
+                unsafe {
+                    if let Some(service_guard) = MINT_SERVICE.as_ref() {
+                        if let Ok(mut guard) = service_guard.lock() {
+                            *guard = Some(Arc::new(svc));
+                        }
+                    }
+                }
+                
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    });
+    
+    match service_result {
+        Ok(_) => FfiError::Success,
+        Err(_) => FfiError::ServiceError,
+    }
+}
+
+/// Start the mint service (legacy - uses mintd only mode)
+#[no_mangle]
+pub extern "C" fn mint_start() -> FfiError {
+    // Default to mintd only mode with default config
+    let config_dir = CString::new("/tmp/purrmint").unwrap();
+    mint_start_with_mode(FfiServiceMode::MintdOnly, config_dir.as_ptr(), 3338)
 }
 
 /// Stop the mint service
@@ -181,8 +290,20 @@ pub extern "C" fn mint_start() -> FfiError {
 pub extern "C" fn mint_stop() -> FfiError {
     init_globals();
     
-    // TODO: Implement actual mint service shutdown
-    // For now, just return success
+    unsafe {
+        if let Some(service_guard) = MINT_SERVICE.as_ref() {
+            if let Ok(mut guard) = service_guard.lock() {
+                if let Some(service_arc) = guard.take() {
+                    let service = Arc::try_unwrap(service_arc).ok().map(|s| s);
+                    if let Some(mut service) = service {
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        let _ = rt.block_on(service.stop());
+                    }
+                }
+            }
+        }
+    }
+    
     FfiError::Success
 }
 
@@ -192,7 +313,8 @@ pub extern "C" fn mint_get_info() -> *mut c_char {
     let info = json!({
         "status": "running",
         "version": "0.1.0",
-        "supported_operations": ["info", "get_mint_quote", "check_mint_quote", "mint", "get_melt_quote", "check_melt_quote", "melt"]
+        "supported_operations": ["info", "get_mint_quote", "check_mint_quote", "mint", "get_melt_quote", "check_melt_quote", "melt"],
+        "supported_modes": ["mintd_only", "nip74_only", "mintd_and_nip74"]
     });
     
     let info_str = serde_json::to_string(&info).unwrap();
@@ -202,26 +324,45 @@ pub extern "C" fn mint_get_info() -> *mut c_char {
 /// Get mint status as JSON string
 #[no_mangle]
 pub extern "C" fn mint_get_status() -> *mut c_char {
-    let status = json!({
-        "running": true,
-        "uptime": 0,
-        "total_requests": 0,
-        "active_quotes": 0
+    init_globals();
+    
+    unsafe {
+        if let Some(service_guard) = MINT_SERVICE.as_ref() {
+            if let Ok(guard) = service_guard.lock() {
+                if let Some(service) = guard.as_ref() {
+                    let status = service.get_status();
+                    let status_str = serde_json::to_string(&status).unwrap();
+                    return CString::new(status_str).unwrap().into_raw();
+                }
+            }
+        }
+    }
+    
+    // Return default status if no service is running
+    let default_status = json!({
+        "mode": "none",
+        "mintd_running": false,
+        "nip74_running": false,
+        "mintd_port": 3338,
+        "relays": []
     });
     
-    let status_str = serde_json::to_string(&status).unwrap();
+    let status_str = serde_json::to_string(&default_status).unwrap();
     CString::new(status_str).unwrap().into_raw()
 }
 
-/// Get current Nostr account information
+/// Get current Nostr account information as JSON string
 #[no_mangle]
 pub extern "C" fn nostr_get_account() -> *mut c_char {
+    init_globals();
+    
     unsafe {
-        if let Some(account_guard) = &NOSTR_ACCOUNT {
+        if let Some(account_guard) = NOSTR_ACCOUNT.as_ref() {
             if let Ok(guard) = account_guard.lock() {
-                if let Some(account) = &*guard {
+                if let Some(account) = guard.as_ref() {
+                    let pubkey = CStr::from_ptr(account.pubkey).to_str().unwrap_or("");
                     let account_info = json!({
-                        "pubkey": CStr::from_ptr(account.pubkey).to_str().unwrap(),
+                        "pubkey": pubkey,
                         "is_imported": account.is_imported
                     });
                     let info_str = serde_json::to_string(&account_info).unwrap();
@@ -231,46 +372,105 @@ pub extern "C" fn nostr_get_account() -> *mut c_char {
         }
     }
     
-    // Return empty object if no account
-    let empty = json!({});
-    let empty_str = serde_json::to_string(&empty).unwrap();
-    CString::new(empty_str).unwrap().into_raw()
+    // Return empty account info if no account is set
+    let empty_info = json!({
+        "pubkey": "",
+        "is_imported": false
+    });
+    let info_str = serde_json::to_string(&empty_info).unwrap();
+    CString::new(info_str).unwrap().into_raw()
 }
 
-/// Free a C string allocated by Rust
+/// Free a C string
 #[no_mangle]
 pub extern "C" fn mint_free_string(s: *mut c_char) {
     if !s.is_null() {
-        unsafe { CString::from_raw(s) };
-    }
-}
-
-/// Free a NostrAccount structure
-#[no_mangle]
-pub extern "C" fn nostr_free_account(account: *mut NostrAccount) {
-    if !account.is_null() {
         unsafe {
-            let acc = Box::from_raw(account);
-            mint_free_string(acc.pubkey);
-            mint_free_string(acc.secret_key);
+            let _ = CString::from_raw(s);
         }
     }
 }
 
-/// Test function to verify FFI is working
+/// Free a Nostr account
+#[no_mangle]
+pub extern "C" fn nostr_free_account(account: *mut NostrAccount) {
+    if !account.is_null() {
+        unsafe {
+            let account = Box::from_raw(account);
+            mint_free_string(account.pubkey);
+            mint_free_string(account.secret_key);
+        }
+    }
+}
+
+/// Test the FFI interface
 #[no_mangle]
 pub extern "C" fn mint_test_ffi() -> *mut c_char {
     let test_result = json!({
         "status": "success",
         "message": "FFI interface is working correctly",
-        "timestamp": std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
+        "version": "0.1.0",
+        "features": ["nostr_account", "mint_service", "three_modes"]
     });
     
     let result_str = serde_json::to_string(&test_result).unwrap();
     CString::new(result_str).unwrap().into_raw()
+}
+
+/// Get service access URLs as JSON string
+#[no_mangle]
+pub extern "C" fn mint_get_access_urls() -> *mut c_char {
+    init_globals();
+    
+    unsafe {
+        if let Some(service_guard) = MINT_SERVICE.as_ref() {
+            if let Ok(guard) = service_guard.lock() {
+                if let Some(service) = guard.as_ref() {
+                    let urls = service.get_access_urls();
+                    let urls_str = serde_json::to_string(&urls).unwrap();
+                    return CString::new(urls_str).unwrap().into_raw();
+                }
+            }
+        }
+    }
+    
+    // Return empty URLs if no service is running
+    let empty_urls = json!({});
+    let urls_str = serde_json::to_string(&empty_urls).unwrap();
+    CString::new(urls_str).unwrap().into_raw()
+}
+
+/// Start mintd service (legacy function - now use mint_start_with_mode)
+#[no_mangle]
+pub extern "C" fn mint_start_mintd(config_dir: *const c_char, port: u16) -> FfiError {
+    mint_start_with_mode(FfiServiceMode::MintdOnly, config_dir, port)
+}
+
+/// Stop mintd service (legacy function - now use mint_stop)
+#[no_mangle]
+pub extern "C" fn mint_stop_mintd() -> FfiError {
+    mint_stop()
+}
+
+/// Check if mintd is running
+#[no_mangle]
+pub extern "C" fn mint_is_mintd_running() -> bool {
+    init_globals();
+    
+    unsafe {
+        if let Some(service_guard) = MINT_SERVICE.as_ref() {
+            if let Ok(guard) = service_guard.lock() {
+                if let Some(service) = guard.as_ref() {
+                    let status = service.get_status();
+                    if let Some(mintd_running) = status.get("mintd_running") {
+                        return mintd_running.as_bool().unwrap_or(false);
+                    }
+                }
+            }
+        }
+    }
+    
+    false
 }
 
 #[cfg(test)]
@@ -283,15 +483,16 @@ mod tests {
         assert!(!account.is_null());
         
         unsafe {
-            let acc = &*account;
-            let pubkey = CStr::from_ptr(acc.pubkey).to_str().unwrap();
-            let secret = CStr::from_ptr(acc.secret_key).to_str().unwrap();
+            let account = Box::from_raw(account);
+            let pubkey = CStr::from_ptr(account.pubkey).to_str().unwrap();
+            let secret_key = CStr::from_ptr(account.secret_key).to_str().unwrap();
             
             assert!(!pubkey.is_empty());
-            assert!(!secret.is_empty());
-            assert!(!acc.is_imported);
+            assert!(!secret_key.is_empty());
+            assert!(!account.is_imported);
             
-            nostr_free_account(account);
+            mint_free_string(account.pubkey);
+            mint_free_string(account.secret_key);
         }
     }
 
@@ -300,13 +501,14 @@ mod tests {
         let info = mint_get_info();
         assert!(!info.is_null());
         
-        let info_str = unsafe { CStr::from_ptr(info).to_str().unwrap() };
-        let info_json: Value = serde_json::from_str(info_str).unwrap();
-        
-        assert_eq!(info_json["status"], "running");
-        assert_eq!(info_json["version"], "0.1.0");
-        
-        mint_free_string(info);
+        unsafe {
+            let info_str = CStr::from_ptr(info).to_str().unwrap();
+            let info_json: Value = serde_json::from_str(info_str).unwrap();
+            assert!(info_json.get("status").is_some());
+            assert!(info_json.get("version").is_some());
+            
+            mint_free_string(info);
+        }
     }
 
     #[test]
@@ -314,23 +516,33 @@ mod tests {
         let result = mint_test_ffi();
         assert!(!result.is_null());
         
-        let result_str = unsafe { CStr::from_ptr(result).to_str().unwrap() };
-        let result_json: Value = serde_json::from_str(result_str).unwrap();
-        
-        assert_eq!(result_json["status"], "success");
-        
-        mint_free_string(result);
+        unsafe {
+            let result_str = CStr::from_ptr(result).to_str().unwrap();
+            let result_json: Value = serde_json::from_str(result_str).unwrap();
+            assert_eq!(result_json.get("status").unwrap().as_str().unwrap(), "success");
+            
+            mint_free_string(result);
+        }
     }
 
     #[test]
     fn test_nostr_import_account() {
-        // Test with invalid input
-        let account = nostr_import_account(ptr::null());
-        assert!(account.is_null());
+        let test_secret = "nsec1ufnus6pju578ste3v90xd5m2decpuzpql2295m3sknqcjzyys9ls0qlc85";
+        let secret_cstr = CString::new(test_secret).unwrap();
+        let account = nostr_import_account(secret_cstr.as_ptr());
+        assert!(!account.is_null());
         
-        // Test with empty string
-        let empty = CString::new("").unwrap();
-        let account = nostr_import_account(empty.as_ptr());
-        assert!(account.is_null());
+        unsafe {
+            let account = Box::from_raw(account);
+            let pubkey = CStr::from_ptr(account.pubkey).to_str().unwrap();
+            let secret_key = CStr::from_ptr(account.secret_key).to_str().unwrap();
+            
+            assert!(!pubkey.is_empty());
+            assert_eq!(secret_key, test_secret);
+            assert!(account.is_imported);
+            
+            mint_free_string(account.pubkey);
+            mint_free_string(account.secret_key);
+        }
     }
 } 

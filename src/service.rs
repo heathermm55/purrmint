@@ -7,8 +7,24 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::error;
-use crate::{MintInfo, OperationRequest, OperationResult, Nip74Result, Nip74Error};
+use crate::{OperationRequest, OperationResult, Nip74Result, Nip74Error};
 use crate::helpers::build_mint_info_event;
+use crate::mintd_integration::MintdIntegration;
+use cdk::nuts::nut06::MintInfo as cdkMintInfo;
+use crate::lightning::LightningConfig;
+use nostr::signer::NostrSigner;
+use nostr::{Filter, Kind, RelayUrl};
+
+/// Service operation modes
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ServiceMode {
+    /// Only mintd service (HTTP API)
+    MintdOnly,
+    /// Only NIP-74 service (Nostr events)
+    Nip74Only,
+    /// Both mintd and NIP-74 services
+    MintdAndNip74,
+}
 
 /// Errors raised by the [`MintService`].
 #[derive(Debug, Error)]
@@ -22,6 +38,12 @@ pub enum ServiceError {
     /// Tokio join error.
     #[error("join error: {0}")]
     Join(#[from] tokio::task::JoinError),
+    /// Mintd integration error.
+    #[error("mintd error: {0}")]
+    Mintd(#[from] Box<dyn std::error::Error + Send + Sync>),
+    /// Invalid service mode.
+    #[error("invalid service mode")]
+    InvalidMode,
 }
 
 /// Allow `?` on `SignerError`
@@ -43,74 +65,140 @@ pub trait RequestHandler: Send + Sync + 'static {
 
 /// Mint service – manages relay connections and request processing.
 pub struct MintService {
-    signer: DynSigner,
-    mint_info: MintInfo,
+    mode: ServiceMode,
+    mint_info: cdkMintInfo,
+    lightning_config: LightningConfig,
     relays: Vec<RelayUrl>,
-    handler: Arc<dyn RequestHandler>,
-    client: Client,
-    _task: Option<JoinHandle<()>>, // background listener
+    mintd: Option<MintdIntegration>,
+    mintd_port: u16,
+    client: Option<Client>,
+    _nip74_task: Option<JoinHandle<()>>,
+    signer: Option<Arc<dyn NostrSigner>>,
+    handler: Option<Arc<dyn RequestHandler + Send + Sync>>,
 }
 
 impl MintService {
     /// Create a new service instance.
     pub async fn new<T>(
-        signer: DynSigner,
-        mint_info: MintInfo,
+        mode: ServiceMode,
+        mint_info: cdkMintInfo,
+        lightning_config: LightningConfig,
         relays: T,
-        handler: Arc<dyn RequestHandler>,
+        config_dir: std::path::PathBuf,
+        mintd_port: u16,
     ) -> Result<Self, ServiceError>
     where
         T: IntoIterator<Item = RelayUrl>,
     {
-        let client = Client::new(signer.clone());
+        let (signer, handler, client) = match mode {
+            ServiceMode::MintdOnly => (None, None, None),
+            ServiceMode::Nip74Only | ServiceMode::MintdAndNip74 => {
+                // For NIP-74 modes, we need a signer and handler
+                // These will be set later via set_signer and set_handler
+                (None, None, None)
+            }
+        };
+
+        let mintd = match mode {
+            ServiceMode::MintdOnly | ServiceMode::MintdAndNip74 => {
+                Some(MintdIntegration::new(config_dir.clone(), mintd_port))
+            }
+            ServiceMode::Nip74Only => None,
+        };
+
         Ok(Self {
+            mode,
             signer,
             mint_info,
+            lightning_config,
             relays: relays.into_iter().collect(),
             handler,
             client,
-            _task: None,
+            _nip74_task: None,
+            mintd,
+            mintd_port,
         })
     }
 
-    /// Start the service: connect to relays, broadcast `MintInfo`, spawn request loop.
-    pub async fn start(&mut self) -> Result<(), ServiceError> {
-        for url in &self.relays {
-            self.client.add_relay(url.clone()).await?;
+    /// Set the Nostr signer (required for NIP-74 modes)
+    pub fn set_signer(&mut self, signer: DynSigner) -> Result<(), ServiceError> {
+        match self.mode {
+            ServiceMode::MintdOnly => Err(ServiceError::InvalidMode),
+            ServiceMode::Nip74Only | ServiceMode::MintdAndNip74 => {
+                self.signer = Some(signer);
+                Ok(())
+            }
         }
-        self.client.connect().await;
-        // Wait up to 5 seconds for at least one relay to be connected.
-        self.client.wait_for_connection(std::time::Duration::from_secs(5)).await;
+    }
 
-        // Compose identifier from `name` field or fallback to pubkey slug.
-        let identifier = self
-            .mint_info
-            .name
-            .clone()
-            .unwrap_or_else(|| "mint".to_owned());
+    /// Set the request handler (required for NIP-74 modes)
+    pub fn set_handler(&mut self, handler: Arc<dyn RequestHandler>) -> Result<(), ServiceError> {
+        match self.mode {
+            ServiceMode::MintdOnly => Err(ServiceError::InvalidMode),
+            ServiceMode::Nip74Only | ServiceMode::MintdAndNip74 => {
+                self.handler = Some(handler);
+                Ok(())
+            }
+        }
+    }
 
+    /// Start the service based on the configured mode
+    pub async fn start(&mut self) -> Result<(), ServiceError> {
+        match self.mode {
+            ServiceMode::MintdOnly => self.start_mintd_only().await,
+            ServiceMode::Nip74Only => self.start_nip74_only().await,
+            ServiceMode::MintdAndNip74 => self.start_mintd_and_nip74().await,
+        }
+    }
+
+    /// Start mintd-only mode
+    async fn start_mintd_only(&mut self) -> Result<(), ServiceError> {
+        if let Some(mintd) = &mut self.mintd {
+            mintd.start().await.map_err(|e| ServiceError::Mintd(e.into()))?;
+            tracing::info!("Mintd service started on port {}", self.mintd_port);
+        }
+        Ok(())
+    }
+
+    /// Start NIP-74-only mode
+    async fn start_nip74_only(&mut self) -> Result<(), ServiceError> {
+        let signer = self.signer.as_ref()
+            .ok_or(ServiceError::InvalidMode)?;
+        let handler = self.handler.as_ref()
+            .ok_or(ServiceError::InvalidMode)?;
+
+        let client = Client::new(signer.clone());
+        
+        // Connect to relays
+        for url in &self.relays {
+            client.add_relay(url.clone()).await?;
+        }
+        client.connect().await;
+        client.wait_for_connection(std::time::Duration::from_secs(5)).await;
+
+        // Broadcast MintInfo event
+        let identifier = self.mint_info.name.clone().unwrap_or_else(|| "mint".to_owned());
         let event = build_mint_info_event(
             &self.mint_info,
-            &self.signer,
+            signer,
             &identifier,
             &self.relays,
             "running",
             None,
-        )
-        .await?;
-        self.client.send_event(&event).await?;
+        ).await?;
+        client.send_event(&event).await?;
         tracing::info!(id = %event.id, "MintInfo event sent");
 
-        // Subscribe for OperationRequest events.
+        // Subscribe for OperationRequest events
         let filter = Filter::new().kind(Kind::from(27401u16));
-        let _ = self.client.subscribe(filter, None).await?;
+        let _ = client.subscribe(filter, None).await?;
 
-        // Spawn background task.
-        let signer = self.signer.clone();
-        let handler = self.handler.clone();
-        let client_clone = self.client.clone();
+        // Spawn background NIP-74 listener
+        let signer = signer.clone();
+        let handler = handler.clone();
+        let client_clone = client.clone();
         let mut notifications = client_clone.notifications();
-        self._task = Some(tokio::spawn(async move {
+        self._nip74_task = Some(tokio::spawn(async move {
             while let Ok(notif) = notifications.recv().await {
                 if let RelayPoolNotification::Event { event, .. } = notif {
                     if event.kind != Kind::from(27401u16) { continue; }
@@ -160,16 +248,94 @@ impl MintService {
                 }
             }
         }));
+
+        self.client = Some(client);
+        tracing::info!("NIP-74 service started");
         Ok(())
     }
 
-    /// Stop the service (disconnect relays and cancel background task).
+    /// Start mintd + NIP-74 mode
+    async fn start_mintd_and_nip74(&mut self) -> Result<(), ServiceError> {
+        // Start mintd first
+        if let Some(mintd) = &mut self.mintd {
+            mintd.start().await.map_err(|e| ServiceError::Mintd(e.into()))?;
+            tracing::info!("Mintd service started on port {}", self.mintd_port);
+        }
+
+        // Then start NIP-74 service
+        self.start_nip74_only().await?;
+        
+        tracing::info!("Mintd + NIP-74 service started");
+        Ok(())
+    }
+
+    /// Stop the service
     pub async fn stop(&mut self) -> Result<(), ServiceError> {
-        if let Some(task) = self._task.take() {
+        // Stop NIP-74 task
+        if let Some(task) = self._nip74_task.take() {
             task.abort();
             let _ = task.await;
         }
-        self.client.disconnect().await;
+
+        // Disconnect Nostr client
+        if let Some(client) = &self.client {
+            client.disconnect().await;
+        }
+
+        // Stop mintd
+        if let Some(mintd) = &mut self.mintd {
+            mintd.stop().await.map_err(|e| ServiceError::Mintd(e.into()))?;
+        }
+
+        tracing::info!("Service stopped");
         Ok(())
+    }
+
+    /// Get service status
+    pub fn get_status(&self) -> serde_json::Value {
+        let mintd_running = self.mintd.as_ref().map(|m| m.is_running()).unwrap_or(false);
+        let nip74_running = self._nip74_task.is_some();
+
+        serde_json::json!({
+            "mode": match self.mode {
+                ServiceMode::MintdOnly => "mintd_only",
+                ServiceMode::Nip74Only => "nip74_only", 
+                ServiceMode::MintdAndNip74 => "mintd_and_nip74",
+            },
+            "mintd_running": mintd_running,
+            "nip74_running": nip74_running,
+            "mintd_port": self.mintd_port,
+            "relays": self.relays,
+        })
+    }
+
+    /// Get access URLs
+    pub fn get_access_urls(&self) -> serde_json::Value {
+        let mut urls = serde_json::Map::new();
+        
+        // Add mintd HTTP API URL if running
+        if self.mode != ServiceMode::Nip74Only {
+            urls.insert("http_api".to_string(), 
+                serde_json::Value::String(format!("http://127.0.0.1:{}", self.mintd_port)));
+        }
+
+        // Add NIP-74 info if running
+        if self.mode != ServiceMode::MintdOnly {
+            urls.insert("nip74_relays".to_string(), 
+                serde_json::Value::Array(self.relays.iter().map(|r| serde_json::Value::String(r.to_string())).collect()));
+        }
+
+        serde_json::Value::Object(urls)
+    }
+
+    /// Proxy request to mintd (for mintd modes)
+    pub async fn proxy_request(&self, endpoint: &str, payload: serde_json::Value) -> Result<serde_json::Value, ServiceError> {
+        match &self.mintd {
+            Some(mintd) => {
+                let result = mintd.proxy_request(endpoint, payload).await.map_err(|e| ServiceError::Mintd(e.into()))?;
+                Ok(result)
+            }
+            None => Err(ServiceError::InvalidMode),
+        }
     }
 } 
