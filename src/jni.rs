@@ -215,9 +215,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getMintInfo(
     let java_string = _env.new_string(info_str).unwrap();
     let java_string_ptr = java_string.into_raw();
     
-    unsafe {
-        mint_free_string(info);
-    }
+    mint_free_string(info);
     
     java_string_ptr
 }
@@ -237,9 +235,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getMintStatus(
     let java_string = _env.new_string(status_str).unwrap();
     let java_string_ptr = java_string.into_raw();
     
-    unsafe {
-        mint_free_string(status);
-    }
+    mint_free_string(status);
     
     java_string_ptr
 }
@@ -259,9 +255,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getCurrentAccoun
     let java_string = _env.new_string(account_str).unwrap();
     let java_string_ptr = java_string.into_raw();
     
-    unsafe {
-        mint_free_string(account);
-    }
+    mint_free_string(account);
     
     java_string_ptr
 }
@@ -281,9 +275,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getAccessUrls(
     let java_string = _env.new_string(urls_str).unwrap();
     let java_string_ptr = java_string.into_raw();
     
-    unsafe {
-        mint_free_string(urls);
-    }
+    mint_free_string(urls);
     
     java_string_ptr
 }

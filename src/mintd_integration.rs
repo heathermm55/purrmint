@@ -28,37 +28,80 @@ impl MintdIntegration {
         info!("Starting mintd from path: {:?}", mintd_path);
         info!("Config path: {:?}", self.config_path);
         
-        let mut child = tokio::process::Command::new(&mintd_path)
-            .arg("--config")
-            .arg(&self.config_path)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
+        // On Android, we need to use a different approach due to SELinux restrictions
+        #[cfg(target_os = "android")]
+        {
+            // Try using sh to execute the binary
+            let mut child = tokio::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!("{} --config {}", mintd_path.display(), self.config_path.display()))
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
+            
+            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                error!("Mintd process exited with status: {}", status);
-                
-                // Try to read stderr for more details
-                if let Some(stderr) = child.stderr.take() {
-                    let mut stderr_content = String::new();
-                    if let Ok(_) = tokio::io::AsyncReadExt::read_to_string(&mut tokio::io::BufReader::new(stderr), &mut stderr_content).await {
-                        error!("Mintd stderr: {}", stderr_content);
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    error!("Mintd process exited with status: {}", status);
+                    
+                    // Try to read stderr for more details
+                    if let Some(stderr) = child.stderr.take() {
+                        let mut stderr_content = String::new();
+                        if let Ok(_) = tokio::io::AsyncReadExt::read_to_string(&mut tokio::io::BufReader::new(stderr), &mut stderr_content).await {
+                            error!("Mintd stderr: {}", stderr_content);
+                        }
                     }
+                    
+                    return Err(Box::<dyn std::error::Error + Send + Sync>::from("Failed to start mintd".to_string()));
                 }
-                
-                return Err(Box::<dyn std::error::Error + Send + Sync>::from("Failed to start mintd".to_string()));
+                Ok(None) => {
+                    info!("Mintd process started successfully via sh");
+                    self.child = Some(child);
+                    Ok(())
+                }
+                Err(e) => {
+                    error!("Error checking mintd process: {}", e);
+                    Err(Box::<dyn std::error::Error + Send + Sync>::from(e))
+                }
             }
-            Ok(None) => {
-                info!("Mintd process started successfully");
-                self.child = Some(child);
-                Ok(())
-            }
-            Err(e) => {
-                error!("Error checking mintd process: {}", e);
-                Err(Box::<dyn std::error::Error + Send + Sync>::from(e))
+        }
+        
+        #[cfg(not(target_os = "android"))]
+        {
+            // Standard approach for non-Android platforms
+            let mut child = tokio::process::Command::new(&mintd_path)
+                .arg("--config")
+                .arg(&self.config_path)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
+
+            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    error!("Mintd process exited with status: {}", status);
+                    
+                    // Try to read stderr for more details
+                    if let Some(stderr) = child.stderr.take() {
+                        let mut stderr_content = String::new();
+                        if let Ok(_) = tokio::io::AsyncReadExt::read_to_string(&mut tokio::io::BufReader::new(stderr), &mut stderr_content).await {
+                            error!("Mintd stderr: {}", stderr_content);
+                        }
+                    }
+                    
+                    return Err(Box::<dyn std::error::Error + Send + Sync>::from("Failed to start mintd".to_string()));
+                }
+                Ok(None) => {
+                    info!("Mintd process started successfully");
+                    self.child = Some(child);
+                    Ok(())
+                }
+                Err(e) => {
+                    error!("Error checking mintd process: {}", e);
+                    Err(Box::<dyn std::error::Error + Send + Sync>::from(e))
+                }
             }
         }
     }

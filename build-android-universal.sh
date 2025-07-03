@@ -37,6 +37,11 @@ ANDROID_PROJECT_DIR="purrmint-android"
 echo -e "${BLUE}Cleaning previous builds...${NC}"
 cargo clean
 
+# Clean previous jniLibs directories
+echo -e "${BLUE}Cleaning previous jniLibs...${NC}"
+rm -rf $ANDROID_PROJECT_DIR/app/jniLibs
+rm -rf $ANDROID_PROJECT_DIR/app/src/main/jniLibs
+
 # Build standard version (4KB page size)
 echo -e "${BLUE}Building standard version (4KB page size)...${NC}"
 for i in "${!RUST_TARGETS[@]}"; do

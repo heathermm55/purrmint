@@ -70,11 +70,19 @@ class PurrmintManager(private val context: Context) {
                 inputStream.close()
                 outputStream.close()
                 
-                // Make executable
-                mintdFile.setExecutable(true)
+                // Make executable with full permissions
+                mintdFile.setExecutable(true, true) // true for owner, true for all
+                mintdFile.setReadable(true, true)
+                mintdFile.setWritable(true, true)
                 
                 Log.d(TAG, "Mintd binary extracted to: ${mintdFile.absolutePath}")
+                Log.d(TAG, "File permissions: executable=${mintdFile.canExecute()}, readable=${mintdFile.canRead()}, writable=${mintdFile.canWrite()}")
             } else {
+                // Ensure existing file has correct permissions
+                if (!mintdFile.canExecute()) {
+                    mintdFile.setExecutable(true, true)
+                    Log.d(TAG, "Updated permissions for existing mintd binary")
+                }
                 Log.d(TAG, "Mintd binary already exists: ${mintdFile.absolutePath}")
             }
         } catch (e: Exception) {
