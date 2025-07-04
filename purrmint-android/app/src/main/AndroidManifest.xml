@@ -34,6 +34,11 @@
             </intent-filter>
         </activity>
         
+        <activity
+            android:name="com.purrmint.app.ConfigActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PurrMint" />
+        
         <service
             android:name="com.purrmint.app.PurrmintService"
             android:enabled="true"
