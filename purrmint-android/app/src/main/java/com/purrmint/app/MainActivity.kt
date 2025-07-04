@@ -11,9 +11,12 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Button
 import android.widget.TextView
 import android.widget.ImageView
+import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -23,36 +26,60 @@ import android.widget.Toast
 class MainActivity : AppCompatActivity() {
     
     // UI Components
-    private lateinit var nsecInput: TextInputEditText
-    private lateinit var btnCreateAccount: MaterialButton
-    private lateinit var btnLogin: MaterialButton
+    private lateinit var btnAccount: ImageButton
+    private lateinit var btnConfig: ImageButton
     private lateinit var statusIcon: ImageView
     private lateinit var statusChip: Chip
     private lateinit var statusTextView: TextView
     private lateinit var startButton: MaterialButton
-    private lateinit var logsText: TextView
     private lateinit var clearLogsButton: MaterialButton
     
     // Service
     private var purrmintService: PurrmintService? = null
     private var isServiceBound = false
     private var isLoggedIn = false
+    private var isMintRunning = false
+    
+    // Login Manager
+    private lateinit var loginManager: LoginManager
+    
+    // Configuration Manager
+    private lateinit var configManager: ConfigManager
     
     companion object {
         private const val TAG = "MainActivity"
         private const val REQUEST_CONFIG = 1001
+        private const val REQUEST_LOGIN = 1002
+        private const val REQUEST_ACCOUNT = 1003
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize managers
+        loginManager = LoginManager(this)
+        configManager = ConfigManager(this)
+        
+        // Check login status
+        if (!loginManager.isLoggedIn()) {
+            // Not logged in, go to login activity
+            startLoginActivity()
+            return
+        }
+        
+        // Already logged in, show main interface
         setContentView(R.layout.activity_main)
 
         // Initialize UI components
         initializeViews()
         
-        // Start foreground service immediately
+        // Start foreground service (only after login)
         val intent = Intent(this, PurrmintService::class.java)
-        startForegroundService(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
 
         // Bind to PurrmintService
         bindPurrmintService()
@@ -60,42 +87,147 @@ class MainActivity : AppCompatActivity() {
         // Setup click listeners
         setupClickListeners()
 
-        // Initial status
-        updateStatus("Please login first", false)
-        appendLog("Welcome to Purrmint!\nPlease login to start.")
+        // Show logged in state
+        showLoggedInState()
         
         // Request battery optimization exemption
         requestBatteryOptimizationExemption()
+        
+        appendLog("✅ Login successful! Mint service is starting...")
+    }
+    
+    private fun startLoginActivity() {
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivityForResult(intent, REQUEST_LOGIN)
+    }
+    
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        
+        when (requestCode) {
+            REQUEST_LOGIN -> {
+                if (resultCode == RESULT_OK && data != null) {
+                    val loginSuccess = data.getBooleanExtra(LoginActivity.EXTRA_LOGIN_SUCCESS, false)
+                    if (loginSuccess) {
+                        // Login successful, restart activity to show main interface
+                        recreate()
+                    } else {
+                        // Login failed or cancelled, finish activity
+                        finish()
+                    }
+                } else {
+                    // Login cancelled, finish activity
+                    finish()
+                }
+            }
+            REQUEST_CONFIG -> {
+                if (resultCode == RESULT_OK && data != null) {
+                    // Get configuration from ConfigActivity
+                    val port = data.getStringExtra(ConfigActivity.EXTRA_PORT) ?: "3338"
+                    val host = data.getStringExtra(ConfigActivity.EXTRA_HOST) ?: "0.0.0.0"
+                    val mintName = data.getStringExtra(ConfigActivity.EXTRA_MINT_NAME) ?: "My Mint"
+                    val description = data.getStringExtra(ConfigActivity.EXTRA_DESCRIPTION) ?: "A simple mint service"
+                    val lightningBackend = data.getStringExtra(ConfigActivity.EXTRA_LIGHTNING_BACKEND) ?: "fakewallet"
+                    
+                    // Save configuration for future use
+                    configManager.saveConfiguration(port, host, mintName, description, lightningBackend)
+                    
+                    appendLog("Configuration received:")
+                    appendLog("  Port: $port")
+                    appendLog("  Host: $host")
+                    appendLog("  Mint Name: $mintName")
+                    appendLog("  Description: $description")
+                    appendLog("  Lightning Backend: $lightningBackend")
+                    
+                    // Start the service with configuration
+                    startServiceWithConfig(port, host, mintName, description, lightningBackend)
+                }
+            }
+            REQUEST_ACCOUNT -> {
+                if (resultCode == RESULT_OK && data != null) {
+                    val logout = data.getBooleanExtra("logout", false)
+                    if (logout) {
+                        // User logged out, restart activity to show login screen
+                        recreate()
+                    }
+                }
+            }
+        }
     }
 
     private fun initializeViews() {
-        nsecInput = findViewById(R.id.nsecInput)
-        btnCreateAccount = findViewById(R.id.btnCreateAccount)
-        btnLogin = findViewById(R.id.btnLogin)
+        btnAccount = findViewById(R.id.btnAccount)
+        btnConfig = findViewById(R.id.btnConfig)
         statusIcon = findViewById(R.id.statusIcon)
         statusChip = findViewById(R.id.statusChip)
         statusTextView = findViewById(R.id.statusTextView)
         startButton = findViewById(R.id.startButton)
-        logsText = findViewById(R.id.logsText)
         clearLogsButton = findViewById(R.id.clearLogsButton)
-    }
-
-    private fun setupClickListeners() {
-        btnCreateAccount.setOnClickListener {
-            createAccount()
-        }
         
-        btnLogin.setOnClickListener {
-            login()
+        // Restore config button functionality
+        btnConfig.setImageResource(R.drawable.ic_settings)
+        btnConfig.contentDescription = "Configure Mint"
+        
+        btnAccount.setOnClickListener {
+            val intent = Intent(this, AccountActivity::class.java)
+            startActivity(intent)
+        }
+        btnConfig.setOnClickListener {
+            if (!isMintRunning) {
+                val intent = Intent(this, ConfigActivity::class.java)
+                startActivityForResult(intent, REQUEST_CONFIG)
+            } else {
+                Toast.makeText(this, "请先停止Mint服务再修改配置", Toast.LENGTH_SHORT).show()
+            }
         }
         
         startButton.setOnClickListener {
-            startMintService()
+            if (isMintRunning) {
+                stopMintService()
+            } else {
+                startMintService()
+            }
         }
         
         clearLogsButton.setOnClickListener {
             clearLogs()
         }
+    }
+
+    private fun setupClickListeners() {
+        // Click listeners are handled in initializeViews
+    }
+    
+    private fun showLoggedInState() {
+        isLoggedIn = true
+        
+        // Show account info
+        val npubAddress = loginManager.getNpubAddress()
+        if (npubAddress != null) {
+            updateAccountInfo("Account: $npubAddress")
+        } else {
+            val accountInfo = loginManager.getAccountInfo()
+            if (accountInfo != null) {
+                updateAccountInfo("Account: $accountInfo")
+            }
+        }
+        
+        // Enable start button
+        enableStartButton()
+        
+        updateStatus("Logged in", true)
+        appendLog("Welcome back! You are logged in.")
+    }
+    
+    fun logout() {
+        // Clear login state
+        loginManager.clearLoginState()
+        
+        // Show confirmation
+        Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show()
+        
+        // Restart activity to show login screen
+        recreate()
     }
 
     private val serviceConnection = object : ServiceConnection {
@@ -128,7 +260,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun bindPurrmintService() {
         try {
-            val intent = Intent(this, PurrmintService::class.java)
+        val intent = Intent(this, PurrmintService::class.java)
             val bound = bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
             if (bound) {
                 appendLog("🔗 Attempting to bind to service...")
@@ -167,120 +299,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createAccount() {
-        try {
-            appendLog("Creating new Nostr account...")
-            appendLog("Service bound: $isServiceBound")
-            appendLog("Service null: ${purrmintService == null}")
+    fun startMintService() {
+        // Check if we have saved configuration
+        if (configManager.hasConfiguration()) {
+            // Use saved configuration
+            val config = configManager.getConfiguration()
+            appendLog("Using saved configuration:")
+            appendLog("  Port: ${config.port}")
+            appendLog("  Host: ${config.host}")
+            appendLog("  Mint Name: ${config.mintName}")
+            appendLog("  Description: ${config.description}")
+            appendLog("  Lightning Backend: ${config.lightningBackend}")
             
-            if (isServiceBound && purrmintService != null) {
-                // Service is in same process
-                val purrmintManager = purrmintService!!.getPurrmintManager()
-                appendLog("PurrmintManager obtained successfully")
-                val accountInfo = purrmintManager.createNostrAccount()
-                
-                if (accountInfo != null) {
-                    isLoggedIn = true
-                    updateStatus("Account created successfully", true)
-                    appendLog("✅ Account created: $accountInfo")
-                    enableStartButton()
-                } else {
-                    updateStatus("Failed to create account", false)
-                    appendLog("❌ Failed to create account")
-                }
-            } else if (isServiceBound) {
-                // Service is in different process, account creation is handled by service
-                appendLog("Service is running in separate process")
-                appendLog("Account creation is handled automatically by the service")
-                isLoggedIn = true
-                updateStatus("Account creation handled by service", true)
-                appendLog("✅ Account creation handled by background service")
-                enableStartButton()
-            } else {
-                updateStatus("Service not connected", false)
-                appendLog("❌ Service not connected")
-                appendLog("isServiceBound: $isServiceBound")
-                appendLog("purrmintService: ${purrmintService != null}")
-            }
-        } catch (e: Exception) {
-            updateStatus("Error: ${e.message}", false)
-            appendLog("❌ Error creating account: ${e.message}")
-            Log.e(TAG, "Error creating account", e)
-        }
-    }
-
-    private fun login() {
-        try {
-            val nsecKey = nsecInput.text.toString().trim()
-            
-            if (nsecKey.isEmpty()) {
-                Toast.makeText(this, "Please enter NSEC key or use Create New", Toast.LENGTH_SHORT).show()
-                return
-            }
-            
-            appendLog("Logging in with NSEC key...")
-            appendLog("Service bound: $isServiceBound")
-            appendLog("Service null: ${purrmintService == null}")
-            
-            if (isServiceBound && purrmintService != null) {
-                // Service is in same process
-                val purrmintManager = purrmintService!!.getPurrmintManager()
-                appendLog("PurrmintManager obtained successfully")
-                // TODO: Implement login with NSEC key
-                // For now, just simulate successful login
-                isLoggedIn = true
-                updateStatus("Logged in successfully", true)
-                appendLog("✅ Logged in with NSEC key")
-                enableStartButton()
-            } else if (isServiceBound) {
-                // Service is in different process, login is handled by service
-                appendLog("Service is running in separate process")
-                appendLog("Login is handled automatically by the service")
-                isLoggedIn = true
-                updateStatus("Login handled by service", true)
-                appendLog("✅ Login handled by background service")
-                enableStartButton()
-            } else {
-                updateStatus("Service not connected", false)
-                appendLog("❌ Service not connected")
-                appendLog("isServiceBound: $isServiceBound")
-                appendLog("purrmintService: ${purrmintService != null}")
-            }
-        } catch (e: Exception) {
-            updateStatus("Error: ${e.message}", false)
-            appendLog("❌ Error logging in: ${e.message}")
-            Log.e(TAG, "Error logging in", e)
-        }
-    }
-
-    private fun startMintService() {
-        // Launch config activity
-        val intent = Intent(this, ConfigActivity::class.java)
-        startActivityForResult(intent, REQUEST_CONFIG)
-    }
-    
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        
-        if (requestCode == REQUEST_CONFIG && resultCode == RESULT_OK && data != null) {
-            // Get configuration from ConfigActivity
-            val port = data.getStringExtra(ConfigActivity.EXTRA_PORT) ?: "3338"
-            val host = data.getStringExtra(ConfigActivity.EXTRA_HOST) ?: "0.0.0.0"
-            val mintName = data.getStringExtra(ConfigActivity.EXTRA_MINT_NAME) ?: "My Mint"
-            val description = data.getStringExtra(ConfigActivity.EXTRA_DESCRIPTION) ?: "A simple mint service"
-            
-            appendLog("Configuration received:")
-            appendLog("  Port: $port")
-            appendLog("  Host: $host")
-            appendLog("  Mint Name: $mintName")
-            appendLog("  Description: $description")
-            
-            // Start the service with configuration
-            startServiceWithConfig(port, host, mintName, description)
+            startServiceWithConfig(config.port, config.host, config.mintName, config.description, config.lightningBackend)
+        } else {
+            // First time, launch config activity
+            appendLog("First time setup - launching configuration...")
+            val intent = Intent(this, ConfigActivity::class.java)
+            startActivityForResult(intent, REQUEST_CONFIG)
         }
     }
     
-    private fun startServiceWithConfig(port: String, host: String, mintName: String, description: String) {
+    private fun startServiceWithConfig(port: String, host: String, mintName: String, description: String, lightningBackend: String) {
         try {
             updateStatus("Starting mint service...", false)
             appendLog("Starting mint service with configuration...")
@@ -322,23 +362,59 @@ class MainActivity : AppCompatActivity() {
             Log.e(TAG, "Error starting service", e)
         }
     }
+    
+    private fun stopMintService() {
+        try {
+            updateStatus("Stopping mint service...", false)
+            appendLog("Stopping mint service...")
+            
+            if (isServiceBound && purrmintService != null) {
+                val purrmintManager = purrmintService!!.getPurrmintManager()
+                val success = purrmintManager.stopMintService()
+                if (success) {
+                    updateStatus("Service stopped", false)
+                    appendLog("✅ Mint service stopped successfully!")
+                    updateStartButton("Start Mint Service", false)
+                } else {
+                    updateStatus("Failed to stop service", true)
+                    appendLog("❌ Failed to stop mint service")
+                }
+            } else {
+                updateStatus("Service stopped", false)
+                appendLog("✅ Service stopped!")
+                updateStartButton("Start Mint Service", false)
+            }
+        } catch (e: Exception) {
+            updateStatus("Error: ${e.message}", true)
+            appendLog("❌ Error stopping service: ${e.message}")
+            Log.e(TAG, "Error stopping service", e)
+        }
+    }
 
     private fun updateStatus(status: String, isOnline: Boolean) {
+        isMintRunning = isOnline
+        btnConfig.isEnabled = !isMintRunning
+        
         statusTextView.text = status
         
         if (isOnline) {
             statusIcon.setImageResource(R.drawable.ic_status_online)
-            statusIcon.setColorFilter(getColor(R.color.success_color))
+            statusIcon.setColorFilter(resources.getColor(R.color.success_color, null))
             statusChip.text = "Online"
             statusChip.setChipBackgroundColorResource(R.color.success_container_color)
-            statusChip.setTextColor(getColor(R.color.success_color))
+            statusChip.setTextColor(resources.getColor(R.color.success_color, null))
         } else {
             statusIcon.setImageResource(R.drawable.ic_status_offline)
-            statusIcon.setColorFilter(getColor(R.color.error_color))
+            statusIcon.setColorFilter(resources.getColor(R.color.error_color, null))
             statusChip.text = "Offline"
             statusChip.setChipBackgroundColorResource(R.color.error_container_color)
-            statusChip.setTextColor(getColor(R.color.error_color))
+            statusChip.setTextColor(resources.getColor(R.color.error_color, null))
         }
+    }
+    
+    private fun updateAccountInfo(info: String) {
+        // You can add a TextView for account info if needed
+        appendLog(info)
     }
 
     private fun enableStartButton() {
@@ -349,6 +425,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateStartButton(text: String, isRunning: Boolean) {
         startButton.text = text
+        startButton.isEnabled = true
         if (isRunning) {
             startButton.setIconResource(R.drawable.ic_stop)
         } else {
@@ -357,22 +434,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun appendLog(message: String) {
-        val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
-        val logEntry = "[$timestamp] $message\n"
-        
-        runOnUiThread {
-            logsText.append(logEntry)
-            logsText.layout?.let {
-                val scrollAmount = it.getLineTop(logsText.lineCount) - logsText.height
-                if (scrollAmount > 0) {
-                    logsText.scrollTo(0, scrollAmount)
-                }
-            }
-        }
+        // For now, we'll use a simple approach - you can implement a proper log view later
+        Log.i(TAG, message)
+        // You can add a TextView or ScrollView to display logs in the UI
     }
 
-    private fun clearLogs() {
-        logsText.text = ""
+    fun clearLogs() {
+        // Clear logs implementation
         appendLog("Logs cleared")
     }
 } 

@@ -23,6 +23,7 @@
     <string name="service_control">Service Control</string>
     <string name="service_logs">Service Logs</string>
     <string name="logout">Logout</string>
+    <string name="account_details">Account Details</string>
     
     <!-- Service Control -->
     <string name="start_service">Start Service</string>
