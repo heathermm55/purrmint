@@ -1,4 +1,4 @@
-package com.example.purrmint
+package com.purrmint.app
 
 /**
  * Service mode enumeration for mint service

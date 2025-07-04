@@ -23,7 +23,7 @@ fn java_string_to_rust_string(env: &mut JNIEnv, java_string: JString) -> String 
 
 /// Initialize logging for Android
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_initLogging(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_initLogging(
     _env: JNIEnv,
     _class: JClass,
 ) {
@@ -32,7 +32,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_initLogging(
 
 /// Test the JNI interface
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_testFfi(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_testFfi(
     _env: JNIEnv,
     _class: JClass,
 ) -> jstring {
@@ -54,7 +54,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_testFfi(
 
 /// Create a new Nostr account
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_createAccount(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_createAccount(
     _env: JNIEnv,
     _class: JClass,
 ) -> jstring {
@@ -90,7 +90,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_createAccount(
 
 /// Import an existing Nostr account
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_importAccount(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_importAccount(
     mut _env: JNIEnv,
     _class: JClass,
     secret_key: JString,
@@ -130,7 +130,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_importAccount(
 
 /// Configure the mint service
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_configureMint(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_configureMint(
     mut _env: JNIEnv,
     _class: JClass,
     config_json: JString,
@@ -144,7 +144,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_configureMint(
 
 /// Start the mint service with specified mode
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMintWithMode(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMintWithMode(
     mut _env: JNIEnv,
     _class: JClass,
     mode: jint,
@@ -167,7 +167,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMintWithMod
 
 /// Start the mint service (legacy - uses mintd only mode)
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMint(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMint(
     _env: JNIEnv,
     _class: JClass,
 ) -> jint {
@@ -179,7 +179,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMint(
 
 /// Start the mint service with parameters (Android version)
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMint__Ljava_lang_String_2Ljava_lang_String_2I(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMint__Ljava_lang_String_2Ljava_lang_String_2I(
     mut _env: JNIEnv,
     _class: JClass,
     config_dir: JString,
@@ -207,7 +207,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMint__Ljava
 
 /// Stop the mint service
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_stopMint(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_stopMint(
     _env: JNIEnv,
     _class: JClass,
 ) -> jint {
@@ -219,7 +219,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_stopMint(
 
 /// Get mint status
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getMintStatus(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getMintStatus(
     _env: JNIEnv,
     _class: JClass,
 ) -> jstring {
@@ -239,7 +239,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getMintStatus(
 
 /// Get current Nostr account information
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getCurrentAccount(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getCurrentAccount(
     _env: JNIEnv,
     _class: JClass,
 ) -> jstring {
@@ -259,7 +259,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getCurrentAccoun
 
 /// Get service access URLs
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getAccessUrls(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getAccessUrls(
     _env: JNIEnv,
     _class: JClass,
 ) -> jstring {
@@ -279,7 +279,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getAccessUrls(
 
 /// Start mintd service (legacy function)
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMintd(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMintd(
     mut _env: JNIEnv,
     _class: JClass,
     config_dir: JString,
@@ -294,7 +294,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMintd(
 
 /// Stop mintd service (legacy function)
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_stopMintd(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_stopMintd(
     _env: JNIEnv,
     _class: JClass,
 ) -> jint {
@@ -304,7 +304,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_stopMintd(
 
 /// Check if mintd is running
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_isMintdRunning(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_isMintdRunning(
     _env: JNIEnv,
     _class: JClass,
 ) -> jboolean {
@@ -314,7 +314,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_isMintdRunning(
 
 /// Start mint service with Android-optimized configuration
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMintAndroid(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMintAndroid(
     mut _env: JNIEnv,
     _class: JClass,
     mode: jint,
@@ -347,7 +347,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMintAndroid
 
 /// Generate configuration file (alias for generateAndroidConfig)
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_generateConfig(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_generateConfig(
     mut _env: JNIEnv,
     _class: JClass,
     config_dir: JString,
@@ -371,7 +371,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_generateConfig(
 
 /// Generate Android mintd configuration
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_generateAndroidConfig(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_generateAndroidConfig(
     mut _env: JNIEnv,
     _class: JClass,
     config_dir: JString,
@@ -395,7 +395,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_generateAndroidC
 
 /// Get Android app data directory path
 #[no_mangle]
-pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getAndroidDataDir(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getAndroidDataDir(
     _env: JNIEnv,
     _class: JClass,
 ) -> jstring {

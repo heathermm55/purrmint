@@ -1,4 +1,4 @@
-package com.example.purrmint
+package com.purrmint.app
 
 import android.app.*
 import android.content.Intent

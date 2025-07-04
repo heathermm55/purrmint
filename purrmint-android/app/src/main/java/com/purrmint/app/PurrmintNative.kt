@@ -1,4 +1,4 @@
-package com.example.purrmint
+package com.purrmint.app
 
 import android.content.Context
 import android.util.Log
