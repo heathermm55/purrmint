@@ -1,12 +1,15 @@
 //! PurrMint – high-level Cashu NIP-74 mint service.
 
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
 pub mod types;
 pub mod helpers;
 pub mod service;
 pub mod handler;
 pub mod ffi;
+pub mod config;
 pub mod mintd_service;
-pub mod mintd_jni;
+
 
 #[cfg(feature = "jni-support")]
 pub mod jni;

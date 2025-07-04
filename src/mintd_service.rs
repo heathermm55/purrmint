@@ -18,7 +18,7 @@ use cdk::nuts::{MintVersion, ContactInfo};
 use cdk::types::QuoteTTL;
 use cdk::Bolt11Invoice;
 use cdk_sqlite::MintSqliteDatabase;
-use cdk_mintd::config::{Settings, DatabaseEngine, LnBackend, Info, MintInfo, Ln};
+use crate::config::{Settings, DatabaseEngine, LnBackend, Info, MintInfo, Ln, Database, FakeWallet};
 use cdk_axum::cache::HttpCache;
 
 pub struct MintdService {
@@ -32,7 +32,7 @@ pub struct MintdService {
 
 impl MintdService {
     pub fn new(work_dir: PathBuf) -> Self {
-        let config = Self::create_default_config();
+        let config = Self::create_default_config(None);
         
         Self {
             mint: None,
@@ -44,12 +44,25 @@ impl MintdService {
         }
     }
 
-    fn create_default_config() -> Settings {
+    pub fn new_with_mnemonic(work_dir: PathBuf, mnemonic: String) -> Self {
+        let config = Self::create_default_config(Some(mnemonic));
+        
+        Self {
+            mint: None,
+            shutdown: Arc::new(Notify::new()),
+            work_dir,
+            config,
+            is_running: false,
+            http_server: None,
+        }
+    }
+
+    fn create_default_config(mnemonic: Option<String>) -> Settings {
         let info = Info {
-            url: "http://127.0.0.1:3338/".to_string(),
-            listen_host: "127.0.0.1".to_string(),
+            url: "http://localhost:3338/".to_string(),
+            listen_host: "0.0.0.0".to_string(),
             listen_port: 3338,
-            mnemonic: None,
+            mnemonic,
             signatory_url: None,
             signatory_certs: None,
             input_fee_ppk: None,
@@ -78,7 +91,7 @@ impl MintdService {
             max_melt: 1000000.into(),
         };
 
-        let database = cdk_mintd::config::Database {
+        let database = Database {
             engine: DatabaseEngine::Sqlite,
         };
 
@@ -86,10 +99,7 @@ impl MintdService {
             info,
             mint_info,
             ln,
-            cln: None,
-            lnbits: None,
-            lnd: None,
-            fake_wallet: Some(cdk_mintd::config::FakeWallet {
+            fake_wallet: Some(FakeWallet {
                 supported_units: vec![
                     cdk::nuts::CurrencyUnit::Sat,
                     cdk::nuts::CurrencyUnit::Msat,
@@ -99,10 +109,7 @@ impl MintdService {
                 min_delay_time: 1,
                 max_delay_time: 3,
             }),
-            grpc_processor: None,
             database,
-            mint_management_rpc: None,
-            auth: None,
         }
     }
 
@@ -112,11 +119,18 @@ impl MintdService {
             return Ok(());
         }
 
+        info!("MintdService::start: starting service with work_dir={:?}", self.work_dir);
+        info!("MintdService::start: config mnemonic={:?}", self.config.info.mnemonic);
+
         // Create work directory if it doesn't exist
+        info!("MintdService::start: creating work directory...");
         std::fs::create_dir_all(&self.work_dir)?;
+        info!("MintdService::start: work directory created successfully");
 
         // Build mint based on configuration
+        info!("MintdService::start: building mint...");
         let (mint, mint_info) = self.build_mint().await?;
+        info!("MintdService::start: mint built successfully");
         let mint_arc = Arc::new(mint);
 
         mint_arc.set_mint_info(mint_info.clone()).await?;
@@ -234,12 +248,15 @@ impl MintdService {
 
     async fn build_mint(&self) -> Result<(cdk::mint::Mint, cdk::nuts::MintInfo)> {
         let database_path = self.work_dir.join("mint.db");
+        info!("MintdService::build_mint: creating database at {:?}", database_path);
         
         let database = MintSqliteDatabase::new(database_path).await?;
+        info!("MintdService::build_mint: database created successfully");
 
         let mut mint_builder = MintBuilder::new()
             .with_localstore(Arc::new(database.clone()))
             .with_keystore(Arc::new(database));
+        info!("MintdService::build_mint: mint builder created");
 
         // Configure LN backend
         match self.config.ln.ln_backend {
@@ -306,10 +323,19 @@ impl MintdService {
             }
         }
 
-        // Set seed (for now using a default seed, in production should be configurable)
-        let default_mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-        let mnemonic = bip39::Mnemonic::from_str(default_mnemonic)?;
+        // Set seed from config or use default
+        let mnemonic_str = if let Some(ref mnemonic) = self.config.info.mnemonic {
+            info!("MintdService::build_mint: using mnemonic from config: {}...", &mnemonic[..mnemonic.len().min(20)]);
+            mnemonic.as_str()
+        } else {
+            info!("MintdService::build_mint: no mnemonic in config, using default");
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+        };
+        info!("MintdService::build_mint: parsing mnemonic...");
+        let mnemonic = bip39::Mnemonic::from_str(mnemonic_str)?;
+        info!("MintdService::build_mint: mnemonic parsed successfully, setting seed...");
         mint_builder = mint_builder.with_seed(mnemonic.to_seed_normalized("").to_vec());
+        info!("MintdService::build_mint: seed set successfully");
 
         // Set mint info
         if let Some(long_description) = &self.config.mint_info.description_long {
@@ -336,8 +362,11 @@ impl MintdService {
             .with_name(self.config.mint_info.name.clone())
             .with_description(self.config.mint_info.description.clone());
 
+        info!("MintdService::build_mint: building mint...");
         let mint = mint_builder.build().await?;
+        info!("MintdService::build_mint: mint built successfully, setting mint info...");
         mint.set_mint_info(mint_builder.mint_info.clone()).await?;
+        info!("MintdService::build_mint: mint info set successfully");
         Ok((mint, mint_builder.mint_info.clone()))
     }
 

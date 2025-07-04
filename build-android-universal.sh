@@ -34,8 +34,8 @@ ANDROID_ABIS=("arm64-v8a" "armeabi-v7a" "x86" "x86_64")
 ANDROID_PROJECT_DIR="purrmint-android"
 
 # Clean previous builds
-echo -e "${BLUE}Cleaning previous builds...${NC}"
-cargo clean
+# echo -e "${BLUE}Cleaning previous builds...${NC}"
+# cargo clean
 
 # Clean previous jniLibs directories
 echo -e "${BLUE}Cleaning previous jniLibs...${NC}"

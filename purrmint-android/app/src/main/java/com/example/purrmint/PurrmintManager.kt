@@ -53,71 +53,58 @@ class PurrmintManager(private val context: Context) {
         databaseDir.mkdirs()
         logsDir.mkdirs()
         
-        Log.d(TAG, "Created directories: ${dataDir.absolutePath}")
+        
     }
     
     /**
-     * Extract mintd binary from assets to app internal storage
+     * No longer needed - we use JNI interface directly
+     * This method is kept for compatibility but does nothing
      */
     private fun extractMintdBinary() {
-        try {
-            val mintdFile = File(getDataDir(), "mintd")
-            if (!mintdFile.exists()) {
-                val inputStream = context.assets.open("mintd")
-                val outputStream = mintdFile.outputStream()
-                
-                inputStream.copyTo(outputStream)
-                inputStream.close()
-                outputStream.close()
-                
-                // Make executable with full permissions
-                mintdFile.setExecutable(true, true) // true for owner, true for all
-                mintdFile.setReadable(true, true)
-                mintdFile.setWritable(true, true)
-                
-                Log.d(TAG, "Mintd binary extracted to: ${mintdFile.absolutePath}")
-                Log.d(TAG, "File permissions: executable=${mintdFile.canExecute()}, readable=${mintdFile.canRead()}, writable=${mintdFile.canWrite()}")
-            } else {
-                // Ensure existing file has correct permissions
-                if (!mintdFile.canExecute()) {
-                    mintdFile.setExecutable(true, true)
-                    Log.d(TAG, "Updated permissions for existing mintd binary")
-                }
-                Log.d(TAG, "Mintd binary already exists: ${mintdFile.absolutePath}")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to extract mintd binary", e)
-        }
+        // No longer needed since we removed cdk-mintd dependency
+        // The mint service is now handled directly through JNI
+        
     }
     
     /**
-     * Start mint service
+     * Start mint service using JNI interface
      * @return true if service started successfully
      */
     fun startMintService(): Boolean {
         return try {
             createDirectories()
-            extractMintdBinary()
+            extractMintdBinary() // This now just logs a message
+            
+            // Initialize logging first
+            native.initLogging()
             
             val configDir = getDataDir()
             val mnemonic = DEFAULT_MNEMONIC
             
-            Log.d(TAG, "Starting mint service")
-            Log.d(TAG, "Config directory: $configDir")
-            Log.d(TAG, "Port: $DEFAULT_PORT")
+
             
-            val result = native.startMint(configDir, mnemonic, DEFAULT_PORT)
+            // Start service in background thread to avoid blocking main thread
+            Thread {
+                try {
+                    // Use the Android-specific startMint function with parameters
+                    // Mode 0 = MintdOnly
+                    val result = native.startMintAndroid(0, configDir, mnemonic, DEFAULT_PORT)
+
+                    
+                    when (result) {
+                        0 -> Log.i(TAG, "Mint service started successfully via JNI")
+                        1 -> Log.e(TAG, "Failed to start service: Invalid configuration")
+                        2 -> Log.e(TAG, "Failed to start service: Service already running")
+                        3 -> Log.e(TAG, "Failed to start service: Internal error")
+                        else -> Log.e(TAG, "Failed to start service, unknown error code: $result")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in background thread starting mint service", e)
+                }
+            }.start()
             
-            when (result) {
-                0 -> {
-                    Log.i(TAG, "Mint service started successfully")
-                    true
-                }
-                else -> {
-                    Log.e(TAG, "Failed to start service, error code: $result")
-                    false
-                }
-            }
+            // Return immediately to avoid blocking main thread
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start mint service", e)
             false
@@ -130,7 +117,7 @@ class PurrmintManager(private val context: Context) {
      */
     fun stopMintService(): Boolean {
         return try {
-            Log.d(TAG, "Stopping mint service")
+
             val result = native.stopMint()
             
             if (result == 0) {
@@ -173,6 +160,78 @@ class PurrmintManager(private val context: Context) {
     }
     
     /**
+     * Get device IP address
+     */
+    fun getDeviceIpAddress(): String {
+        return try {
+            val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+            val wifiInfo = wifiManager.connectionInfo
+            val ipAddress = wifiInfo.ipAddress
+            if (ipAddress != 0) {
+                val ip = String.format(
+                    "%d.%d.%d.%d",
+                    ipAddress and 0xff,
+                    ipAddress shr 8 and 0xff,
+                    ipAddress shr 16 and 0xff,
+                    ipAddress shr 24 and 0xff
+                )
+
+                ip
+            } else {
+
+                "127.0.0.1"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get device IP", e)
+            "127.0.0.1"
+        }
+    }
+    
+    /**
+     * Test HTTP connection to mint service
+     * @return true if connection successful
+     */
+    fun testHttpConnection(): Boolean {
+        return try {
+            val deviceIp = getDeviceIpAddress()
+            val url = "http://$deviceIp:3338"
+
+            
+            // First try localhost connection
+            try {
+                val localhostSocket = java.net.Socket()
+                localhostSocket.connect(java.net.InetSocketAddress("127.0.0.1", 3338), 2000)
+                val localhostConnected = localhostSocket.isConnected
+                localhostSocket.close()
+                
+                if (localhostConnected) {
+    
+                    return true
+                }
+            } catch (e: Exception) {
+
+            }
+            
+            // Then try device IP connection
+            try {
+                val socket = java.net.Socket()
+                socket.connect(java.net.InetSocketAddress(deviceIp, 3338), 3000)
+                val connected = socket.isConnected
+                socket.close()
+                
+
+                return connected
+            } catch (e: Exception) {
+                Log.e(TAG, "Device IP connection failed: ${e.message}")
+                return false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "HTTP connection test failed", e)
+            false
+        }
+    }
+    
+    /**
      * Generate configuration file in the sandbox directory
      * @return true if configuration generated successfully
      */
@@ -181,8 +240,7 @@ class PurrmintManager(private val context: Context) {
             val configDir = getDataDir()
             val mnemonic = DEFAULT_MNEMONIC
             
-            Log.d(TAG, "Generating configuration")
-            Log.d(TAG, "Config directory: $configDir")
+
             
             val result = native.generateConfig(configDir, mnemonic, DEFAULT_PORT)
             
@@ -205,7 +263,7 @@ class PurrmintManager(private val context: Context) {
      */
     fun createNostrAccount(): String? {
         return try {
-            Log.d(TAG, "Creating new Nostr account")
+
             val accountJson = native.createAccount()
             if (accountJson != null) {
                 val accountFile = File(getDataDir(), ACCOUNT_FILE_NAME)

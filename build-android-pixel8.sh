@@ -31,8 +31,8 @@ ANDROID_ABI="arm64-v8a"
 ANDROID_PROJECT_DIR="purrmint-android"
 
 # Clean previous builds for this target only
-echo -e "${BLUE}Cleaning previous builds for $RUST_TARGET...${NC}"
-cargo clean --target $RUST_TARGET
+# echo -e "${BLUE}Cleaning previous builds for $RUST_TARGET...${NC}"
+# cargo clean --target $RUST_TARGET
 
 # Clean previous jniLibs directories
 echo -e "${BLUE}Cleaning previous jniLibs...${NC}"

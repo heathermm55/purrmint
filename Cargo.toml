@@ -14,20 +14,20 @@ name = "purrmint"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [build-dependencies]
-cbindgen = "0.24"
+cbindgen = "0.29"
 
 [dependencies]
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
 tracing = { version = "0.1", default-features = false, features = ["attributes", "log"] }
+futures = "0.3"
 
 nostr = { path = "../nostr/crates/nostr", features = ["std", "nip44"] }
 nostr-sdk = { path = "../nostr/crates/nostr-sdk" }
 nostr-connect = { path = "../nostr/crates/nostr-connect" }
 
 cdk = { path = "../cdk/crates/cdk", features = ["mint"] }
-cdk-mintd = { path = "../cdk/crates/cdk-mintd", features = ["fakewallet"] }
 cdk-sqlite = { path = "../cdk/crates/cdk-sqlite", features = ["mint"] }
 cdk-common = { path = "../cdk/crates/cdk-common" }
 cdk-fake-wallet = { path = "../cdk/crates/cdk-fake-wallet" }
@@ -46,11 +46,12 @@ serde_json = "1"
 thiserror = "2"
 anyhow = "1"
 sha2 = "0.10"
-base32 = "0.4"
+base32 = "0.5.1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "rustls-tls-native-roots"] }
 
 # Logging
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+log = "0.4"
 
 rand = "0.9.1"
 uuid = { version = "1.12.1", features = ["v4", "serde"] }
@@ -62,4 +63,4 @@ default = ["jni-support"]
 jni-support = []
 
 [target.'cfg(target_os = "android")'.dependencies]
-android_logger = "0.13" 
+android_logger = "0.15.1" 

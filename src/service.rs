@@ -101,7 +101,31 @@ impl MintService {
 
         let mintd = match mode {
             ServiceMode::MintdOnly | ServiceMode::MintdAndNip74 => {
-                Some(MintdService::new(config_dir.clone()))
+                // Try to read mnemonic from config file, fallback to default
+                let config_file = config_dir.join("mintd.toml");
+                tracing::info!("MintService::new: checking config file at {:?}", config_file);
+                let mnemonic = if let Ok(config_content) = std::fs::read_to_string(&config_file) {
+                    tracing::info!("MintService::new: config file read successfully, size: {} bytes", config_content.len());
+                    // Simple parsing to extract mnemonic
+                    if let Some(mnemonic_line) = config_content.lines().find(|line| line.trim().starts_with("mnemonic = ")) {
+                        if let Some(mnemonic_value) = mnemonic_line.split('=').nth(1) {
+                            let mnemonic = mnemonic_value.trim().trim_matches('"').to_string();
+                            tracing::info!("MintService::new: found mnemonic in config: {}...", &mnemonic[..mnemonic.len().min(20)]);
+                            mnemonic
+                        } else {
+                            tracing::warn!("MintService::new: mnemonic line found but no value, using default");
+                            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
+                        }
+                    } else {
+                        tracing::warn!("MintService::new: no mnemonic line found in config, using default");
+                        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
+                    }
+                } else {
+                    tracing::warn!("MintService::new: failed to read config file, using default mnemonic");
+                    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
+                };
+                tracing::info!("MintService::new: creating MintdService with mnemonic: {}...", &mnemonic[..mnemonic.len().min(20)]);
+                Some(MintdService::new_with_mnemonic(config_dir.clone(), mnemonic))
             }
             ServiceMode::Nip74Only => None,
         };
@@ -315,8 +339,9 @@ impl MintService {
         
         // Add mintd HTTP API URL if running
         if self.mode != ServiceMode::Nip74Only {
+            // Use localhost instead of hardcoded IP
             urls.insert("http_api".to_string(), 
-                serde_json::Value::String(format!("http://127.0.0.1:{}", self.mintd_port)));
+                serde_json::Value::String(format!("http://localhost:{}", self.mintd_port)));
         }
 
         // Add NIP-74 info if running

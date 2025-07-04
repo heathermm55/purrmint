@@ -15,6 +15,7 @@ use tracing::{info, error};
 use crate::service::{MintService, ServiceMode};
 use crate::handler::default::DefaultRequestHandler;
 use crate::lightning::LightningConfig;
+use crate::mintd_service::MintdService;
 
 /// FFI Error codes
 #[repr(C)]
@@ -67,6 +68,40 @@ fn init_globals() {
             NOSTR_ACCOUNT = Some(Arc::new(Mutex::new(None)));
         }
     }
+}
+
+/// Initialize logging for Android
+#[no_mangle]
+pub extern "C" fn mint_init_logging() {
+    // Initialize Android logger for logcat output
+    #[cfg(target_os = "android")]
+    {
+        android_logger::init_once(
+            android_logger::Config::default()
+                .with_max_level(log::LevelFilter::Debug)
+                .with_tag("PurrMint")
+        );
+    }
+    
+    // Also initialize tracing subscriber for non-Android platforms
+    #[cfg(not(target_os = "android"))]
+    {
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| "purrmint=debug,tracing=debug".into()),
+            )
+            .with_target(false)
+            .with_thread_ids(false)
+            .with_thread_names(false)
+            .with_file(false)
+            .with_line_number(false)
+            .init();
+    }
+    
+    info!("PurrMint logging initialized");
+    info!("Log level set to debug");
+    info!("Android logger configured for logcat output");
 }
 
 /// Convert FFI service mode to internal service mode
@@ -197,7 +232,7 @@ pub extern "C" fn mint_start_with_mode(mode: FfiServiceMode, config_dir: *const 
     let config_path = PathBuf::from(config_dir_str);
     let service_mode = ffi_mode_to_service_mode(mode);
     
-    info!("mint_start_with_mode: config_dir={:?}, port={}, mode={:?}", config_path, port, service_mode);
+
     
     // Create mint info (default)
     let mint_info = cdk::nuts::nut06::MintInfo {
@@ -259,19 +294,9 @@ pub extern "C" fn mint_start_with_mode(mode: FfiServiceMode, config_dir: *const 
                         }
                     }
                 }
-                
                 // Start service
                 svc.start().await?;
-                
-                // Store in global state
-                unsafe {
-                    if let Some(service_guard) = MINT_SERVICE.as_ref() {
-                        if let Ok(mut guard) = service_guard.lock() {
-                            *guard = Some(Arc::new(svc));
-                        }
-                    }
-                }
-                
+                futures::future::pending::<()>().await;
                 Ok(())
             }
             Err(e) => Err(e),
@@ -281,7 +306,7 @@ pub extern "C" fn mint_start_with_mode(mode: FfiServiceMode, config_dir: *const 
     match service_result {
         Ok(_) => FfiError::Success,
         Err(e) => {
-            error!("Failed to start mint service: {:?}", e);
+            error!("mint_start_with_mode: Failed to start mint service: {:?}", e);
             FfiError::ServiceError
         }
     }
@@ -290,7 +315,9 @@ pub extern "C" fn mint_start_with_mode(mode: FfiServiceMode, config_dir: *const 
 /// Start the mint service (legacy - uses mintd only mode)
 #[no_mangle]
 pub extern "C" fn mint_start() -> FfiError {
+    info!("mint_start: LEGACY FUNCTION CALLED - this should not be used on Android!");
     // Default to mintd only mode with default config
+    // Note: This function is not used on Android, Android uses mint_start_android instead
     let config_dir = CString::new("/tmp/purrmint").unwrap();
     mint_start_with_mode(FfiServiceMode::MintdOnly, config_dir.as_ptr(), 3338)
 }
@@ -490,8 +517,6 @@ pub extern "C" fn mint_generate_android_config(
     mnemonic: *const c_char,
     port: u16
 ) -> FfiError {
-    info!("mint_generate_android_config: starting with port={}", port);
-    
     if config_dir.is_null() || mnemonic.is_null() {
         error!("mint_generate_android_config: config_dir or mnemonic is null");
         return FfiError::NullPointer;
@@ -506,10 +531,8 @@ pub extern "C" fn mint_generate_android_config(
     }
     
     let config_path = PathBuf::from(config_dir_str);
-    info!("mint_generate_android_config: config_path={:?}", config_path);
     
     // Create config directory if it doesn't exist
-    info!("mint_generate_android_config: creating config directory...");
     if let Err(e) = std::fs::create_dir_all(&config_path) {
         error!("mint_generate_android_config: failed to create config directory: {:?}", e);
         return FfiError::ServiceError;
@@ -518,7 +541,7 @@ pub extern "C" fn mint_generate_android_config(
     // Generate mintd config for Android
     let mintd_config = format!(r#"[info]
 url = "https://purrmint.android/"
-listen_host = "127.0.0.1"
+listen_host = "0.0.0.0"
 listen_port = {}
 mnemonic = "{}"
 
@@ -547,13 +570,11 @@ max_delay_time = 3
     
     // Write config file
     let config_file = config_path.join("mintd.toml");
-    info!("mint_generate_android_config: writing config to {:?}", config_file);
     if let Err(e) = std::fs::write(&config_file, mintd_config) {
         error!("mint_generate_android_config: failed to write config file: {:?}", e);
         return FfiError::ServiceError;
     }
     
-    info!("mint_generate_android_config: config file written successfully");
     FfiError::Success
 }
 
@@ -565,8 +586,6 @@ pub extern "C" fn mint_start_android(
     mnemonic: *const c_char,
     port: u16
 ) -> FfiError {
-    info!("mint_start_android: starting with mode={:?}, port={}", mode, port);
-    
     if config_dir.is_null() || mnemonic.is_null() {
         error!("mint_start_android: config_dir or mnemonic is null");
         return FfiError::NullPointer;
@@ -574,21 +593,16 @@ pub extern "C" fn mint_start_android(
     
     let config_dir_str = unsafe { CStr::from_ptr(config_dir) }.to_str().unwrap_or("");
     let mnemonic_str = unsafe { CStr::from_ptr(mnemonic) }.to_str().unwrap_or("");
-    info!("mint_start_android: config_dir={}, mnemonic={}...", config_dir_str, &mnemonic_str[..mnemonic_str.len().min(10)]);
     
     // Generate Android config first
-    info!("mint_start_android: generating config...");
     let config_result = mint_generate_android_config(config_dir, mnemonic, port);
     if config_result != FfiError::Success {
         error!("mint_start_android: config generation failed with error code: {}", config_result as i32);
         return config_result;
     }
     
-    info!("mint_start_android: config generated successfully, starting service...");
     // Start service with generated config
-    let result = mint_start_with_mode(mode, config_dir, port);
-    info!("mint_start_android: service start result: {}", result as i32);
-    result
+    mint_start_with_mode(mode, config_dir, port)
 }
 
 #[cfg(test)]

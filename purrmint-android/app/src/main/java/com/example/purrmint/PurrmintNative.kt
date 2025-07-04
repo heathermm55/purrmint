@@ -34,7 +34,14 @@ class PurrmintNative {
 
     // Basic FFI functions
     external fun testFfi(): String?
-    external fun startMint(configDir: String, mnemonic: String, port: Int): Int
+    external fun initLogging()
+    
+    // Legacy function (no parameters) - should not be used on Android
+    external fun startMint(): Int
+    
+    // Android-specific function with parameters
+    external fun startMintAndroid(mode: Int, configDir: String, mnemonic: String, port: Int): Int
+    
     external fun stopMint(): Int
     external fun getMintStatus(): String?
     external fun getMintInfo(): String?

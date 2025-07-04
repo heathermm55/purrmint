@@ -37,7 +37,7 @@ impl DefaultRequestHandler {
 
     /// Make HTTP request to mintd
     async fn call_mintd(&self, endpoint: &str, payload: Value) -> Result<Value, Nip74Error> {
-        let url = format!("http://127.0.0.1:{}{}", self.mintd_port, endpoint);
+        let url = format!("http://localhost:{}{}", self.mintd_port, endpoint);
         
         let client = reqwest::Client::new();
         let response = client

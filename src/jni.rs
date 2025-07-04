@@ -8,6 +8,7 @@ use jni::sys::{jint, jstring, jboolean};
 use crate::ffi::{NostrAccount, FfiServiceMode, mint_free_string};
 use std::ptr;
 use serde_json;
+use tracing::info;
 
 
 
@@ -19,6 +20,15 @@ fn java_string_to_rust_string(env: &mut JNIEnv, java_string: JString) -> String 
 }
 
 
+
+/// Initialize logging for Android
+#[no_mangle]
+pub extern "system" fn Java_com_example_purrmint_PurrmintNative_initLogging(
+    _env: JNIEnv,
+    _class: JClass,
+) {
+    crate::ffi::mint_init_logging();
+}
 
 /// Test the JNI interface
 #[no_mangle]
@@ -161,6 +171,8 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMint(
     _env: JNIEnv,
     _class: JClass,
 ) -> jint {
+    info!("JNI startMint (no params): LEGACY FUNCTION - this should not be used!");
+    info!("JNI startMint (no params): Android should call startMint with parameters instead");
     let result = crate::ffi::mint_start();
     result as jint
 }
@@ -177,6 +189,8 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMint__Ljava
     let config_dir_str = java_string_to_rust_string(&mut _env, config_dir);
     let mnemonic_str = java_string_to_rust_string(&mut _env, mnemonic);
     
+
+    
     let config_dir_cstr = CString::new(config_dir_str).unwrap();
     let mnemonic_cstr = CString::new(mnemonic_str).unwrap();
     
@@ -187,6 +201,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_startMint__Ljava
         port as u16,
     );
     
+
     result as jint
 }
 
@@ -217,7 +232,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getMintStatus(
     let java_string = _env.new_string(status_str).unwrap();
     let java_string_ptr = java_string.into_raw();
     
-    mint_free_string(status);
+        mint_free_string(status);
     
     java_string_ptr
 }
@@ -237,7 +252,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getCurrentAccoun
     let java_string = _env.new_string(account_str).unwrap();
     let java_string_ptr = java_string.into_raw();
     
-    mint_free_string(account);
+        mint_free_string(account);
     
     java_string_ptr
 }
@@ -257,7 +272,7 @@ pub extern "system" fn Java_com_example_purrmint_PurrmintNative_getAccessUrls(
     let java_string = _env.new_string(urls_str).unwrap();
     let java_string_ptr = java_string.into_raw();
     
-    mint_free_string(urls);
+        mint_free_string(urls);
     
     java_string_ptr
 }

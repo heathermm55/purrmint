@@ -203,17 +203,43 @@ class MainActivity : AppCompatActivity() {
 
     private fun getAccessUrls() {
         try {
-            infoTextView.text = "Getting access URLs..."
-            logsTextView.text = logsTextView.text.toString() + "Getting access URLs...\n"
+            infoTextView.text = "Testing HTTP connection..."
+            logsTextView.text = logsTextView.text.toString() + "Testing HTTP connection to mint service...\n"
             
-            // For now, just show a placeholder
-            val urls = "{\"http\":\"http://127.0.0.1:3338\",\"nip74\":\"nostr://...\"}"
-            infoTextView.text = "Access URLs: $urls"
+            // Run network test in background thread
+            Thread {
+                try {
+                    val connectionSuccessful = purrmintManager.testHttpConnection()
+                    
+                    // Update UI on main thread
+                    runOnUiThread {
+                        if (connectionSuccessful) {
+                            val deviceIp = purrmintManager.getDeviceIpAddress()
+                            val urls = "{\"http\":\"http://$deviceIp:3338\",\"nip74\":\"nostr://...\",\"status\":\"connected\"}"
+                            infoTextView.text = "✅ HTTP connection successful!"
+                            logsTextView.text = logsTextView.text.toString() + "✅ HTTP connection to http://$deviceIp:3338 successful!\n"
+                            logsTextView.text = logsTextView.text.toString() + "URLs: $urls\n"
+                        } else {
+                            val deviceIp = purrmintManager.getDeviceIpAddress()
+                            val urls = "{\"http\":\"http://$deviceIp:3338\",\"nip74\":\"nostr://...\",\"status\":\"failed\"}"
+                            infoTextView.text = "❌ HTTP connection failed"
+                            logsTextView.text = logsTextView.text.toString() + "❌ HTTP connection to http://$deviceIp:3338 failed!\n"
             logsTextView.text = logsTextView.text.toString() + "URLs: $urls\n"
+                        }
+                    }
+                } catch (e: Exception) {
+                    runOnUiThread {
+                        infoTextView.text = "Error: ${e.message}"
+                        logsTextView.text = logsTextView.text.toString() + "Error testing HTTP connection: ${e.message}\n"
+                        Log.e(TAG, "Error testing HTTP connection", e)
+                    }
+                }
+            }.start()
+            
         } catch (e: Exception) {
             infoTextView.text = "Error: ${e.message}"
-            logsTextView.text = logsTextView.text.toString() + "Error getting URLs: ${e.message}\n"
-            Log.e(TAG, "Error getting URLs", e)
+            logsTextView.text = logsTextView.text.toString() + "Error testing HTTP connection: ${e.message}\n"
+            Log.e(TAG, "Error testing HTTP connection", e)
         }
     }
 
