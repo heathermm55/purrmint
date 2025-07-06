@@ -4,3 +4,4 @@
 /purrmint-android/app/.cxx
 /purrmint-android/.idea
 export-android-env.sh
+purrmint-android/local.properties
