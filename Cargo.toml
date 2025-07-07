@@ -32,6 +32,7 @@ cdk-sqlite = { path = "../cdk/crates/cdk-sqlite", features = ["mint"] }
 cdk-common = { path = "../cdk/crates/cdk-common" }
 cdk-fake-wallet = { path = "../cdk/crates/cdk-fake-wallet" }
 cdk-lnbits = { path = "../cdk/crates/cdk-lnbits" }
+cdk-cln = { path = "../cdk/crates/cdk-cln" }
 cdk-axum = { path = "../cdk/crates/cdk-axum" }
 
 # HTTP server dependencies - use compatible versions with cdk

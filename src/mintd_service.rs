@@ -17,7 +17,7 @@ use cdk::mint::{MintBuilder, MintMeltLimits};
 use cdk::types::QuoteTTL;
 use cdk::Bolt11Invoice;
 use cdk_sqlite::MintSqliteDatabase;
-use crate::config::{Settings, DatabaseEngine, LnBackend, Info, MintInfo, Ln, Database, FakeWallet, AndroidConfig, LNbits};
+use crate::config::{Settings, DatabaseEngine, LnBackend, Info, MintInfo, Ln, Database, FakeWallet, AndroidConfig, LNbits, Cln};
 use cdk_axum::cache::HttpCache;
 
 pub struct MintdService {
@@ -140,6 +140,7 @@ impl MintdService {
                 max_delay_time: 3,
             }),
             lnbits: None,
+            cln: None,
             database,
             service_mode: crate::config::ServiceMode::MintdOnly,
         }
@@ -192,6 +193,7 @@ impl MintdService {
             ln,
             fake_wallet: None,
             lnbits: None,
+            cln: None,
             database,
             service_mode: crate::config::ServiceMode::MintdOnly,
         };
@@ -227,6 +229,20 @@ impl MintdService {
                 } else {
                     // Fallback to default if LNBits config is incomplete
                     settings.lnbits = Some(LNbits::default());
+                }
+            }
+            "cln" => {
+                // Use CLN configuration from Android config
+                if let Some(rpc_path) = &android_config.cln_rpc_path {
+                    settings.cln = Some(Cln {
+                        rpc_path: rpc_path.clone(),
+                        bolt12: android_config.cln_bolt12.unwrap_or(false),
+                        fee_percent: 0.02,
+                        reserve_fee_min: 1.into(),
+                    });
+                } else {
+                    // Fallback to default if CLN config is incomplete
+                    settings.cln = Some(Cln::default());
                 }
             }
             _ => {
@@ -437,6 +453,32 @@ impl MintdService {
                             self.config.ln.max_mint.into(),
                         ),
                         Arc::new(lnbits.clone()),
+                    )
+                    .await?;
+            }
+        }
+
+        // Configure CLN backend
+        if let Some(cln_config) = &self.config.cln {
+            let fee_reserve = cdk::types::FeeReserve {
+                min_fee_reserve: cln_config.reserve_fee_min,
+                percent_fee_reserve: cln_config.fee_percent,
+            };
+            
+            let cln = cdk_cln::Cln::new(cln_config.rpc_path.clone().into(), fee_reserve).await?;
+
+            // Add CLN backend for supported units
+            let supported_units = vec![cdk::nuts::CurrencyUnit::Sat, cdk::nuts::CurrencyUnit::Msat];
+            for unit in supported_units {
+                mint_builder = mint_builder
+                    .add_ln_backend(
+                        unit,
+                        cdk::nuts::PaymentMethod::Bolt11,
+                        MintMeltLimits::new(
+                            self.config.ln.min_mint.into(),
+                            self.config.ln.max_mint.into(),
+                        ),
+                        Arc::new(cln.clone()),
                     )
                     .await?;
             }

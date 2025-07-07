@@ -52,9 +52,7 @@ pub enum LnBackend {
     None,
     FakeWallet,
     LNbits,
-    #[cfg(feature = "cln")]
     Cln,
-    #[cfg(feature = "lnd")]
     Lnd,
 }
 
@@ -123,6 +121,25 @@ impl Default for LNbits {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Cln {
+    pub rpc_path: String,
+    pub bolt12: bool,
+    pub fee_percent: f32,
+    pub reserve_fee_min: Amount,
+}
+
+impl Default for Cln {
+    fn default() -> Self {
+        Self {
+            rpc_path: String::new(),
+            bolt12: false,
+            fee_percent: 0.02,
+            reserve_fee_min: 2.into(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum DatabaseEngine {
@@ -155,6 +172,7 @@ pub struct Settings {
     pub ln: Ln,
     pub fake_wallet: Option<FakeWallet>,
     pub lnbits: Option<LNbits>,
+    pub cln: Option<Cln>,
     pub database: Database,
     pub service_mode: ServiceMode,
 }
@@ -177,6 +195,8 @@ pub struct AndroidConfig {
     pub lnbits_admin_api_key: Option<String>,
     pub lnbits_invoice_api_key: Option<String>,
     pub lnbits_api_url: Option<String>,
+    pub cln_rpc_path: Option<String>,
+    pub cln_bolt12: Option<bool>,
 }
 
 impl Default for AndroidConfig {
@@ -193,6 +213,8 @@ impl Default for AndroidConfig {
             lnbits_admin_api_key: None,
             lnbits_invoice_api_key: None,
             lnbits_api_url: None,
+            cln_rpc_path: None,
+            cln_bolt12: None,
         }
     }
 }
@@ -237,6 +259,7 @@ impl Settings {
             ln,
             fake_wallet: Some(FakeWallet::default()),
             lnbits: None,
+            cln: None,
             database,
             service_mode: ServiceMode::default(),
         }
@@ -260,10 +283,7 @@ impl AndroidConfig {
         settings.ln.ln_backend = match self.lightning_backend.as_str() {
             "fake" | "fakewallet" => LnBackend::FakeWallet,
             "lnbits" => LnBackend::LNbits,
-            #[cfg(feature = "cln")]
             "cln" => LnBackend::Cln,
-            #[cfg(feature = "lnd")]
-            "lnd" => LnBackend::Lnd,
             _ => LnBackend::None,
         };
         
@@ -287,6 +307,19 @@ impl AndroidConfig {
                         reserve_fee_min: 1.into(),
                     });
                     // Clear fake wallet config when using LNBits
+                    settings.fake_wallet = None;
+                }
+            }
+            "cln" => {
+                // Set CLN configuration
+                if let Some(rpc_path) = &self.cln_rpc_path {
+                    settings.cln = Some(Cln {
+                        rpc_path: rpc_path.clone(),
+                        bolt12: self.cln_bolt12.unwrap_or(false),
+                        fee_percent: 0.02,
+                        reserve_fee_min: 1.into(),
+                    });
+                    // Clear fake wallet config when using CLN
                     settings.fake_wallet = None;
                 }
             }
@@ -372,6 +405,14 @@ impl AndroidConfig {
         
         if let Some(lnbits_api_url) = update.get("lnbitsApiUrl").and_then(|u| u.as_str()) {
             self.lnbits_api_url = Some(lnbits_api_url.to_string());
+        }
+        
+        if let Some(cln_rpc_path) = update.get("clnRpcPath").and_then(|p| p.as_str()) {
+            self.cln_rpc_path = Some(cln_rpc_path.to_string());
+        }
+        
+        if let Some(cln_bolt12) = update.get("clnBolt12").and_then(|b| b.as_bool()) {
+            self.cln_bolt12 = Some(cln_bolt12);
         }
         
         Ok(())
