@@ -2,7 +2,6 @@
 //! Provides Nostr key generation and conversion utilities
 
 use std::ffi::{CStr, CString};
-use std::ptr;
 use std::str::FromStr;
 use std::os::raw::c_char;
 use nostr::{Keys, ToBech32};

@@ -14,7 +14,6 @@ use tower_http::trace::TraceLayer;
 use uuid::Uuid;
 
 use cdk::mint::{MintBuilder, MintMeltLimits};
-use cdk::nuts::{MintVersion, ContactInfo};
 use cdk::types::QuoteTTL;
 use cdk::Bolt11Invoice;
 use cdk_sqlite::MintSqliteDatabase;
@@ -77,7 +76,7 @@ impl MintdService {
 
     /// Generate 64-byte seed from nsec (Nostr private key)
     fn generate_seed_from_nsec(nsec: &str) -> Result<Vec<u8>> {
-        use sha2::{Digest, Sha512};
+        use sha2::Digest;
         use nostr::{FromBech32, SecretKey};
         
         // Convert nsec to 32-byte private key
@@ -376,7 +375,7 @@ impl MintdService {
         Ok(response)
     }
 
-    pub async fn get_melt_quote(&self, amount: u64, unit: &str, invoice: &str) -> Result<cdk::nuts::MeltQuoteBolt11Response<uuid::Uuid>> {
+    pub async fn get_melt_quote(&self, _amount: u64, unit: &str, invoice: &str) -> Result<cdk::nuts::MeltQuoteBolt11Response<uuid::Uuid>> {
         let mint = self.mint.as_ref().ok_or_else(|| anyhow!("Mint not available"))?;
         
         let currency_unit = match unit.to_lowercase().as_str() {

@@ -1,12 +1,10 @@
 //! Core functionality for PurrMint
 //! Internal module containing shared functions for Android integration
 
-use std::ffi::CString;
-use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
-
+use std::ffi::{CString, c_char};
 use serde_json::json;
-use tracing::{info, warn, error};
+use tracing::{info, error};
 
 use crate::config::AndroidConfig;
 use crate::nostr::{NostrAccount, nsec_to_npub as nostr_nsec_to_npub};

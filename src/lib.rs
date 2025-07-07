@@ -1,29 +1,20 @@
 //! PurrMint – high-level Cashu NIP-74 mint service.
 
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 pub mod nip74_service;
 pub mod service;
-pub mod core;
-pub mod config;
 pub mod mintd_service;
-pub mod nostr;
-
-#[cfg(feature = "jni-support")]
 pub mod jni;
+pub mod core;
+pub mod nostr;
+pub mod config;
 
-// NIP-74 service types and functions
-pub use nip74_service::{
-    Nip74Error, Nip74Result, ResultStatus, ResultError, OperationMethod, 
-    OperationRequest, OperationResult, new_request_id, build_mint_info_event,
-    DefaultRequestHandler, DefaultMintHandler
-};
+// Re-export key types
+pub use service::MintService;
+pub use core::*;
+pub use config::*;
+pub use nip74_service::*;
 
-// Service types and functions
-pub use service::{ServiceError, MintService};
-pub use nip74_service::RequestHandler;
-
-// Configuration types
-pub use config::ServiceMode;
-
-pub use cdk::nuts::nut06::MintInfo; 
+/// Initialize logging for the library
+pub fn init_logging() {
+    tracing_subscriber::fmt::init();
+} 
