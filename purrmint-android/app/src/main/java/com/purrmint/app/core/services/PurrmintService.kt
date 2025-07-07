@@ -41,7 +41,7 @@ class PurrmintService : Service() {
         // Start mint service in background thread
         Thread {
             try {
-                purrmintManager.startMintService()
+                purrmintManager.startMintServiceWithSavedNsec()
                 Log.i(TAG, "Mint service started successfully")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start mint service", e)

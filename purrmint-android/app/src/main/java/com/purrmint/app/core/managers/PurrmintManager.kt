@@ -83,13 +83,23 @@ class PurrmintManager(private val context: Context) {
      */
     fun generateDefaultConfig(): String? {
         return try {
-            val config = native.generateDefaultAndroidConfig()
-            if (config != null) {
-                Log.i(TAG, "Default configuration generated")
-            } else {
-                Log.e(TAG, "Failed to generate default configuration")
-            }
-            config
+            // Generate default config with correct Android paths
+            val dataDir = getDataDir()
+            val defaultConfig = mapOf(
+                "port" to 3338,
+                "host" to "0.0.0.0",
+                "mint_name" to "PurrMint",
+                "description" to "Mobile Cashu Mint",
+                "lightning_backend" to "fakewallet",
+                "mode" to "mintd_only",
+                "database_path" to "$dataDir/mint.db",
+                "logs_path" to "$dataDir/logs"
+            )
+            
+            // Convert to JSON string
+            val json = org.json.JSONObject(defaultConfig).toString()
+            Log.i(TAG, "Default configuration generated with paths: db=$dataDir/mint.db, logs=$dataDir/logs")
+            json
         } catch (e: Exception) {
             Log.e(TAG, "Error generating default configuration", e)
             null
@@ -181,13 +191,19 @@ class PurrmintManager(private val context: Context) {
     
     /**
      * Start mint service
-     * @param nsec Optional nsec key for mint service
+     * @param nsec REQUIRED nsec key for mint service
      * @return true if service started successfully
      */
-    fun startMintService(nsec: String? = null): Boolean {
+    fun startMintService(nsec: String): Boolean {
         return try {
             createDirectories()
             initLogging()
+            
+            // Validate nsec
+            if (nsec.isEmpty()) {
+                Log.e(TAG, "Cannot start mint service: nsec is required")
+                return false
+            }
             
             // Load or generate configuration
             val config = loadConfigFromFile() ?: generateDefaultConfig()
@@ -196,24 +212,44 @@ class PurrmintManager(private val context: Context) {
                 return false
             }
             
-            // Start service in background thread
-            Thread {
-                try {
-                    val result = native.startMintWithConfig(config, nsec ?: "")
-                    val success = result == 0  // 0 = success in Rust
-                    if (success) {
-                        Log.i(TAG, "Mint service started successfully")
-                    } else {
-                        Log.e(TAG, "Failed to start mint service")
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error in background thread starting mint service", e)
-                }
-            }.start()
+            Log.i(TAG, "Starting mint service with nsec: ***provided***")
             
-            true
+            // Start service with the nsec
+            val result = native.startMintWithConfig(config, nsec)
+            val success = result == 0  // 0 = success in Rust
+            
+            if (success) {
+                Log.i(TAG, "Mint service started successfully")
+            } else {
+                Log.e(TAG, "Failed to start mint service - result code: $result")
+            }
+            
+            success
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start mint service", e)
+            false
+        }
+    }
+    
+    /**
+     * Start mint service using saved nsec from SharedPreferences
+     * @return true if service started successfully
+     */
+    fun startMintServiceWithSavedNsec(): Boolean {
+        return try {
+            // Get saved nsec from SharedPreferences directly
+            val prefs = context.getSharedPreferences("PurrmintLoginPrefs", Context.MODE_PRIVATE)
+            val savedNsec = prefs.getString("nsec_key", null)
+            
+            if (savedNsec != null && savedNsec.isNotEmpty()) {
+                Log.i(TAG, "Found saved nsec, starting mint service")
+                startMintService(savedNsec)
+            } else {
+                Log.e(TAG, "No saved nsec found, cannot start mint service")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start mint service with saved nsec", e)
             false
         }
     }

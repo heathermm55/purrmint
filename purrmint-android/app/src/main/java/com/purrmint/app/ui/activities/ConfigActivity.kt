@@ -153,15 +153,29 @@ class ConfigActivity : AppCompatActivity() {
     }
     
     private fun loadDefaultValues() {
-        // Load default values or previously saved values
-        portInput.setText("3338")
-        hostInput.setText("0.0.0.0")
-        mintNameInput.setText("My Mint")
-        descriptionInput.setText("A simple mint service")
+        // Try to load existing configuration first
+        val configManager = com.purrmint.app.core.managers.ConfigManager(this)
+        val existingConfig = configManager.loadConfiguration()
         
-        // Set default lightning backend
-        lightningBackendSpinner.setText("fakewallet", false)
-        updateLightningConfigVisibility("fakewallet")
+        if (existingConfig != null) {
+            // Load existing configuration
+            portInput.setText(existingConfig.port.toString())
+            hostInput.setText(existingConfig.host)
+            mintNameInput.setText(existingConfig.mintName)
+            descriptionInput.setText(existingConfig.description)
+            lightningBackendSpinner.setText(existingConfig.lightningBackend, false)
+            updateLightningConfigVisibility(existingConfig.lightningBackend)
+        } else {
+            // Load default values
+            portInput.setText("3338")
+            hostInput.setText("0.0.0.0")
+            mintNameInput.setText("My Mint")
+            descriptionInput.setText("A simple mint service")
+            
+            // Set default lightning backend
+            lightningBackendSpinner.setText("fakewallet", false)
+            updateLightningConfigVisibility("fakewallet")
+        }
     }
     
     private fun startService() {

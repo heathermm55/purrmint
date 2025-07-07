@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusTextView: TextView
     private lateinit var startButton: MaterialButton
     private lateinit var clearLogsButton: MaterialButton
+    private lateinit var logsText: TextView
     
     // Service
     private var purrmintService: PurrmintService? = null
@@ -97,7 +98,15 @@ class MainActivity : AppCompatActivity() {
         // Request battery optimization exemption
         requestBatteryOptimizationExemption()
         
-        appendLog("✅ Login successful! Mint service is starting...")
+        // Clear default logs text and show welcome message
+        runOnUiThread {
+            logsText.text = ""
+        }
+        appendLog("Welcome to Purrmint!")
+        appendLog("✅ Login successful!")
+        
+        // Check initial state and show appropriate UI
+        checkInitialState()
     }
     
     private fun startLoginActivity() {
@@ -167,6 +176,7 @@ class MainActivity : AppCompatActivity() {
         statusTextView = findViewById(R.id.statusTextView)
         startButton = findViewById(R.id.startButton)
         clearLogsButton = findViewById(R.id.clearLogsButton)
+        logsText = findViewById(R.id.logsText)
         
         // Restore config button functionality
         btnConfig.setImageResource(R.drawable.ic_settings)
@@ -189,7 +199,23 @@ class MainActivity : AppCompatActivity() {
             if (isMintRunning) {
                 stopMintService()
             } else {
-                startMintService()
+                // Check if we have configuration
+                if (configManager.hasConfiguration()) {
+                    startMintService()
+                } else {
+                    // No configuration - generate default config and launch config activity
+                    appendLog("📝 Generating default configuration...")
+                    val success = configManager.generateAndSaveDefaultConfig()
+                    if (success) {
+                        appendLog("✅ Default configuration generated")
+                        appendLog("📝 Opening configuration page for customization...")
+                        val intent = Intent(this, ConfigActivity::class.java)
+                        startActivityForResult(intent, REQUEST_CONFIG)
+                    } else {
+                        appendLog("❌ Failed to generate default configuration")
+                        Toast.makeText(this, "Failed to generate default configuration", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
         
@@ -207,13 +233,18 @@ class MainActivity : AppCompatActivity() {
         
         // Show account info
         val npubAddress = loginManager.getNpubAddress()
+        val nsecKey = loginManager.getNsecKey()
+        val accountInfo = loginManager.getAccountInfo()
+        
+        appendLog("🔐 Login state debug:")
+        appendLog("  - NPUB: ${npubAddress ?: "Not found"}")
+        appendLog("  - NSEC: ${if (nsecKey != null) "[Present]" else "Not found"}")
+        appendLog("  - Account Info: ${accountInfo ?: "Not found"}")
+        
         if (npubAddress != null) {
             updateAccountInfo("Account: $npubAddress")
-        } else {
-            val accountInfo = loginManager.getAccountInfo()
-            if (accountInfo != null) {
-                updateAccountInfo("Account: $accountInfo")
-            }
+        } else if (accountInfo != null) {
+            updateAccountInfo("Account: $accountInfo")
         }
         
         // Enable start button
@@ -317,10 +348,9 @@ class MainActivity : AppCompatActivity() {
             
             startServiceWithConfig(config.host, config.port, config.mintName, config.description, config.lightningBackend)
         } else {
-            // First time, launch config activity
-            appendLog("First time setup - launching configuration...")
-            val intent = Intent(this, ConfigActivity::class.java)
-            startActivityForResult(intent, REQUEST_CONFIG)
+            // No configuration exists - this should not happen as we generate config first
+            appendLog("❌ No configuration found - please create a new mint first")
+            Toast.makeText(this, "Please create a new mint first", Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -334,6 +364,13 @@ class MainActivity : AppCompatActivity() {
                 
                 // Get current account's nsec for service
                 val nsec = loginManager.getNsecKey()
+                
+                // Validate that we have an nsec
+                if (nsec == null || nsec.isEmpty()) {
+                    appendLog("❌ No nsec key found - please login first")
+                    updateStatus("No nsec key found", false)
+                    return
+                }
                 
                 // Auto-generate config if not exists
                 if (!purrmintManager.configExists()) {
@@ -451,13 +488,58 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun appendLog(message: String) {
-        // For now, we'll use a simple approach - you can implement a proper log view later
         Log.i(TAG, message)
-        // You can add a TextView or ScrollView to display logs in the UI
+        
+        // Update UI on main thread
+        runOnUiThread {
+            val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+            val logEntry = "[$timestamp] $message\n"
+            logsText.append(logEntry)
+            
+            // Auto-scroll to bottom
+            logsText.layout?.let {
+                val scrollView = logsText.parent as? android.widget.ScrollView
+                scrollView?.fullScroll(android.view.View.FOCUS_DOWN)
+            }
+        }
     }
 
     fun clearLogs() {
-        // Clear logs implementation
+        runOnUiThread {
+            logsText.text = ""
+        }
         appendLog("Logs cleared")
+    }
+
+    private fun checkInitialState() {
+        // Check if configuration exists
+        if (!configManager.hasConfiguration()) {
+            // No configuration exists - show "Create New Mint" state
+            updateStatus("No configuration", false)
+            updateStartButton("Create New Mint", false)
+            appendLog("📝 No configuration found - please create a new mint")
+        } else {
+            // Configuration exists - check if service is running
+            updateStatus("Configuration ready", false)
+            updateStartButton("Start Mint Service", false)
+            appendLog("✅ Configuration found - ready to start mint service")
+            
+            // Check if service is actually running
+            if (isServiceBound && purrmintService != null) {
+                val purrmintManager = purrmintService!!.getPurrmintManager()
+                val status = purrmintManager.getServiceStatus()
+                try {
+                    val statusJson = org.json.JSONObject(status)
+                    val isRunning = statusJson.optString("status") == "running"
+                    if (isRunning) {
+                        updateStatus("Service is running", true)
+                        updateStartButton("Stop Service", true)
+                        appendLog("✅ Mint service is already running")
+                    }
+                } catch (e: Exception) {
+                    appendLog("⚠️ Could not check service status: ${e.message}")
+                }
+            }
+        }
     }
 } 
