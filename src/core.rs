@@ -266,6 +266,83 @@ pub fn free_string(s: *mut c_char) {
     }
 }
 
+/// Start Android service with configuration (async version for testing)
+pub async fn start_android_service_async(config: &AndroidConfig, nsec: &str) -> Result<(), String> {
+    if nsec.is_empty() {
+        return Err("nsec is empty".to_string());
+    }
+    
+    // Validate database path
+    let config_path = std::path::Path::new(&config.database_path)
+        .parent()
+        .ok_or_else(|| "Invalid database path: no parent directory".to_string())?
+        .to_path_buf();
+    
+    // Create config directory if it doesn't exist
+    if let Err(e) = std::fs::create_dir_all(&config_path) {
+        return Err(format!("Failed to create config directory: {:?}", e));
+    }
+    
+    info!("Starting Android service with config: port={}, mode={}", config.port, config.mode);
+    
+    init_globals();
+    
+    // Create MintdService with nsec
+    let mut mint_service = MintdService::new_with_nsec(config_path, nsec.to_string());
+    
+    // Start the service
+    match mint_service.start().await {
+        Ok(()) => {
+            info!("MintdService started successfully");
+            
+            // Store the running service in global state
+            unsafe {
+                if let Some(service_guard) = MINT_SERVICE.as_ref() {
+                    if let Ok(mut guard) = service_guard.lock() {
+                        *guard = Some(mint_service);
+                    }
+                }
+            }
+            
+            Ok(())
+        }
+        Err(e) => {
+            error!("Failed to start MintdService: {:?}", e);
+            Err(format!("Failed to start MintdService: {:?}", e))
+        }
+    }
+}
+
+/// Stop mint service (async version for testing)
+pub async fn stop_service_async() -> Result<(), String> {
+    init_globals();
+    
+    unsafe {
+        if let Some(service_guard) = MINT_SERVICE.as_ref() {
+            if let Ok(mut guard) = service_guard.lock() {
+                if let Some(mut service) = guard.take() {
+                    match service.stop().await {
+                        Ok(()) => {
+                            info!("Service stopped successfully");
+                            Ok(())
+                        }
+                        Err(e) => {
+                            error!("Failed to stop service: {:?}", e);
+                            Err(format!("Failed to stop service: {:?}", e))
+                        }
+                    }
+                } else {
+                    Err("No service to stop".to_string())
+                }
+            } else {
+                Err("Failed to lock service guard".to_string())
+            }
+        } else {
+            Err("Service not initialized".to_string())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
