@@ -1,4 +1,4 @@
-package com.purrmint.app
+package com.purrmint.app.ui.activities
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -9,9 +9,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.purrmint.app.R
+import com.purrmint.app.core.managers.LoginManager
+import com.purrmint.app.core.services.PurrmintService
 import org.json.JSONObject
 
 class AccountActivity : AppCompatActivity() {

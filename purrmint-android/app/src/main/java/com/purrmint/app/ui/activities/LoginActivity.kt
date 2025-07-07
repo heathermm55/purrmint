@@ -1,4 +1,4 @@
-package com.purrmint.app
+package com.purrmint.app.ui.activities
 
 import android.content.ComponentName
 import android.content.Context
@@ -14,6 +14,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.purrmint.app.R
+import com.purrmint.app.core.managers.LoginManager
+import com.purrmint.app.core.services.PurrmintService
 
 class LoginActivity : AppCompatActivity() {
     
@@ -115,82 +118,24 @@ class LoginActivity : AppCompatActivity() {
         try {
             showStatus("Creating new Nostr account...")
             
-            if (isServiceBound && purrmintService != null) {
-                // Service is in same process
-                val purrmintManager = purrmintService!!.getPurrmintManager()
-                val accountInfo = purrmintManager.createNostrAccount()
+            // Use LoginManager to create account
+            val success = loginManager.createNewAccount()
+            
+            if (success) {
+                // Start the service
+                startPurrmintService()
                 
-                if (accountInfo != null) {
-                    // Save login state
-                    loginManager.saveNewAccountState(accountInfo)
-                    
-                    // Start the service
-                    startPurrmintService()
-                    
-                    // Return success
-                    val resultIntent = Intent().apply {
-                        putExtra(EXTRA_LOGIN_SUCCESS, true)
-                        putExtra(EXTRA_ACCOUNT_INFO, accountInfo)
-                    }
-                    setResult(RESULT_OK, resultIntent)
-                    finish()
-                } else {
-                    showStatus("Failed to create account")
-                    Toast.makeText(this, "Failed to create account", Toast.LENGTH_SHORT).show()
+                // Return success
+                val accountInfo = loginManager.getAccountInfo()
+                val resultIntent = Intent().apply {
+                    putExtra(EXTRA_LOGIN_SUCCESS, true)
+                    putExtra(EXTRA_ACCOUNT_INFO, accountInfo)
                 }
-            } else if (isServiceBound) {
-                // Service is in different process, account creation is handled by service
-                showStatus("Account creation handled by service")
-                
-                // Try to get account info from service
-                try {
-                    val accountInfo = purrmintService?.getPurrmintManager()?.createNostrAccount()
-                    if (accountInfo != null) {
-                        loginManager.saveNewAccountState(accountInfo)
-                        
-                        // Start the service
-                        startPurrmintService()
-                        
-                        val resultIntent = Intent().apply {
-                            putExtra(EXTRA_LOGIN_SUCCESS, true)
-                            putExtra(EXTRA_ACCOUNT_INFO, accountInfo)
-                        }
-                        setResult(RESULT_OK, resultIntent)
-                        finish()
-                    } else {
-                        // Fallback to simulated account
-                        val fallbackAccountInfo = "{\"npub\":\"npub1placeholder\",\"nsec\":\"nsec1placeholder\"}"
-                        loginManager.saveNewAccountState(fallbackAccountInfo)
-                        
-                        // Start the service
-                        startPurrmintService()
-                        
-                        val resultIntent = Intent().apply {
-                            putExtra(EXTRA_LOGIN_SUCCESS, true)
-                            putExtra(EXTRA_ACCOUNT_INFO, fallbackAccountInfo)
-                        }
-                        setResult(RESULT_OK, resultIntent)
-                        finish()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error creating account via service", e)
-                    // Fallback to simulated account
-                    val fallbackAccountInfo = "{\"npub\":\"npub1placeholder\",\"nsec\":\"nsec1placeholder\"}"
-                    loginManager.saveNewAccountState(fallbackAccountInfo)
-                    
-                    // Start the service
-                    startPurrmintService()
-                    
-                    val resultIntent = Intent().apply {
-                        putExtra(EXTRA_LOGIN_SUCCESS, true)
-                        putExtra(EXTRA_ACCOUNT_INFO, fallbackAccountInfo)
-                    }
-                    setResult(RESULT_OK, resultIntent)
-                    finish()
-                }
+                setResult(RESULT_OK, resultIntent)
+                finish()
             } else {
-                showStatus("Service not connected")
-                Toast.makeText(this, "Service not connected", Toast.LENGTH_SHORT).show()
+                showStatus("Failed to create account")
+                Toast.makeText(this, "Failed to create account", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
             showStatus("Error: ${e.message}")
@@ -210,54 +155,24 @@ class LoginActivity : AppCompatActivity() {
             
             showStatus("Logging in...")
             
-            if (isServiceBound && purrmintService != null) {
-                // Service is in same process
-                val purrmintManager = purrmintService!!.getPurrmintManager()
-                
-                // TODO: Implement actual login validation with NSEC key
-                // For now, just simulate successful login
-                val accountInfo = "Logged in with NSEC key"
-                
-                // Save login state
-                loginManager.saveLoginState(nsecKey, accountInfo)
-                
+            // Use LoginManager to login with NSEC
+            val success = loginManager.loginWithNsec(nsecKey)
+            
+            if (success) {
                 // Start the service
                 startPurrmintService()
                 
                 // Return success
+                val accountInfo = loginManager.getAccountInfo()
                 val resultIntent = Intent().apply {
                     putExtra(EXTRA_LOGIN_SUCCESS, true)
                     putExtra(EXTRA_ACCOUNT_INFO, accountInfo)
                 }
                 setResult(RESULT_OK, resultIntent)
                 finish()
-            } else if (isServiceBound) {
-                // Service is in different process, login is handled by service
-                showStatus("Login handled by service")
-                
-                // Try to validate NSEC key and get account info
-                try {
-                    // For now, create a simple account info with the provided NSEC
-                    val accountInfo = "{\"npub\":\"npub1fromnsec\",\"nsec\":\"$nsecKey\"}"
-                    loginManager.saveLoginState(nsecKey, accountInfo)
-                    
-                    // Start the service
-                    startPurrmintService()
-                    
-                    val resultIntent = Intent().apply {
-                        putExtra(EXTRA_LOGIN_SUCCESS, true)
-                        putExtra(EXTRA_ACCOUNT_INFO, accountInfo)
-                    }
-                    setResult(RESULT_OK, resultIntent)
-                    finish()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error logging in via service", e)
-                    showStatus("Error: ${e.message}")
-                    Toast.makeText(this, "Error logging in: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
             } else {
-                showStatus("Service not connected")
-                Toast.makeText(this, "Service not connected", Toast.LENGTH_SHORT).show()
+                showStatus("Login failed - Invalid NSEC key")
+                Toast.makeText(this, "Login failed - Invalid NSEC key", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
             showStatus("Error: ${e.message}")

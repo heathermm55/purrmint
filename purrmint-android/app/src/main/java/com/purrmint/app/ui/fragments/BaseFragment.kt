@@ -1,4 +1,4 @@
-package com.purrmint.app.fragments
+package com.purrmint.app.ui.fragments
 
 import android.os.Bundle
 import android.view.LayoutInflater

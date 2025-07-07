@@ -1,11 +1,15 @@
-package com.purrmint.app
+package com.purrmint.app.core.services
 
 import android.app.*
 import android.content.Intent
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.purrmint.app.R
+import com.purrmint.app.core.managers.PurrmintManager
+import com.purrmint.app.ui.activities.MainActivity
 
 class PurrmintService : Service() {
     companion object {
@@ -64,20 +68,23 @@ class PurrmintService : Service() {
     }
     
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "PurrMint Service",
-            NotificationManager.IMPORTANCE_MIN
-        ).apply {
-            description = "Keeps PurrMint service running in background"
-            setShowBadge(false)
-            enableLights(false)
-            enableVibration(false)
-            setSound(null, null)
+        // Only create notification channel for API 26+ (Android 8.0+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "PurrMint Service",
+                NotificationManager.IMPORTANCE_MIN
+            ).apply {
+                description = "Keeps PurrMint service running in background"
+                setShowBadge(false)
+                enableLights(false)
+                enableVibration(false)
+                setSound(null, null)
+            }
+            
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
         }
-        
-        val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.createNotificationChannel(channel)
     }
     
     private fun createMinimalNotification(): Notification {

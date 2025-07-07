@@ -1,4 +1,4 @@
-package com.purrmint.app
+package com.purrmint.app.ui.activities
 
 import android.content.ComponentName
 import android.content.Context
@@ -22,6 +22,10 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.chip.Chip
 import android.widget.Toast
+import com.purrmint.app.R
+import com.purrmint.app.core.managers.LoginManager
+import com.purrmint.app.core.managers.ConfigManager
+import com.purrmint.app.core.services.PurrmintService
 
 class MainActivity : AppCompatActivity() {
     
@@ -123,14 +127,14 @@ class MainActivity : AppCompatActivity() {
             REQUEST_CONFIG -> {
                 if (resultCode == RESULT_OK && data != null) {
                     // Get configuration from ConfigActivity
-                    val port = data.getStringExtra(ConfigActivity.EXTRA_PORT) ?: "3338"
+                    val port = data.getStringExtra(ConfigActivity.EXTRA_PORT)?.toIntOrNull() ?: 3338
                     val host = data.getStringExtra(ConfigActivity.EXTRA_HOST) ?: "0.0.0.0"
                     val mintName = data.getStringExtra(ConfigActivity.EXTRA_MINT_NAME) ?: "My Mint"
                     val description = data.getStringExtra(ConfigActivity.EXTRA_DESCRIPTION) ?: "A simple mint service"
                     val lightningBackend = data.getStringExtra(ConfigActivity.EXTRA_LIGHTNING_BACKEND) ?: "fakewallet"
                     
                     // Save configuration for future use
-                    configManager.saveConfiguration(port, host, mintName, description, lightningBackend)
+                    configManager.saveConfiguration(host, port, mintName, description, lightningBackend)
                     
                     appendLog("Configuration received:")
                     appendLog("  Port: $port")
@@ -140,7 +144,7 @@ class MainActivity : AppCompatActivity() {
                     appendLog("  Lightning Backend: $lightningBackend")
                     
                     // Start the service with configuration
-                    startServiceWithConfig(port, host, mintName, description, lightningBackend)
+                    startServiceWithConfig(host, port, mintName, description, lightningBackend)
                 }
             }
             REQUEST_ACCOUNT -> {
@@ -311,7 +315,7 @@ class MainActivity : AppCompatActivity() {
             appendLog("  Description: ${config.description}")
             appendLog("  Lightning Backend: ${config.lightningBackend}")
             
-            startServiceWithConfig(config.port, config.host, config.mintName, config.description, config.lightningBackend)
+            startServiceWithConfig(config.host, config.port, config.mintName, config.description, config.lightningBackend)
         } else {
             // First time, launch config activity
             appendLog("First time setup - launching configuration...")
@@ -320,7 +324,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun startServiceWithConfig(port: String, host: String, mintName: String, description: String, lightningBackend: String) {
+    private fun startServiceWithConfig(host: String, port: Int, mintName: String, description: String, lightningBackend: String) {
         try {
             updateStatus("Starting mint service...", false)
             appendLog("Starting mint service with configuration...")
@@ -328,19 +332,32 @@ class MainActivity : AppCompatActivity() {
             if (isServiceBound && purrmintService != null) {
                 val purrmintManager = purrmintService!!.getPurrmintManager()
                 
+                // Get current account's nsec for service
+                val nsec = loginManager.getNsecKey()
+                
                 // Auto-generate config if not exists
                 if (!purrmintManager.configExists()) {
-                    appendLog("Generating config...")
-                    purrmintManager.generateConfig()
+                    appendLog("Generating default config...")
+                    val success = configManager.generateAndSaveDefaultConfig()
+                    if (!success) {
+                        appendLog("❌ Failed to generate default config")
+                        updateStatus("Failed to generate config", false)
+                        return
+                    }
                 }
                 
                 // Auto-generate Nostr account if not exists
                 if (!purrmintManager.accountExists()) {
                     appendLog("Creating Nostr account...")
-                    purrmintManager.createNostrAccount()
+                    val account = purrmintManager.createNostrAccount()
+                    if (account == null) {
+                        appendLog("❌ Failed to create Nostr account")
+                        updateStatus("Failed to create account", false)
+                        return
+                    }
                 }
 
-                val success = purrmintManager.startMintService()
+                val success = purrmintManager.startMintService(nsec)
                 if (success) {
                     updateStatus("Service is running", true)
                     appendLog("✅ Mint service started successfully!")

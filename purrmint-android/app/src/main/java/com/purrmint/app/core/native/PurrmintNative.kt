@@ -1,12 +1,12 @@
-package com.purrmint.app
+package com.purrmint.app.core.native
 
 import android.content.Context
 import android.util.Log
 import java.io.File
 
 /**
- * Simplified native interface for PurrMint
- * Provides basic FFI calls to Rust library
+ * Native interface for PurrMint
+ * Provides JNI calls to Rust library
  */
 class PurrmintNative {
     companion object {
@@ -32,20 +32,23 @@ class PurrmintNative {
         }
     }
 
-    // Basic FFI functions
-    external fun testFfi(): String?
+    // Basic initialization
     external fun initLogging()
     
-    // Legacy function (no parameters) - should not be used on Android
-    external fun startMint(): Int
+    // Nostr account management
+    external fun createNostrAccount(): String?
+    external fun convertNsecToNpub(nsec: String): String?
     
-    // Android-specific function with parameters
-    external fun startMintAndroid(mode: Int, configDir: String, mnemonic: String, port: Int): Int
+    // Configuration management
+    external fun generateAndroidConfig(): String?
+    external fun saveConfigToFile(config: String, filePath: String): Boolean
+    external fun loadConfigFromFile(filePath: String): String?
     
-    external fun stopMint(): Int
-    external fun getMintStatus(): String?
-    external fun getMintInfo(): String?
-    external fun generateConfig(configDir: String, mnemonic: String, port: Int): Int
-    external fun createAccount(): String?
-    external fun getCurrentAccount(): String?
+    // Service management
+    external fun startService(config: String, nsec: String?): Boolean
+    external fun stopService(): Boolean
+    external fun getServiceStatus(): String?
+    
+    // Memory management
+    external fun freeString(ptr: Long)
 } 

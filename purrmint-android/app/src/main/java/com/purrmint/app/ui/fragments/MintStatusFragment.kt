@@ -1,4 +1,4 @@
-package com.purrmint.app
+package com.purrmint.app.ui.fragments
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,6 +9,8 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import android.widget.ImageView
+import com.purrmint.app.R
+import com.purrmint.app.ui.activities.MainActivity
 
 class MintStatusFragment : Fragment() {
     
