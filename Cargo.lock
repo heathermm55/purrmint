@@ -2450,6 +2450,7 @@ dependencies = [
  "sha2",
  "thiserror 2.0.12",
  "tokio",
+ "toml",
  "tower",
  "tower-http",
  "tracing",

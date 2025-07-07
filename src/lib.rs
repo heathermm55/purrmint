@@ -14,7 +14,7 @@ pub mod mintd_service;
 #[cfg(feature = "jni-support")]
 pub mod jni;
 
-pub mod lightning;
+// lightning module merged into config.rs
 
 pub use types::*;
 pub use helpers::*;

@@ -11,7 +11,7 @@ use crate::{OperationRequest, OperationResult, Nip74Result, Nip74Error};
 use crate::helpers::build_mint_info_event;
 use crate::mintd_service::MintdService;
 use cdk::nuts::nut06::MintInfo as cdkMintInfo;
-use crate::lightning::LightningConfig;
+use crate::config::LightningConfig;
 use nostr::signer::NostrSigner;
 use nostr::{Filter, Kind, RelayUrl};
 
@@ -101,29 +101,32 @@ impl MintService {
 
         let mintd = match mode {
             ServiceMode::MintdOnly | ServiceMode::MintdAndNip74 => {
-                // Try to read mnemonic from config file, fallback to default
+                // Try to read mnemonic from config file using the new config management
                 let config_file = config_dir.join("mintd.toml");
                 tracing::info!("MintService::new: checking config file at {:?}", config_file);
-                let mnemonic = if let Ok(config_content) = std::fs::read_to_string(&config_file) {
-                    tracing::info!("MintService::new: config file read successfully, size: {} bytes", config_content.len());
-                    // Simple parsing to extract mnemonic
-                    if let Some(mnemonic_line) = config_content.lines().find(|line| line.trim().starts_with("mnemonic = ")) {
-                        if let Some(mnemonic_value) = mnemonic_line.split('=').nth(1) {
-                            let mnemonic = mnemonic_value.trim().trim_matches('"').to_string();
-                            tracing::info!("MintService::new: found mnemonic in config: {}...", &mnemonic[..mnemonic.len().min(20)]);
-                            mnemonic
-                        } else {
-                            tracing::warn!("MintService::new: mnemonic line found but no value, using default");
+                
+                let mnemonic = if config_file.exists() {
+                    match crate::config::Settings::load_from_file(&config_file) {
+                        Ok(settings) => {
+                            tracing::info!("MintService::new: config file loaded successfully");
+                            if let Some(mnemonic) = settings.info.mnemonic {
+                                tracing::info!("MintService::new: found mnemonic in config: {}...", &mnemonic[..mnemonic.len().min(20)]);
+                                mnemonic
+                            } else {
+                                tracing::warn!("MintService::new: no mnemonic in config, using default");
+                                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
+                            }
+                        },
+                        Err(e) => {
+                            tracing::warn!("MintService::new: failed to parse config file: {:?}, using default mnemonic", e);
                             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
                         }
-                    } else {
-                        tracing::warn!("MintService::new: no mnemonic line found in config, using default");
-                        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
                     }
                 } else {
-                    tracing::warn!("MintService::new: failed to read config file, using default mnemonic");
+                    tracing::warn!("MintService::new: config file not found, using default mnemonic");
                     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
                 };
+                
                 tracing::info!("MintService::new: creating MintdService with mnemonic: {}...", &mnemonic[..mnemonic.len().min(20)]);
                 Some(MintdService::new_with_mnemonic(config_dir.clone(), mnemonic))
             }

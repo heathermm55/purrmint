@@ -4,22 +4,23 @@
 use std::ffi::{CStr, CString};
 use jni::JNIEnv;
 use jni::objects::{JClass, JString};
-use jni::sys::{jint, jstring, jboolean};
+use jni::sys::{jint, jstring};
 use crate::ffi::{NostrAccount, FfiServiceMode, mint_free_string};
+use crate::config::{AndroidConfig, Settings};
 use std::ptr;
 use serde_json;
 use tracing::info;
-
-
-
-
+use nostr::{Keys, ToBech32};
+use std::str::FromStr;
 
 /// Convert Java string to Rust string
 fn java_string_to_rust_string(env: &mut JNIEnv, java_string: JString) -> String {
     env.get_string(&java_string).unwrap().into()
 }
 
-
+// =============================================================================
+// Basic functionality interfaces
+// =============================================================================
 
 /// Initialize logging for Android
 #[no_mangle]
@@ -30,29 +31,11 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_initLogging(
     crate::ffi::mint_init_logging();
 }
 
-/// Test the JNI interface
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_testFfi(
-    _env: JNIEnv,
-    _class: JClass,
-) -> jstring {
-    let result = crate::ffi::mint_test_ffi();
-    if result.is_null() {
-        return ptr::null_mut();
-    }
-    
-    let result_str = unsafe { CStr::from_ptr(result) }.to_str().unwrap_or("{}");
-    let java_string = _env.new_string(result_str).unwrap();
-    let java_string_ptr = java_string.into_raw();
-    
-    unsafe {
-        mint_free_string(result);
-    }
-    
-    java_string_ptr
-}
+// =============================================================================
+// Nostr account management interfaces
+// =============================================================================
 
-/// Create a new Nostr account
+/// Create a new Nostr account and return nsec
 #[no_mangle]
 pub extern "system" fn Java_com_purrmint_app_PurrmintNative_createAccount(
     _env: JNIEnv,
@@ -63,22 +46,20 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_createAccount(
         return ptr::null_mut();
     }
     
-    // Convert account to JSON string
+    // Convert account to nsec format
     unsafe {
         let account_ptr = account as *const NostrAccount;
         let account_ref = &*account_ptr;
         
-        let pubkey_str = CStr::from_ptr(account_ref.pubkey).to_str().unwrap_or("");
         let secret_str = CStr::from_ptr(account_ref.secret_key).to_str().unwrap_or("");
         
-        let account_json = serde_json::json!({
-            "pubkey": pubkey_str,
-            "secretKey": secret_str,
-            "isImported": account_ref.is_imported
-        });
+        // Parse the secret key to convert to bech32 format
+        let nsec = match Keys::from_str(secret_str) {
+            Ok(keys) => keys.secret_key().to_bech32().unwrap_or_else(|_| secret_str.to_string()),
+            Err(_) => secret_str.to_string(),
+        };
         
-        let json_str = serde_json::to_string(&account_json).unwrap();
-        let java_string = _env.new_string(json_str).unwrap();
+        let java_string = _env.new_string(nsec).unwrap();
         let java_string_ptr = java_string.into_raw();
         
         // Free the account
@@ -88,120 +69,168 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_createAccount(
     }
 }
 
-/// Import an existing Nostr account
+/// Convert nsec to npub
 #[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_importAccount(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_nsecToNpub(
     mut _env: JNIEnv,
     _class: JClass,
-    secret_key: JString,
+    nsec: JString,
 ) -> jstring {
-    let secret_key_str = java_string_to_rust_string(&mut _env, secret_key);
-    let secret_key_cstr = CString::new(secret_key_str).unwrap();
+    let nsec_str = java_string_to_rust_string(&mut _env, nsec);
     
-    let account = crate::ffi::nostr_import_account(secret_key_cstr.as_ptr());
-    if account.is_null() {
-        return ptr::null_mut();
-    }
-    
-    // Convert account to JSON string
-    unsafe {
-        let account_ptr = account as *const NostrAccount;
-        let account_ref = &*account_ptr;
-        
-        let pubkey_str = CStr::from_ptr(account_ref.pubkey).to_str().unwrap_or("");
-        let secret_str = CStr::from_ptr(account_ref.secret_key).to_str().unwrap_or("");
-        
-        let account_json = serde_json::json!({
-            "pubkey": pubkey_str,
-            "secretKey": secret_str,
-            "isImported": account_ref.is_imported
-        });
-        
-        let json_str = serde_json::to_string(&account_json).unwrap();
-        let java_string = _env.new_string(json_str).unwrap();
-        let java_string_ptr = java_string.into_raw();
-        
-        // Free the account
-        crate::ffi::nostr_free_account(account);
-        
-        java_string_ptr
+    match Keys::from_str(&nsec_str) {
+        Ok(keys) => {
+            match keys.public_key().to_bech32() {
+                Ok(npub) => {
+                    let java_string = _env.new_string(npub).unwrap();
+                    java_string.into_raw()
+                },
+                Err(_) => ptr::null_mut(),
+            }
+        },
+        Err(_) => ptr::null_mut(),
     }
 }
 
-/// Configure the mint service
+// =============================================================================
+// Configuration interfaces
+// =============================================================================
+
+/// Load configuration, return default Android config object
 #[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_configureMint(
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_loadConfig(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jstring {
+    // Use the new AndroidConfig from config.rs
+    let default_config = AndroidConfig::default();
+    
+    match default_config.to_json() {
+        Ok(json_str) => {
+            let java_string = _env.new_string(json_str).unwrap();
+            java_string.into_raw()
+        },
+        Err(_) => {
+            // Fallback to empty JSON object
+            let java_string = _env.new_string("{}").unwrap();
+            java_string.into_raw()
+        }
+    }
+}
+
+/// Update configuration and return updated config object
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_updateConfig(
     mut _env: JNIEnv,
     _class: JClass,
     config_json: JString,
+) -> jstring {
+    let config_str = java_string_to_rust_string(&mut _env, config_json);
+    
+    // Start with default config
+    let mut android_config = AndroidConfig::default();
+    
+    // Update with provided JSON
+    if let Err(_) = android_config.update_from_json(&config_str) {
+        // If update fails, try to parse as new config
+        match AndroidConfig::from_json(&config_str) {
+            Ok(new_config) => android_config = new_config,
+            Err(_) => {
+                // If all parsing fails, return original string
+                let java_string = _env.new_string(config_str).unwrap();
+                return java_string.into_raw();
+            }
+        }
+    }
+    
+    // Return updated config as JSON
+    match android_config.to_json() {
+        Ok(json_str) => {
+            let java_string = _env.new_string(json_str).unwrap();
+            java_string.into_raw()
+        },
+        Err(_) => {
+            // Fallback to original string
+            let java_string = _env.new_string(config_str).unwrap();
+            java_string.into_raw()
+        }
+    }
+}
+
+// =============================================================================
+// Service start/stop interfaces
+// =============================================================================
+
+/// Start mint service with configuration and nsec
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMintWithConfig(
+    mut _env: JNIEnv,
+    _class: JClass,
+    config_json: JString,
+    nsec: JString,
 ) -> jint {
     let config_str = java_string_to_rust_string(&mut _env, config_json);
-    let config_cstr = CString::new(config_str).unwrap();
+    let nsec_str = java_string_to_rust_string(&mut _env, nsec);
     
-    let result = crate::ffi::mint_configure(config_cstr.as_ptr());
-    result as jint
-}
-
-/// Start the mint service with specified mode
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMintWithMode(
-    mut _env: JNIEnv,
-    _class: JClass,
-    mode: jint,
-    config_dir: JString,
-    port: jint,
-) -> jint {
-    let config_dir_str = java_string_to_rust_string(&mut _env, config_dir);
-    let config_dir_cstr = CString::new(config_dir_str).unwrap();
-    
-    let ffi_mode = match mode {
-        0 => FfiServiceMode::MintdOnly,
-        1 => FfiServiceMode::Nip74Only,
-        2 => FfiServiceMode::MintdAndNip74,
-        _ => FfiServiceMode::MintdOnly, // Default to mintd only
+    // Parse Android configuration
+    let android_config = match AndroidConfig::from_json(&config_str) {
+        Ok(config) => config,
+        Err(_) => {
+            tracing::error!("Failed to parse Android config JSON");
+            return 1; // Invalid configuration
+        }
     };
     
-    let result = crate::ffi::mint_start_with_mode(ffi_mode, config_dir_cstr.as_ptr(), port as u16);
-    result as jint
-}
-
-/// Start the mint service (legacy - uses mintd only mode)
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMint(
-    _env: JNIEnv,
-    _class: JClass,
-) -> jint {
-    info!("JNI startMint (no params): LEGACY FUNCTION - this should not be used!");
-    info!("JNI startMint (no params): Android should call startMint with parameters instead");
-    let result = crate::ffi::mint_start();
-    result as jint
-}
-
-/// Start the mint service with parameters (Android version)
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMint__Ljava_lang_String_2Ljava_lang_String_2I(
-    mut _env: JNIEnv,
-    _class: JClass,
-    config_dir: JString,
-    mnemonic: JString,
-    port: jint,
-) -> jint {
-    let config_dir_str = java_string_to_rust_string(&mut _env, config_dir);
-    let mnemonic_str = java_string_to_rust_string(&mut _env, mnemonic);
+    // Extract configuration parameters
+    let port = android_config.port;
+    let mode_str = &android_config.mode;
+    let data_dir = std::path::Path::new(&android_config.database_path)
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("/data/data/com.purrmint.app/files"));
     
-
+    // Convert nsec to mnemonic or derive mnemonic from nsec
+    // For now, we'll use a default mnemonic but this should be derived from nsec
+    let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
     
-    let config_dir_cstr = CString::new(config_dir_str).unwrap();
-    let mnemonic_cstr = CString::new(mnemonic_str).unwrap();
+    // Generate TOML configuration using the new config management
+    match Settings::generate_android_config(data_dir, mnemonic, port) {
+        Ok(toml_content) => {
+            // Write TOML config file
+            let config_file = data_dir.join("mintd.toml");
+            if let Err(e) = std::fs::create_dir_all(data_dir) {
+                tracing::error!("Failed to create config directory: {:?}", e);
+                return 2;
+            }
+            
+            if let Err(e) = std::fs::write(&config_file, toml_content) {
+                tracing::error!("Failed to write config file: {:?}", e);
+                return 3;
+            }
+        },
+        Err(e) => {
+            tracing::error!("Failed to generate Android config: {:?}", e);
+            return 4;
+        }
+    }
+    
+    // Parse mode
+    let ffi_mode = match mode_str.as_str() {
+        "MintdOnly" => FfiServiceMode::MintdOnly,
+        "Nip74Only" => FfiServiceMode::Nip74Only,
+        "MintdAndNip74" => FfiServiceMode::MintdAndNip74,
+        _ => FfiServiceMode::MintdOnly,
+    };
+    
+    let config_dir_cstr = CString::new(data_dir.to_string_lossy().as_ref()).unwrap();
+    let mnemonic_cstr = CString::new(mnemonic).unwrap();
     
     let result = crate::ffi::mint_start_android(
-        crate::ffi::FfiServiceMode::MintdOnly,
+        ffi_mode,
         config_dir_cstr.as_ptr(),
         mnemonic_cstr.as_ptr(),
-        port as u16,
+        port,
     );
     
-
     result as jint
 }
 
@@ -215,7 +244,9 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_stopMint(
     result as jint
 }
 
-
+// =============================================================================
+// Status query interfaces
+// =============================================================================
 
 /// Get mint status
 #[no_mangle]
@@ -232,175 +263,9 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getMintStatus(
     let java_string = _env.new_string(status_str).unwrap();
     let java_string_ptr = java_string.into_raw();
     
+    unsafe {
         mint_free_string(status);
-    
-    java_string_ptr
-}
-
-/// Get current Nostr account information
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getCurrentAccount(
-    _env: JNIEnv,
-    _class: JClass,
-) -> jstring {
-    let account = crate::ffi::nostr_get_account();
-    if account.is_null() {
-        return ptr::null_mut();
     }
     
-    let account_str = unsafe { CStr::from_ptr(account) }.to_str().unwrap_or("{}");
-    let java_string = _env.new_string(account_str).unwrap();
-    let java_string_ptr = java_string.into_raw();
-    
-        mint_free_string(account);
-    
     java_string_ptr
-}
-
-/// Get service access URLs
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getAccessUrls(
-    _env: JNIEnv,
-    _class: JClass,
-) -> jstring {
-    let urls = crate::ffi::mint_get_access_urls();
-    if urls.is_null() {
-        return ptr::null_mut();
-    }
-    
-    let urls_str = unsafe { CStr::from_ptr(urls) }.to_str().unwrap_or("{}");
-    let java_string = _env.new_string(urls_str).unwrap();
-    let java_string_ptr = java_string.into_raw();
-    
-        mint_free_string(urls);
-    
-    java_string_ptr
-}
-
-/// Start mintd service (legacy function)
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMintd(
-    mut _env: JNIEnv,
-    _class: JClass,
-    config_dir: JString,
-    port: jint,
-) -> jint {
-    let config_dir_str = java_string_to_rust_string(&mut _env, config_dir);
-    let config_dir_cstr = CString::new(config_dir_str).unwrap();
-    
-    let result = crate::ffi::mint_start_mintd(config_dir_cstr.as_ptr(), port as u16);
-    result as jint
-}
-
-/// Stop mintd service (legacy function)
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_stopMintd(
-    _env: JNIEnv,
-    _class: JClass,
-) -> jint {
-    let result = crate::ffi::mint_stop_mintd();
-    result as jint
-}
-
-/// Check if mintd is running
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_isMintdRunning(
-    _env: JNIEnv,
-    _class: JClass,
-) -> jboolean {
-    let running = crate::ffi::mint_is_mintd_running();
-    running as jboolean
-}
-
-/// Start mint service with Android-optimized configuration
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMintAndroid(
-    mut _env: JNIEnv,
-    _class: JClass,
-    mode: jint,
-    config_dir: JString,
-    mnemonic: JString,
-    port: jint,
-) -> jint {
-    let config_dir_str = java_string_to_rust_string(&mut _env, config_dir);
-    let mnemonic_str = java_string_to_rust_string(&mut _env, mnemonic);
-    
-    let config_dir_cstr = CString::new(config_dir_str).unwrap();
-    let mnemonic_cstr = CString::new(mnemonic_str).unwrap();
-    
-    let ffi_mode = match mode {
-        0 => crate::ffi::FfiServiceMode::MintdOnly,
-        1 => crate::ffi::FfiServiceMode::Nip74Only,
-        2 => crate::ffi::FfiServiceMode::MintdAndNip74,
-        _ => crate::ffi::FfiServiceMode::MintdOnly,
-    };
-    
-    let result = crate::ffi::mint_start_android(
-        ffi_mode,
-        config_dir_cstr.as_ptr(),
-        mnemonic_cstr.as_ptr(),
-        port as u16,
-    );
-    
-    result as jint
-}
-
-/// Generate configuration file (alias for generateAndroidConfig)
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_generateConfig(
-    mut _env: JNIEnv,
-    _class: JClass,
-    config_dir: JString,
-    mnemonic: JString,
-    port: jint,
-) -> jint {
-    let config_dir_str = java_string_to_rust_string(&mut _env, config_dir);
-    let mnemonic_str = java_string_to_rust_string(&mut _env, mnemonic);
-    
-    let config_dir_cstr = CString::new(config_dir_str).unwrap();
-    let mnemonic_cstr = CString::new(mnemonic_str).unwrap();
-    
-    let result = crate::ffi::mint_generate_android_config(
-        config_dir_cstr.as_ptr(),
-        mnemonic_cstr.as_ptr(),
-        port as u16,
-    );
-    
-    result as jint
-}
-
-/// Generate Android mintd configuration
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_generateAndroidConfig(
-    mut _env: JNIEnv,
-    _class: JClass,
-    config_dir: JString,
-    mnemonic: JString,
-    port: jint,
-) -> jint {
-    let config_dir_str = java_string_to_rust_string(&mut _env, config_dir);
-    let mnemonic_str = java_string_to_rust_string(&mut _env, mnemonic);
-    
-    let config_dir_cstr = CString::new(config_dir_str).unwrap();
-    let mnemonic_cstr = CString::new(mnemonic_str).unwrap();
-    
-    let result = crate::ffi::mint_generate_android_config(
-        config_dir_cstr.as_ptr(),
-        mnemonic_cstr.as_ptr(),
-        port as u16,
-    );
-    
-    result as jint
-}
-
-/// Get Android app data directory path
-#[no_mangle]
-pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getAndroidDataDir(
-    _env: JNIEnv,
-    _class: JClass,
-) -> jstring {
-    // This should be called from Android context to get the actual data directory
-    // For now, return a placeholder that Android should replace
-    let placeholder = "/data/data/com.example.purrmint/files";
-    _env.new_string(placeholder).unwrap().into_raw()
 } 

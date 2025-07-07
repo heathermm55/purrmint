@@ -14,7 +14,7 @@ use tracing::{info, error};
 
 use crate::service::{MintService, ServiceMode};
 use crate::handler::default::DefaultRequestHandler;
-use crate::lightning::LightningConfig;
+use crate::config::LightningConfig;
 use crate::mintd_service::MintdService;
 
 /// FFI Error codes
@@ -538,39 +538,18 @@ pub extern "C" fn mint_generate_android_config(
         return FfiError::ServiceError;
     }
     
-    // Generate mintd config for Android
-    let mintd_config = format!(r#"[info]
-url = "https://purrmint.android/"
-listen_host = "0.0.0.0"
-listen_port = {}
-mnemonic = "{}"
-
-[mint_info]
-name = "PurrMint Android"
-description = "PurrMint Cashu Mint for Android"
-description_long = "A Cashu mint service running on Android device"
-
-[database]
-engine = "sqlite"
-
-[ln]
-ln_backend = "fakewallet"
-min_mint = 1
-max_mint = 1000000
-min_melt = 1
-max_melt = 1000000
-
-[fake_wallet]
-supported_units = ["sat"]
-fee_percent = 0.0
-reserve_fee_min = 0
-min_delay_time = 1
-max_delay_time = 3
-"#, port, mnemonic_str);
+    // Generate Android configuration using the new config management
+    let config_content = match crate::config::Settings::generate_android_config(&config_path, mnemonic_str, port) {
+        Ok(content) => content,
+        Err(e) => {
+            error!("mint_generate_android_config: failed to generate config: {:?}", e);
+            return FfiError::ServiceError;
+        }
+    };
     
     // Write config file
     let config_file = config_path.join("mintd.toml");
-    if let Err(e) = std::fs::write(&config_file, mintd_config) {
+    if let Err(e) = std::fs::write(&config_file, config_content) {
         error!("mint_generate_android_config: failed to write config file: {:?}", e);
         return FfiError::ServiceError;
     }
