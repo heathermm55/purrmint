@@ -3,7 +3,7 @@ package com.purrmint.app.core.managers
 import android.content.Context
 import android.util.Log
 import java.io.File
-import com.purrmint.app.core.native.PurrmintNative
+import com.purrmint.app.PurrmintNative
 
 /**
  * PurrMint service manager
@@ -83,7 +83,7 @@ class PurrmintManager(private val context: Context) {
      */
     fun generateDefaultConfig(): String? {
         return try {
-            val config = native.generateAndroidConfig()
+            val config = native.generateDefaultAndroidConfig()
             if (config != null) {
                 Log.i(TAG, "Default configuration generated")
             } else {
@@ -104,7 +104,8 @@ class PurrmintManager(private val context: Context) {
     fun saveConfigToFile(config: String): Boolean {
         return try {
             createDirectories()
-            val success = native.saveConfigToFile(config, getConfigFilePath())
+            val result = native.saveAndroidConfigToFile(getConfigFilePath(), config)
+            val success = result == 0  // 0 = success in Rust
             if (success) {
                 Log.i(TAG, "Configuration saved to file")
             } else {
@@ -123,7 +124,7 @@ class PurrmintManager(private val context: Context) {
      */
     fun loadConfigFromFile(): String? {
         return try {
-            val config = native.loadConfigFromFile(getConfigFilePath())
+            val config = native.loadAndroidConfigFromFile(getConfigFilePath())
             if (config != null) {
                 Log.i(TAG, "Configuration loaded from file")
             } else {
@@ -142,7 +143,7 @@ class PurrmintManager(private val context: Context) {
      */
     fun createNostrAccount(): String? {
         return try {
-            val account = native.createNostrAccount()
+            val account = native.createAccount()
             if (account != null) {
                 // Save account to file
                 val accountFile = File(getAccountFilePath())
@@ -165,7 +166,7 @@ class PurrmintManager(private val context: Context) {
      */
     fun convertNsecToNpub(nsec: String): String? {
         return try {
-            val npub = native.convertNsecToNpub(nsec)
+            val npub = native.nsecToNpub(nsec)
             if (npub != null) {
                 Log.i(TAG, "Successfully converted nsec to npub")
             } else {
@@ -198,7 +199,8 @@ class PurrmintManager(private val context: Context) {
             // Start service in background thread
             Thread {
                 try {
-                    val success = native.startService(config, nsec)
+                    val result = native.startMintWithConfig(config, nsec ?: "")
+                    val success = result == 0  // 0 = success in Rust
                     if (success) {
                         Log.i(TAG, "Mint service started successfully")
                     } else {
@@ -222,7 +224,8 @@ class PurrmintManager(private val context: Context) {
      */
     fun stopMintService(): Boolean {
         return try {
-            val success = native.stopService()
+            val result = native.stopMint()
+            val success = result == 0  // 0 = success in Rust
             if (success) {
                 Log.i(TAG, "Mint service stopped successfully")
             } else {
@@ -241,7 +244,7 @@ class PurrmintManager(private val context: Context) {
      */
     fun getServiceStatus(): String {
         return try {
-            native.getServiceStatus() ?: "{\"status\":\"unknown\"}"
+            native.getMintStatus() ?: "{\"status\":\"unknown\"}"
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get service status", e)
             "{\"status\":\"error\",\"message\":\"${e.message}\"}"

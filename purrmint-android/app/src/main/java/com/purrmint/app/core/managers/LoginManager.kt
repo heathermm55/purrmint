@@ -48,15 +48,30 @@ class LoginManager(private val context: Context) {
      */
     fun createNewAccount(): Boolean {
         return try {
-            val accountJson = purrmintManager.createNostrAccount()
-            if (accountJson != null) {
-                val account = parseAccountJson(accountJson)
+            val accountData = purrmintManager.createNostrAccount()
+            if (accountData != null) {
+                // Check if accountData is a simple nsec string or JSON
+                val account = if (accountData.startsWith("nsec1")) {
+                    // It's a simple nsec string, convert to npub and create AccountInfo
+                    val npub = purrmintManager.convertNsecToNpub(accountData)
+                    if (npub != null) {
+                        AccountInfo(accountData, npub)
+                    } else {
+                        Log.e(TAG, "Failed to convert nsec to npub")
+                        null
+                    }
+                } else {
+                    // Try to parse as JSON
+                    parseAccountJson(accountData)
+                }
+                
                 if (account != null) {
-                    saveNewAccountState(accountJson, account.nsec, account.npub)
-                    Log.i(TAG, "New account created successfully")
+                    val accountInfoJson = createAccountInfo(account.nsec, account.npub)
+                    saveNewAccountState(accountInfoJson, account.nsec, account.npub)
+                    Log.i(TAG, "New account created successfully with nsec: ${account.nsec} and npub: ${account.npub}")
                     true
                 } else {
-                    Log.e(TAG, "Failed to parse account JSON")
+                    Log.e(TAG, "Failed to create account info")
                     false
                 }
             } else {
@@ -229,7 +244,7 @@ class LoginManager(private val context: Context) {
     /**
      * Data class to hold account information
      */
-    private data class AccountInfo(
+    data class AccountInfo(
         val nsec: String,
         val npub: String
     )

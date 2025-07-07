@@ -25,7 +25,7 @@
         tools:targetApi="31">
         
         <activity
-            android:name="com.purrmint.app.MainActivity"
+            android:name="com.purrmint.app.ui.activities.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.PurrMint">
             <intent-filter>
@@ -35,22 +35,22 @@
         </activity>
         
         <activity
-            android:name="com.purrmint.app.LoginActivity"
+            android:name="com.purrmint.app.ui.activities.LoginActivity"
             android:exported="false"
             android:theme="@style/Theme.PurrMint" />
         
         <activity
-            android:name="com.purrmint.app.ConfigActivity"
+            android:name="com.purrmint.app.ui.activities.ConfigActivity"
             android:exported="false"
             android:theme="@style/Theme.PurrMint" />
         
         <activity
-            android:name="com.purrmint.app.AccountActivity"
+            android:name="com.purrmint.app.ui.activities.AccountActivity"
             android:exported="false"
             android:theme="@style/Theme.PurrMint" />
         
         <service
-            android:name="com.purrmint.app.PurrmintService"
+            android:name="com.purrmint.app.core.services.PurrmintService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse"
