@@ -8,7 +8,7 @@ use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::error;
 use crate::{OperationRequest, OperationResult, Nip74Result, Nip74Error};
-use crate::nip74_service::build_mint_info_event;
+use crate::nip74_service::{build_mint_info_event, RequestHandler};
 use crate::mintd_service::MintdService;
 use cdk::nuts::nut06::MintInfo as cdkMintInfo;
 use crate::config::{LightningConfig, ServiceMode};
@@ -47,12 +47,7 @@ impl From<nostr::signer::SignerError> for ServiceError {
 /// Abstraction over local keys or remote signer.
 pub type DynSigner = Arc<dyn NostrSigner>;
 
-/// Request handler trait – application implements custom business logic.
-#[async_trait]
-pub trait RequestHandler: Send + Sync + 'static {
-    /// Handle an OperationRequest and return the OperationResult.
-    async fn handle(&self, req: OperationRequest) -> Nip74Result<OperationResult>;
-}
+
 
 /// Mint service – manages relay connections and request processing.
 pub struct MintService {

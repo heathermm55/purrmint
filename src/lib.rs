@@ -4,10 +4,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub mod nip74_service;
 pub mod service;
-pub mod ffi;
+pub mod core;
 pub mod config;
 pub mod mintd_service;
-
+pub mod nostr;
 
 #[cfg(feature = "jni-support")]
 pub mod jni;
@@ -20,12 +20,10 @@ pub use nip74_service::{
 };
 
 // Service types and functions
-pub use service::{ServiceError, MintService, RequestHandler};
+pub use service::{ServiceError, MintService};
+pub use nip74_service::RequestHandler;
 
 // Configuration types
 pub use config::ServiceMode;
-
-// FFI functions
-pub use ffi::*;
 
 pub use cdk::nuts::nut06::MintInfo; 

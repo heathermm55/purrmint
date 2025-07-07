@@ -189,8 +189,12 @@ impl OperationResult {
 
 // ===== REQUEST HANDLER TRAIT =====
 
-// RequestHandler trait is defined in service.rs
-use crate::service::RequestHandler;
+/// Request handler trait – application implements custom business logic.
+#[async_trait]
+pub trait RequestHandler: Send + Sync + 'static {
+    /// Handle an OperationRequest and return the OperationResult.
+    async fn handle(&self, req: OperationRequest) -> Nip74Result<OperationResult>;
+}
 
 // ===== DEFAULT REQUEST HANDLERS =====
 
