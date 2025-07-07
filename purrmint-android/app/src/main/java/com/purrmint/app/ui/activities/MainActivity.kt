@@ -142,8 +142,16 @@ class MainActivity : AppCompatActivity() {
                     val description = data.getStringExtra(ConfigActivity.EXTRA_DESCRIPTION) ?: "A simple mint service"
                     val lightningBackend = data.getStringExtra(ConfigActivity.EXTRA_LIGHTNING_BACKEND) ?: "fakewallet"
                     
+                    // Get lightning-specific configuration
+                    val lnbitsAdminApiKey = data.getStringExtra(ConfigActivity.EXTRA_LNBITS_ADMIN_API_KEY)
+                    val lnbitsInvoiceApiKey = data.getStringExtra(ConfigActivity.EXTRA_LNBITS_INVOICE_API_KEY)
+                    val lnbitsApiUrl = data.getStringExtra(ConfigActivity.EXTRA_LNBITS_API_URL)
+                    
                     // Save configuration for future use
-                    configManager.saveConfiguration(host, port, mintName, description, lightningBackend)
+                    configManager.saveConfiguration(
+                        host, port, mintName, description, lightningBackend,
+                        lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl
+                    )
                     
                     appendLog("Configuration received:")
                     appendLog("  Port: $port")
@@ -152,8 +160,14 @@ class MainActivity : AppCompatActivity() {
                     appendLog("  Description: $description")
                     appendLog("  Lightning Backend: $lightningBackend")
                     
+                    if (lightningBackend == "lnbits") {
+                        appendLog("  LNBits Admin API Key: ${lnbitsAdminApiKey?.take(8)}...")
+                        appendLog("  LNBits Invoice API Key: ${lnbitsInvoiceApiKey?.take(8)}...")
+                        appendLog("  LNBits API URL: $lnbitsApiUrl")
+                    }
+                    
                     // Start the service with configuration
-                    startServiceWithConfig(host, port, mintName, description, lightningBackend)
+                    startServiceWithConfig(host, port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
                 }
             }
             REQUEST_ACCOUNT -> {
@@ -346,7 +360,16 @@ class MainActivity : AppCompatActivity() {
             appendLog("  Description: ${config.description}")
             appendLog("  Lightning Backend: ${config.lightningBackend}")
             
-            startServiceWithConfig(config.host, config.port, config.mintName, config.description, config.lightningBackend)
+            if (config.lightningBackend == "lnbits") {
+                appendLog("  LNBits Admin API Key: ${config.lnbitsAdminApiKey?.take(8)}...")
+                appendLog("  LNBits Invoice API Key: ${config.lnbitsInvoiceApiKey?.take(8)}...")
+                appendLog("  LNBits API URL: ${config.lnbitsApiUrl}")
+            }
+            
+            startServiceWithConfig(
+                config.host, config.port, config.mintName, config.description, config.lightningBackend,
+                config.lnbitsAdminApiKey, config.lnbitsInvoiceApiKey, config.lnbitsApiUrl
+            )
         } else {
             // No configuration exists - this should not happen as we generate config first
             appendLog("❌ No configuration found - please create a new mint first")
@@ -354,7 +377,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun startServiceWithConfig(host: String, port: Int, mintName: String, description: String, lightningBackend: String) {
+    private fun startServiceWithConfig(host: String, port: Int, mintName: String, description: String, lightningBackend: String, lnbitsAdminApiKey: String? = null, lnbitsInvoiceApiKey: String? = null, lnbitsApiUrl: String? = null) {
         try {
             updateStatus("Starting mint service...", false)
             appendLog("Starting mint service with configuration...")
@@ -394,7 +417,31 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                val success = purrmintManager.startMintService(nsec)
+                // Create configuration JSON with lightning backend settings
+                val configJson = buildString {
+                    append("""
+                        {
+                            "port": $port,
+                            "host": "$host",
+                            "mintName": "$mintName",
+                            "description": "$description",
+                            "lightningBackend": "$lightningBackend"
+                    """.trimIndent())
+                    
+                    if (lightningBackend == "lnbits" && lnbitsAdminApiKey != null && lnbitsInvoiceApiKey != null && lnbitsApiUrl != null) {
+                        append(""",
+                            "lnbitsAdminApiKey": "$lnbitsAdminApiKey",
+                            "lnbitsInvoiceApiKey": "$lnbitsInvoiceApiKey",
+                            "lnbitsApiUrl": "$lnbitsApiUrl"
+                        """.trimIndent())
+                    }
+                    
+                    append("}")
+                }
+                
+                appendLog("Using configuration: $configJson")
+
+                val success = purrmintManager.startMintServiceWithConfig(nsec, configJson)
                 if (success) {
                     updateStatus("Service is running", true)
                     appendLog("✅ Mint service started successfully!")

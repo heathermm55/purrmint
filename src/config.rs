@@ -51,6 +51,11 @@ pub enum LnBackend {
     #[default]
     None,
     FakeWallet,
+    LNbits,
+    #[cfg(feature = "cln")]
+    Cln,
+    #[cfg(feature = "lnd")]
+    Lnd,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -97,6 +102,27 @@ impl Default for FakeWallet {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LNbits {
+    pub admin_api_key: String,
+    pub invoice_api_key: String,
+    pub lnbits_api: String,
+    pub fee_percent: f32,
+    pub reserve_fee_min: Amount,
+}
+
+impl Default for LNbits {
+    fn default() -> Self {
+        Self {
+            admin_api_key: String::new(),
+            invoice_api_key: String::new(),
+            lnbits_api: String::new(),
+            fee_percent: 0.02,
+            reserve_fee_min: 2.into(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum DatabaseEngine {
@@ -128,6 +154,7 @@ pub struct Settings {
     pub mint_info: MintInfo,
     pub ln: Ln,
     pub fake_wallet: Option<FakeWallet>,
+    pub lnbits: Option<LNbits>,
     pub database: Database,
     pub service_mode: ServiceMode,
 }
@@ -147,6 +174,9 @@ pub struct AndroidConfig {
     pub mode: String,
     pub database_path: String,
     pub logs_path: String,
+    pub lnbits_admin_api_key: Option<String>,
+    pub lnbits_invoice_api_key: Option<String>,
+    pub lnbits_api_url: Option<String>,
 }
 
 impl Default for AndroidConfig {
@@ -160,6 +190,9 @@ impl Default for AndroidConfig {
             mode: "mintd_only".to_string(),
             database_path: "".to_string(),
             logs_path: "".to_string(),
+            lnbits_admin_api_key: None,
+            lnbits_invoice_api_key: None,
+            lnbits_api_url: None,
         }
     }
 }
@@ -203,6 +236,7 @@ impl Settings {
             mint_info,
             ln,
             fake_wallet: Some(FakeWallet::default()),
+            lnbits: None,
             database,
             service_mode: ServiceMode::default(),
         }
@@ -225,8 +259,41 @@ impl AndroidConfig {
         // Set lightning backend
         settings.ln.ln_backend = match self.lightning_backend.as_str() {
             "fake" | "fakewallet" => LnBackend::FakeWallet,
+            "lnbits" => LnBackend::LNbits,
+            #[cfg(feature = "cln")]
+            "cln" => LnBackend::Cln,
+            #[cfg(feature = "lnd")]
+            "lnd" => LnBackend::Lnd,
             _ => LnBackend::None,
         };
+        
+        // Set backend-specific configuration
+        match self.lightning_backend.as_str() {
+            "fake" | "fakewallet" => {
+                // Keep default fake wallet config
+            }
+            "lnbits" => {
+                // Set LNBits configuration
+                if let (Some(admin_key), Some(invoice_key), Some(api_url)) = (
+                    &self.lnbits_admin_api_key,
+                    &self.lnbits_invoice_api_key,
+                    &self.lnbits_api_url
+                ) {
+                    settings.lnbits = Some(LNbits {
+                        admin_api_key: admin_key.clone(),
+                        invoice_api_key: invoice_key.clone(),
+                        lnbits_api: api_url.clone(),
+                        fee_percent: 0.02,
+                        reserve_fee_min: 1.into(),
+                    });
+                    // Clear fake wallet config when using LNBits
+                    settings.fake_wallet = None;
+                }
+            }
+            _ => {
+                // Keep default fake wallet config for unrecognized backends
+            }
+        }
         
         // Set service mode
         settings.service_mode = match self.mode.as_str() {
@@ -295,6 +362,18 @@ impl AndroidConfig {
             self.logs_path = logs_path.to_string();
         }
         
+        if let Some(lnbits_admin_api_key) = update.get("lnbitsAdminApiKey").and_then(|k| k.as_str()) {
+            self.lnbits_admin_api_key = Some(lnbits_admin_api_key.to_string());
+        }
+        
+        if let Some(lnbits_invoice_api_key) = update.get("lnbitsInvoiceApiKey").and_then(|k| k.as_str()) {
+            self.lnbits_invoice_api_key = Some(lnbits_invoice_api_key.to_string());
+        }
+        
+        if let Some(lnbits_api_url) = update.get("lnbitsApiUrl").and_then(|u| u.as_str()) {
+            self.lnbits_api_url = Some(lnbits_api_url.to_string());
+        }
+        
         Ok(())
     }
 }
@@ -312,5 +391,23 @@ mod tests {
         assert_eq!(config.port, parsed.port);
         assert_eq!(config.mode, parsed.mode);
         assert_eq!(config.mint_name, parsed.mint_name);
+    }
+
+    #[test]
+    fn test_lnbits_config() {
+        let mut config = AndroidConfig::default();
+        config.lightning_backend = "lnbits".to_string();
+        config.lnbits_admin_api_key = Some("admin_key_123".to_string());
+        config.lnbits_invoice_api_key = Some("invoice_key_456".to_string());
+        config.lnbits_api_url = Some("https://lnbits.example.com".to_string());
+
+        let settings = config.to_settings(None);
+        assert_eq!(settings.ln.ln_backend, LnBackend::LNbits);
+        assert!(settings.lnbits.is_some());
+        
+        let lnbits_config = settings.lnbits.unwrap();
+        assert_eq!(lnbits_config.admin_api_key, "admin_key_123");
+        assert_eq!(lnbits_config.invoice_api_key, "invoice_key_456");
+        assert_eq!(lnbits_config.lnbits_api, "https://lnbits.example.com");
     }
 } 

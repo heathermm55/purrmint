@@ -232,6 +232,49 @@ class PurrmintManager(private val context: Context) {
     }
     
     /**
+     * Start mint service with custom configuration
+     * @param nsec REQUIRED nsec key for mint service
+     * @param configJson Custom configuration JSON string
+     * @return true if service started successfully
+     */
+    fun startMintServiceWithConfig(nsec: String, configJson: String): Boolean {
+        return try {
+            createDirectories()
+            initLogging()
+            
+            // Validate nsec
+            if (nsec.isEmpty()) {
+                Log.e(TAG, "Cannot start mint service: nsec is required")
+                return false
+            }
+            
+            // Validate config JSON
+            if (configJson.isEmpty()) {
+                Log.e(TAG, "Cannot start mint service: config JSON is required")
+                return false
+            }
+            
+            Log.i(TAG, "Starting mint service with custom configuration")
+            Log.d(TAG, "Config JSON: $configJson")
+            
+            // Start service with the custom config and nsec
+            val result = native.startMintWithConfig(configJson, nsec)
+            val success = result == 0  // 0 = success in Rust
+            
+            if (success) {
+                Log.i(TAG, "Mint service started successfully with custom config")
+            } else {
+                Log.e(TAG, "Failed to start mint service with custom config - result code: $result")
+            }
+            
+            success
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start mint service with custom config", e)
+            false
+        }
+    }
+    
+    /**
      * Start mint service using saved nsec from SharedPreferences
      * @return true if service started successfully
      */

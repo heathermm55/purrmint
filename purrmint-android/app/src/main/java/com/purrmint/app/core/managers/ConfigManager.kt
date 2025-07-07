@@ -12,7 +12,10 @@ data class AndroidConfig(
     val description: String,
     val lightningBackend: String,
     val databasePath: String,
-    val logsPath: String
+    val logsPath: String,
+    val lnbitsAdminApiKey: String? = null,
+    val lnbitsInvoiceApiKey: String? = null,
+    val lnbitsApiUrl: String? = null
 )
 
 class ConfigManager(private val context: Context) {
@@ -41,7 +44,10 @@ class ConfigManager(private val context: Context) {
             description = DEFAULT_DESCRIPTION,
             lightningBackend = DEFAULT_LIGHTNING_BACKEND,
             databasePath = "$dataDir/database",
-            logsPath = "$dataDir/logs"
+            logsPath = "$dataDir/logs",
+            lnbitsAdminApiKey = null,
+            lnbitsInvoiceApiKey = null,
+            lnbitsApiUrl = null
         )
     }
     
@@ -77,7 +83,10 @@ class ConfigManager(private val context: Context) {
         port: Int = DEFAULT_PORT,
         mintName: String = DEFAULT_MINT_NAME,
         description: String = DEFAULT_DESCRIPTION,
-        lightningBackend: String = DEFAULT_LIGHTNING_BACKEND
+        lightningBackend: String = DEFAULT_LIGHTNING_BACKEND,
+        lnbitsAdminApiKey: String? = null,
+        lnbitsInvoiceApiKey: String? = null,
+        lnbitsApiUrl: String? = null
     ): Boolean {
         val dataDir = context.filesDir.absolutePath
         val config = AndroidConfig(
@@ -87,7 +96,10 @@ class ConfigManager(private val context: Context) {
             description = description,
             lightningBackend = lightningBackend,
             databasePath = "$dataDir/database",
-            logsPath = "$dataDir/logs"
+            logsPath = "$dataDir/logs",
+            lnbitsAdminApiKey = lnbitsAdminApiKey,
+            lnbitsInvoiceApiKey = lnbitsInvoiceApiKey,
+            lnbitsApiUrl = lnbitsApiUrl
         )
         return saveConfiguration(config)
     }
@@ -193,6 +205,9 @@ class ConfigManager(private val context: Context) {
             json.put("lightning_backend", config.lightningBackend)
             json.put("database_path", config.databasePath)
             json.put("logs_path", config.logsPath)
+            json.put("lnbits_admin_api_key", config.lnbitsAdminApiKey)
+            json.put("lnbits_invoice_api_key", config.lnbitsInvoiceApiKey)
+            json.put("lnbits_api_url", config.lnbitsApiUrl)
             json.toString()
         } catch (e: JSONException) {
             Log.e(TAG, "Error converting config to JSON", e)
@@ -213,7 +228,10 @@ class ConfigManager(private val context: Context) {
                 description = jsonObject.optString("description", DEFAULT_DESCRIPTION),
                 lightningBackend = jsonObject.optString("lightning_backend", DEFAULT_LIGHTNING_BACKEND),
                 databasePath = jsonObject.optString("database_path", "${context.filesDir.absolutePath}/database"),
-                logsPath = jsonObject.optString("logs_path", "${context.filesDir.absolutePath}/logs")
+                logsPath = jsonObject.optString("logs_path", "${context.filesDir.absolutePath}/logs"),
+                lnbitsAdminApiKey = jsonObject.optString("lnbits_admin_api_key", null),
+                lnbitsInvoiceApiKey = jsonObject.optString("lnbits_invoice_api_key", null),
+                lnbitsApiUrl = jsonObject.optString("lnbits_api_url", null)
             )
         } catch (e: JSONException) {
             Log.e(TAG, "Error parsing JSON to config", e)

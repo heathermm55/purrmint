@@ -17,7 +17,7 @@ use cdk::mint::{MintBuilder, MintMeltLimits};
 use cdk::types::QuoteTTL;
 use cdk::Bolt11Invoice;
 use cdk_sqlite::MintSqliteDatabase;
-use crate::config::{Settings, DatabaseEngine, LnBackend, Info, MintInfo, Ln, Database, FakeWallet, AndroidConfig};
+use crate::config::{Settings, DatabaseEngine, LnBackend, Info, MintInfo, Ln, Database, FakeWallet, AndroidConfig, LNbits};
 use cdk_axum::cache::HttpCache;
 
 pub struct MintdService {
@@ -139,6 +139,7 @@ impl MintdService {
                 min_delay_time: 1,
                 max_delay_time: 3,
             }),
+            lnbits: None,
             database,
             service_mode: crate::config::ServiceMode::MintdOnly,
         }
@@ -170,6 +171,7 @@ impl MintdService {
         let ln = Ln {
             ln_backend: match android_config.lightning_backend.as_str() {
                 "fakewallet" | "fake" => LnBackend::FakeWallet,
+                "lnbits" => LnBackend::LNbits,
                 _ => LnBackend::None,
             },
             invoice_description: None,
@@ -183,23 +185,66 @@ impl MintdService {
             engine: DatabaseEngine::Sqlite,
         };
 
-        Settings {
+        // Create settings with appropriate backend configuration
+        let mut settings = Settings {
             info,
             mint_info,
             ln,
-            fake_wallet: Some(FakeWallet {
-                supported_units: vec![
-                    cdk::nuts::CurrencyUnit::Sat,
-                    cdk::nuts::CurrencyUnit::Msat,
-                ],
-                fee_percent: 0.02,
-                reserve_fee_min: 1.into(),
-                min_delay_time: 1,
-                max_delay_time: 3,
-            }),
+            fake_wallet: None,
+            lnbits: None,
             database,
             service_mode: crate::config::ServiceMode::MintdOnly,
+        };
+
+        // Set backend-specific configuration
+        match android_config.lightning_backend.as_str() {
+            "fakewallet" | "fake" => {
+                settings.fake_wallet = Some(FakeWallet {
+                    supported_units: vec![
+                        cdk::nuts::CurrencyUnit::Sat,
+                        cdk::nuts::CurrencyUnit::Msat,
+                    ],
+                    fee_percent: 0.02,
+                    reserve_fee_min: 1.into(),
+                    min_delay_time: 1,
+                    max_delay_time: 3,
+                });
+            }
+            "lnbits" => {
+                // Use LNBits configuration from Android config
+                if let (Some(admin_key), Some(invoice_key), Some(api_url)) = (
+                    &android_config.lnbits_admin_api_key,
+                    &android_config.lnbits_invoice_api_key,
+                    &android_config.lnbits_api_url
+                ) {
+                    settings.lnbits = Some(LNbits {
+                        admin_api_key: admin_key.clone(),
+                        invoice_api_key: invoice_key.clone(),
+                        lnbits_api: api_url.clone(),
+                        fee_percent: 0.02,
+                        reserve_fee_min: 1.into(),
+                    });
+                } else {
+                    // Fallback to default if LNBits config is incomplete
+                    settings.lnbits = Some(LNbits::default());
+                }
+            }
+            _ => {
+                // Default to fake wallet if backend is not recognized
+                settings.fake_wallet = Some(FakeWallet {
+                    supported_units: vec![
+                        cdk::nuts::CurrencyUnit::Sat,
+                        cdk::nuts::CurrencyUnit::Msat,
+                    ],
+                    fee_percent: 0.02,
+                    reserve_fee_min: 1.into(),
+                    min_delay_time: 1,
+                    max_delay_time: 3,
+                });
+            }
         }
+
+        settings
     }
 
     pub async fn start(&mut self) -> Result<()> {
@@ -360,6 +405,38 @@ impl MintdService {
                             self.config.ln.max_mint.into(),
                         ),
                         Arc::new(fake_wallet.clone()),
+                    )
+                    .await?;
+            }
+        }
+
+        // Configure LNBits backend
+        if let Some(lnbits_config) = &self.config.lnbits {
+            let fee_reserve = cdk::types::FeeReserve {
+                min_fee_reserve: lnbits_config.reserve_fee_min,
+                percent_fee_reserve: lnbits_config.fee_percent,
+            };
+            
+            let lnbits = cdk_lnbits::LNbits::new(
+                lnbits_config.admin_api_key.clone(),
+                lnbits_config.invoice_api_key.clone(),
+                lnbits_config.lnbits_api.clone(),
+                fee_reserve,
+                None, // No webhook URL for now
+            ).await?;
+
+            // Add LNBits backend for supported units (default to sat)
+            let supported_units = vec![cdk::nuts::CurrencyUnit::Sat, cdk::nuts::CurrencyUnit::Msat];
+            for unit in supported_units {
+                mint_builder = mint_builder
+                    .add_ln_backend(
+                        unit,
+                        cdk::nuts::PaymentMethod::Bolt11,
+                        MintMeltLimits::new(
+                            self.config.ln.min_mint.into(),
+                            self.config.ln.max_mint.into(),
+                        ),
+                        Arc::new(lnbits.clone()),
                     )
                     .await?;
             }
