@@ -497,9 +497,9 @@ class MainActivity : AppCompatActivity() {
             logsText.append(logEntry)
             
             // Auto-scroll to bottom
-            logsText.layout?.let {
-                val scrollView = logsText.parent as? android.widget.ScrollView
-                scrollView?.fullScroll(android.view.View.FOCUS_DOWN)
+            val scrollView = findViewById<android.widget.ScrollView>(R.id.logsScrollView)
+            scrollView.post {
+                scrollView.fullScroll(android.view.View.FOCUS_DOWN)
             }
         }
     }

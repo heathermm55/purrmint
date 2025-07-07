@@ -215,7 +215,7 @@
 
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
-                        android:layout_height="240dp"
+                        android:layout_height="400dp"
                         app:cardElevation="0dp"
                         app:cardCornerRadius="12dp"
                         app:cardBackgroundColor="@color/logs_background"
@@ -223,10 +223,13 @@
                         app:strokeWidth="1dp">
 
                         <ScrollView
+                            android:id="@+id/logsScrollView"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:padding="12dp"
-                            android:scrollbars="vertical">
+                            android:scrollbars="vertical"
+                            android:fillViewport="true"
+                            android:overScrollMode="always">
 
                             <TextView
                                 android:id="@+id/logsText"
@@ -236,7 +239,9 @@
                                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                                 android:textColor="@color/logs_text_color"
                                 android:fontFamily="monospace"
-                                android:lineSpacingExtra="2dp" />
+                                android:lineSpacingExtra="2dp"
+                                android:scrollbars="vertical"
+                                android:isScrollContainer="true" />
 
                         </ScrollView>
 
