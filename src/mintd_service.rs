@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Notify;
-use tracing::info;
+use tracing::{info, error};
 use anyhow::{Result, anyhow};
 use serde_json::Value;
 use axum::Router;
@@ -180,7 +180,16 @@ impl MintdService {
         mint_arc.set_quote_ttl(QuoteTTL::new(10_000, 10_000)).await?;
         
         // Start HTTP server
-        self.start_http_server(mint_arc).await?;
+        info!("About to start HTTP server");
+        match self.start_http_server(mint_arc).await {
+            Ok(()) => {
+                info!("HTTP server started successfully");
+            }
+            Err(e) => {
+                error!("HTTP server failed to start: {}", e);
+                return Err(e);
+            }
+        }
         
         self.is_running = true;
         info!("MintdService started successfully");
@@ -190,6 +199,8 @@ impl MintdService {
     async fn start_http_server(&mut self, mint: Arc<cdk::mint::Mint>) -> Result<()> {
         let listen_addr = self.config.info.listen_host.clone();
         let listen_port = self.config.info.listen_port;
+        
+        info!("Starting HTTP server on {}:{}", listen_addr, listen_port);
         
         // Create mint router with default cache
         let v1_service = cdk_axum::create_mint_router_with_custom_cache(mint, HttpCache::default()).await?;
@@ -203,23 +214,73 @@ impl MintdService {
                     .layer(TraceLayer::new_for_http()),
             );
 
-        let socket_addr = SocketAddr::from_str(&format!("{listen_addr}:{listen_port}"))?;
-        let listener = tokio::net::TcpListener::bind(socket_addr).await?;
+        let socket_addr = SocketAddr::from_str(&format!("{listen_addr}:{listen_port}"))
+            .map_err(|e| anyhow!("Invalid socket address '{}:{}': {}", listen_addr, listen_port, e))?;
         
-        info!("HTTP server listening on {}", listener.local_addr().unwrap());
+        info!("Attempting to bind to socket address: {}", socket_addr);
+        
+        let listener = match tokio::net::TcpListener::bind(socket_addr).await {
+            Ok(listener) => {
+                info!("Successfully bound to address: {}", socket_addr);
+                listener
+            }
+            Err(e) => {
+                error!("Failed to bind to address '{}': {}", socket_addr, e);
+                return Err(anyhow!("Failed to bind to address '{}': {}", socket_addr, e));
+            }
+        };
+        
+        let actual_addr = listener.local_addr()
+            .map_err(|e| anyhow!("Failed to get local address: {}", e))?;
+        
+        info!("HTTP server successfully listening on {}", actual_addr);
 
+        // Create a channel to signal when server is ready
+        let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+        
         // Start HTTP server in background
         let shutdown = self.shutdown.clone();
         let http_server = tokio::spawn(async move {
-            let _ = axum::serve(listener, mint_service)
+            info!("Starting HTTP server task");
+            
+            // Use a select to either start the server or signal readiness
+            let server_future = axum::serve(listener, mint_service)
                 .with_graceful_shutdown(async move {
                     shutdown.notified().await;
-                })
-                .await;
+                    info!("HTTP server received shutdown signal");
+                });
+
+            // Signal that we're ready right before starting the server
+            if let Err(_) = ready_tx.send(()) {
+                error!("Failed to send ready signal");
+                return;
+            }
+
+            match server_future.await {
+                Ok(()) => info!("HTTP server stopped gracefully"),
+                Err(e) => error!("HTTP server error: {}", e),
+            }
         });
 
         self.http_server = Some(http_server);
-        Ok(())
+        
+        // Wait for server to signal it's ready
+        match tokio::time::timeout(tokio::time::Duration::from_secs(3), ready_rx).await {
+            Ok(Ok(_)) => {
+                info!("HTTP server started successfully");
+                // Give the server a moment to actually start listening
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                Ok(())
+            }
+            Ok(Err(_)) => {
+                error!("HTTP server ready channel closed");
+                Err(anyhow!("HTTP server failed to start: channel closed"))
+            }
+            Err(_) => {
+                error!("HTTP server ready timeout");
+                Err(anyhow!("HTTP server failed to start: timeout"))
+            }
+        }
     }
 
     async fn build_mint(&self) -> Result<(cdk::mint::Mint, cdk::nuts::MintInfo)> {

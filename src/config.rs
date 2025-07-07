@@ -1,37 +1,10 @@
-use std::path::{Path};
+// Path import removed - not needed for basic Android functionality
 use cdk::nuts::{CurrencyUnit, PublicKey};
 use cdk::Amount;
 use serde::{Deserialize, Serialize};
 use anyhow::{Result, anyhow};
 
-// =============================================================================
-// Lightning Backend Configuration 
-// =============================================================================
-
-/// Lightning backend configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LightningConfig {
-    pub backend_type: LightningBackendType,
-    pub config: serde_json::Value,
-}
-
-/// Supported lightning backend types
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum LightningBackendType {
-    Cln,
-    Lnd,
-    Lnbits,
-    FakeWallet,
-}
-
-impl Default for LightningConfig {
-    fn default() -> Self {
-        Self {
-            backend_type: LightningBackendType::FakeWallet,
-            config: serde_json::json!({}),
-        }
-    }
-}
+// Lightning backend configuration removed - not needed for basic Android functionality
 
 // =============================================================================
 // Service Mode Configuration
@@ -55,15 +28,7 @@ impl Default for ServiceMode {
     }
 }
 
-impl std::fmt::Display for ServiceMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ServiceMode::MintdOnly => write!(f, "mintd_only"),
-            ServiceMode::Nip74Only => write!(f, "nip74_only"),
-            ServiceMode::MintdAndNip74 => write!(f, "mintd_and_nip74"),
-        }
-    }
-}
+// Display implementation removed - not needed for basic functionality
 
 // =============================================================================
 // Configuration Structures
@@ -188,13 +153,13 @@ impl Default for AndroidConfig {
     fn default() -> Self {
         Self {
             port: 3338,
-            host: "127.0.0.1".to_string(),
+            host: "0.0.0.0".to_string(),
             mint_name: "PurrMint".to_string(),
             description: "Mobile Cashu Mint".to_string(),
-            lightning_backend: "fake".to_string(),
-            mode: "MintdOnly".to_string(),
-            database_path: "/data/data/com.purrmint.app/files/mint.db".to_string(),
-            logs_path: "/data/data/com.purrmint.app/files/logs".to_string(),
+            lightning_backend: "fakewallet".to_string(),
+            mode: "mintd_only".to_string(),
+            database_path: "".to_string(),
+            logs_path: "".to_string(),
         }
     }
 }
@@ -243,49 +208,7 @@ impl Settings {
         }
     }
 
-    /// Load settings from TOML file
-    pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let content = std::fs::read_to_string(&path)
-            .map_err(|e| anyhow!("Failed to read config file: {}", e))?;
-        
-        let settings: Settings = toml::from_str(&content)
-            .map_err(|e| anyhow!("Failed to parse TOML config: {}", e))?;
-        
-        Ok(settings)
-    }
-
-    /// Save settings to TOML file
-    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
-        let content = toml::to_string_pretty(self)
-            .map_err(|e| anyhow!("Failed to serialize config: {}", e))?;
-        
-        // Create parent directory if it doesn't exist
-        if let Some(parent) = path.as_ref().parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| anyhow!("Failed to create config directory: {}", e))?;
-        }
-        
-        std::fs::write(&path, content)
-            .map_err(|e| anyhow!("Failed to write config file: {}", e))?;
-        
-        Ok(())
-    }
-
-    /// Extract mnemonic from TOML content (simple parsing)
-    pub fn extract_mnemonic_from_toml(content: &str) -> Option<String> {
-        for line in content.lines() {
-            let line = line.trim();
-            if line.starts_with("mnemonic = ") {
-                if let Some(value) = line.split('=').nth(1) {
-                    let mnemonic = value.trim().trim_matches('"');
-                    if !mnemonic.is_empty() {
-                        return Some(mnemonic.to_string());
-                    }
-                }
-            }
-        }
-        None
-    }
+    // TOML file operations removed - Android uses JSON configuration
 }
 
 impl AndroidConfig {
@@ -307,9 +230,9 @@ impl AndroidConfig {
         
         // Set service mode
         settings.service_mode = match self.mode.as_str() {
-            "MintdOnly" => ServiceMode::MintdOnly,
-            "Nip74Only" => ServiceMode::Nip74Only,
-            "MintdAndNip74" => ServiceMode::MintdAndNip74,
+            "MintdOnly" | "mintd_only" => ServiceMode::MintdOnly,
+            "Nip74Only" | "nip74_only" => ServiceMode::Nip74Only,
+            "MintdAndNip74" | "mintd_and_nip74" => ServiceMode::MintdAndNip74,
             _ => ServiceMode::MintdOnly,
         };
         
