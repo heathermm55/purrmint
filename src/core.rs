@@ -6,24 +6,21 @@ use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
 
 use serde_json::json;
-use tracing::info;
+use tracing::{info, warn, error};
 
 use crate::config::AndroidConfig;
 use crate::nostr::{NostrAccount, nsec_to_npub as nostr_nsec_to_npub};
-
-
-
-
+use crate::mintd_service::MintdService;
 
 /// Global state for the mint service
-static mut MINT_SERVICE: Option<Arc<Mutex<Option<bool>>>> = None;
+static mut MINT_SERVICE: Option<Arc<Mutex<Option<MintdService>>>> = None;
 static mut NOSTR_ACCOUNT: Option<Arc<Mutex<Option<NostrAccount>>>> = None;
 
 /// Initialize global state
 fn init_globals() {
     unsafe {
         if MINT_SERVICE.is_none() {
-            MINT_SERVICE = Some(Arc::new(Mutex::new(Some(false))));
+            MINT_SERVICE = Some(Arc::new(Mutex::new(None)));
         }
         if NOSTR_ACCOUNT.is_none() {
             NOSTR_ACCOUNT = Some(Arc::new(Mutex::new(None)));
@@ -78,6 +75,68 @@ pub fn nsec_to_npub(nsec: &str) -> Result<String, String> {
 }
 
 // =============================================================================
+// Configuration management
+// =============================================================================
+
+/// Load Android configuration from JSON file
+pub fn load_android_config_from_file(file_path: &str) -> Result<String, String> {
+    info!("Loading Android config from file: {}", file_path);
+    
+    // Read file content
+    let content = std::fs::read_to_string(file_path)
+        .map_err(|e| format!("Failed to read config file '{}': {}", file_path, e))?;
+    
+    // Validate JSON by parsing it
+    let config = AndroidConfig::from_json(&content)
+        .map_err(|e| format!("Invalid config file format: {}", e))?;
+    
+    // Return the validated JSON
+    let json = config.to_json()
+        .map_err(|e| format!("Failed to serialize config: {}", e))?;
+    
+    info!("Android config loaded successfully from: {}", file_path);
+    Ok(json)
+}
+
+/// Save Android configuration to JSON file
+pub fn save_android_config_to_file(file_path: &str, config_json: &str) -> Result<(), String> {
+    info!("Saving Android config to file: {}", file_path);
+    
+    // Validate JSON by parsing it
+    let config = AndroidConfig::from_json(config_json)
+        .map_err(|e| format!("Invalid config JSON: {}", e))?;
+    
+    // Create parent directory if it doesn't exist
+    if let Some(parent) = std::path::Path::new(file_path).parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            return Err(format!("Failed to create config directory: {}", e));
+        }
+    }
+    
+    // Convert back to pretty JSON and write to file
+    let pretty_json = config.to_json()
+        .map_err(|e| format!("Failed to serialize config: {}", e))?;
+    
+    std::fs::write(file_path, pretty_json)
+        .map_err(|e| format!("Failed to write config file '{}': {}", file_path, e))?;
+    
+    info!("Android config saved successfully to: {}", file_path);
+    Ok(())
+}
+
+/// Generate default Android configuration JSON
+pub fn generate_default_android_config() -> Result<String, String> {
+    info!("Generating default Android config");
+    
+    let config = AndroidConfig::default();
+    let json = config.to_json()
+        .map_err(|e| format!("Failed to serialize default config: {}", e))?;
+    
+    info!("Default Android config generated successfully");
+    Ok(json)
+}
+
+// =============================================================================
 // Service management
 // =============================================================================
 
@@ -87,10 +146,10 @@ pub fn start_android_service(config: &AndroidConfig, nsec: &str) -> Result<(), S
         return Err("nsec is empty".to_string());
     }
     
-    // Extract config directory from database path
+    // Validate database path - don't give default, fail if invalid
     let config_path = std::path::Path::new(&config.database_path)
         .parent()
-        .unwrap_or_else(|| std::path::Path::new("/data/data/com.purrmint.app/files"))
+        .ok_or_else(|| "Invalid database path: no parent directory".to_string())?
         .to_path_buf();
     
     // Create config directory if it doesn't exist
@@ -98,32 +157,39 @@ pub fn start_android_service(config: &AndroidConfig, nsec: &str) -> Result<(), S
         return Err(format!("Failed to create config directory: {:?}", e));
     }
     
-    // Generate Android configuration using the new config management
-    let toml_content = crate::config::Settings::generate_android_config(&config_path, nsec, config.port)
-        .map_err(|e| format!("Failed to generate Android config: {:?}", e))?;
-    
-    // Write config file
-    let config_file = config_path.join("mintd.toml");
-    std::fs::write(&config_file, toml_content)
-        .map_err(|e| format!("Failed to write config file: {:?}", e))?;
-    
-    // Store nsec for later use by service
-    // The service will be started separately through the service management functions
-    info!("Configuration generated successfully, nsec stored for service initialization");
+    info!("Starting Android service with config: port={}, mode={}", config.port, config.mode);
     
     init_globals();
     
-    // Mark service as started in global state with config info
-    unsafe {
-        if let Some(service_guard) = MINT_SERVICE.as_ref() {
-            if let Ok(mut guard) = service_guard.lock() {
-                *guard = Some(true);
+    // Create MintdService with nsec
+    let mut mint_service = MintdService::new_with_nsec(config_path, nsec.to_string());
+    
+    // Start the service asynchronously
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| format!("Failed to create Tokio runtime: {:?}", e))?;
+    
+    rt.block_on(async move {
+        match mint_service.start().await {
+            Ok(()) => {
+                info!("MintdService started successfully");
+                
+                // Store the running service in global state
+                unsafe {
+                    if let Some(service_guard) = MINT_SERVICE.as_ref() {
+                        if let Ok(mut guard) = service_guard.lock() {
+                            *guard = Some(mint_service);
+                        }
+                    }
+                }
+                
+                Ok(())
+            }
+            Err(e) => {
+                error!("Failed to start MintdService: {:?}", e);
+                Err(format!("Failed to start MintdService: {:?}", e))
             }
         }
-    }
-    
-    info!("Android service started with config: port={}, mode={}", config.port, config.mode);
-    Ok(())
+    })
 }
 
 /// Stop mint service
@@ -133,40 +199,61 @@ pub fn stop_service() -> Result<(), String> {
     unsafe {
         if let Some(service_guard) = MINT_SERVICE.as_ref() {
             if let Ok(mut guard) = service_guard.lock() {
-                if guard.is_some() {
-                    *guard = Some(false);
-                    info!("Service stopped successfully");
-                    return Ok(());
+                if let Some(mut service) = guard.take() {
+                    let rt = tokio::runtime::Runtime::new()
+                        .map_err(|e| format!("Failed to create Tokio runtime: {:?}", e))?;
+                    
+                    rt.block_on(async move {
+                        match service.stop().await {
+                            Ok(()) => {
+                                info!("Service stopped successfully");
+                                Ok(())
+                            }
+                            Err(e) => {
+                                error!("Failed to stop service: {:?}", e);
+                                Err(format!("Failed to stop service: {:?}", e))
+                            }
+                        }
+                    })
+                } else {
+                    Err("No service to stop".to_string())
                 }
+            } else {
+                Err("Failed to lock service guard".to_string())
             }
+        } else {
+            Err("Service not initialized".to_string())
         }
     }
-    
-    Err("No service to stop".to_string())
 }
 
 /// Get service status
 pub fn get_service_status() -> String {
-    init_globals();
-    
     unsafe {
         if let Some(service_guard) = MINT_SERVICE.as_ref() {
             if let Ok(guard) = service_guard.lock() {
-                if let Some(running) = *guard {
-                    if running {
-                        return json!({
-                            "status": "running",
-                            "message": "Service is running"
-                        }).to_string();
-                    }
+                if let Some(service) = guard.as_ref() {
+                    let status = service.get_status();
+                    let server_url = format!("http://{}:{}", 
+                        service.config.info.listen_host, 
+                        service.config.info.listen_port);
+                    
+                    return json!({
+                        "running": service.is_running(),
+                        "server_url": server_url,
+                        "work_dir": service.work_dir.to_string_lossy(),
+                        "status": status
+                    }).to_string();
                 }
             }
         }
     }
     
     json!({
-        "status": "stopped",
-        "message": "Service is not running"
+        "running": false,
+        "server_url": "",
+        "work_dir": "",
+        "status": null
     }).to_string()
 }
 
@@ -185,6 +272,7 @@ pub fn free_string(s: *mut c_char) {
 mod tests {
     use super::*;
     use nostr::{Keys, ToBech32};
+    use tempfile::tempdir;
 
     #[test]
     fn test_nsec_to_npub() {
@@ -207,5 +295,86 @@ mod tests {
     fn test_empty_nsec() {
         let result = nsec_to_npub("");
         assert!(result.is_err());
+    }
+    
+    #[test]
+    fn test_generate_default_android_config() {
+        let result = generate_default_android_config();
+        assert!(result.is_ok());
+        
+        let json = result.unwrap();
+        assert!(json.contains("port"));
+        assert!(json.contains("host"));
+        assert!(json.contains("mint_name"));
+        assert!(json.contains("PurrMint"));
+    }
+    
+    #[test]
+    fn test_save_and_load_android_config() {
+        let temp_dir = tempdir().expect("Failed to create temp dir");
+        let config_file = temp_dir.path().join("test_config.json");
+        let config_file_path = config_file.to_str().unwrap();
+        
+        // Generate default config
+        let default_config_json = generate_default_android_config().unwrap();
+        
+        // Save config to file
+        let save_result = save_android_config_to_file(config_file_path, &default_config_json);
+        assert!(save_result.is_ok());
+        
+        // Load config from file
+        let load_result = load_android_config_from_file(config_file_path);
+        assert!(load_result.is_ok());
+        
+        let loaded_config_json = load_result.unwrap();
+        
+        // Parse both configs to compare
+        let default_config = AndroidConfig::from_json(&default_config_json).unwrap();
+        let loaded_config = AndroidConfig::from_json(&loaded_config_json).unwrap();
+        
+        assert_eq!(default_config.port, loaded_config.port);
+        assert_eq!(default_config.host, loaded_config.host);
+        assert_eq!(default_config.mint_name, loaded_config.mint_name);
+        assert_eq!(default_config.mode, loaded_config.mode);
+    }
+    
+    #[test]
+    fn test_load_nonexistent_config_file() {
+        let result = load_android_config_from_file("/nonexistent/path/config.json");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to read config file"));
+    }
+    
+    #[test]
+    fn test_save_config_with_invalid_json() {
+        let temp_dir = tempdir().expect("Failed to create temp dir");
+        let config_file = temp_dir.path().join("invalid_config.json");
+        let config_file_path = config_file.to_str().unwrap();
+        
+        let invalid_json = "{invalid json}";
+        let result = save_android_config_to_file(config_file_path, invalid_json);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid config JSON"));
+    }
+    
+    #[test]
+    fn test_save_config_creates_directory() {
+        let temp_dir = tempdir().expect("Failed to create temp dir");
+        let nested_path = temp_dir.path().join("nested").join("directory").join("config.json");
+        let config_file_path = nested_path.to_str().unwrap();
+        
+        // Generate default config
+        let default_config_json = generate_default_android_config().unwrap();
+        
+        // Save config to nested path (should create directories)
+        let save_result = save_android_config_to_file(config_file_path, &default_config_json);
+        assert!(save_result.is_ok());
+        
+        // Verify file was created
+        assert!(nested_path.exists());
+        
+        // Verify we can load it back
+        let load_result = load_android_config_from_file(config_file_path);
+        assert!(load_result.is_ok());
     }
 } 

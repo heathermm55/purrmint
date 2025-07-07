@@ -379,15 +379,4 @@ impl MintService {
 
         serde_json::Value::Object(urls)
     }
-
-    /// Proxy request to mintd (for mintd modes)
-    pub async fn proxy_request(&self, endpoint: &str, payload: serde_json::Value) -> Result<serde_json::Value, ServiceError> {
-        // For now, return a mock response since we're using integrated mintd service
-        // In the future, this could make direct calls to the mint instance
-        Ok(serde_json::json!({
-            "status": "success",
-            "endpoint": endpoint,
-            "message": "Integrated mintd service - direct API calls not yet implemented"
-        }))
-    }
 } 

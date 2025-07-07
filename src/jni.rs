@@ -87,6 +87,75 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_nsecToNpub(
 // Config methods - Configuration management
 // =============================================================================
 
+/// Load Android configuration from JSON file
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_loadAndroidConfigFromFile(
+    mut _env: JNIEnv,
+    _class: JClass,
+    file_path: JString,
+) -> jstring {
+    let file_path_str = java_string_to_rust_string(&mut _env, file_path);
+    
+    match crate::core::load_android_config_from_file(&file_path_str) {
+        Ok(config_json) => {
+            match _env.new_string(config_json) {
+                Ok(java_string) => java_string.into_raw(),
+                Err(e) => {
+                    error!("Failed to create Java string: {:?}", e);
+                    ptr::null_mut()
+                }
+            }
+        },
+        Err(e) => {
+            error!("Failed to load Android config from file: {}", e);
+            ptr::null_mut()
+        }
+    }
+}
+
+/// Save Android configuration to JSON file
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_saveAndroidConfigToFile(
+    mut _env: JNIEnv,
+    _class: JClass,
+    file_path: JString,
+    config_json: JString,
+) -> jint {
+    let file_path_str = java_string_to_rust_string(&mut _env, file_path);
+    let config_json_str = java_string_to_rust_string(&mut _env, config_json);
+    
+    match crate::core::save_android_config_to_file(&file_path_str, &config_json_str) {
+        Ok(()) => 0,
+        Err(e) => {
+            error!("Failed to save Android config to file: {}", e);
+            1
+        }
+    }
+}
+
+/// Generate default Android configuration JSON
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_generateDefaultAndroidConfig(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jstring {
+    match crate::core::generate_default_android_config() {
+        Ok(config_json) => {
+            match _env.new_string(config_json) {
+                Ok(java_string) => java_string.into_raw(),
+                Err(e) => {
+                    error!("Failed to create Java string: {:?}", e);
+                    ptr::null_mut()
+                }
+            }
+        },
+        Err(e) => {
+            error!("Failed to generate default Android config: {}", e);
+            ptr::null_mut()
+        }
+    }
+}
+
 /// Load configuration, return default Android config object
 #[no_mangle]
 pub extern "system" fn Java_com_purrmint_app_PurrmintNative_loadConfig(

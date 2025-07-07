@@ -1,12 +1,11 @@
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use cdk::nuts::{CurrencyUnit, PublicKey};
 use cdk::Amount;
-use cdk_axum::cache;
 use serde::{Deserialize, Serialize};
 use anyhow::{Result, anyhow};
 
 // =============================================================================
-// Lightning Backend Configuration (merged from lightning.rs)
+// Lightning Backend Configuration 
 // =============================================================================
 
 /// Lightning backend configuration
@@ -79,8 +78,6 @@ pub struct Info {
     pub signatory_url: Option<String>,
     pub signatory_certs: Option<String>,
     pub input_fee_ppk: Option<u64>,
-    pub http_cache: cache::Config,
-    pub enable_swagger_ui: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
@@ -217,8 +214,6 @@ impl Settings {
             signatory_url: None,
             signatory_certs: None,
             input_fee_ppk: None,
-            http_cache: cache::Config::default(),
-            enable_swagger_ui: None,
         };
 
         let mint_info = MintInfo {
@@ -276,26 +271,6 @@ impl Settings {
         Ok(())
     }
 
-    /// Generate Android-optimized TOML configuration
-    pub fn generate_android_config(config_dir: &Path, nsec: &str, port: u16) -> Result<String> {
-        // For Android configuration, we don't use mnemonic at all
-        // Instead, we'll handle the nsec-to-seed conversion in the mint service
-        let settings = Self::default_with_mnemonic(None);
-        
-        // Override with Android-specific settings
-        let mut settings = settings;
-        settings.info.listen_port = port;
-        settings.info.url = format!("https://purrmint.android/");
-        settings.mint_info.name = "PurrMint Android".to_string();
-        settings.mint_info.description = "PurrMint Cashu Mint for Android".to_string();
-        settings.mint_info.description_long = Some("A Cashu mint service running on Android device".to_string());
-        
-        let config_content = toml::to_string_pretty(&settings)
-            .map_err(|e| anyhow!("Failed to serialize Android config: {}", e))?;
-        
-        Ok(config_content)
-    }
-
     /// Extract mnemonic from TOML content (simple parsing)
     pub fn extract_mnemonic_from_toml(content: &str) -> Option<String> {
         for line in content.lines() {
@@ -310,56 +285,6 @@ impl Settings {
             }
         }
         None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::tempdir;
-    
-    #[test]
-    fn test_generate_android_config_with_nsec_bech32() {
-        let temp_dir = tempdir().expect("Failed to create temp dir");
-        let nsec = "nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9av6qdrhg5c9qnzr4s2h";
-        let port = 3338;
-        
-        let result = Settings::generate_android_config(temp_dir.path(), nsec, port);
-        assert!(result.is_ok());
-        
-        let config_content = result.unwrap();
-        assert!(config_content.contains("listen_port = 3338"));
-        assert!(config_content.contains("url = \"https://purrmint.android/\""));
-        assert!(config_content.contains("name = \"PurrMint Android\""));
-        
-        // No mnemonic should be in config now (nsec is handled separately)
-        assert!(!config_content.contains("mnemonic = "));
-    }
-    
-    #[test]
-    fn test_generate_android_config_with_nsec_hex() {
-        let temp_dir = tempdir().expect("Failed to create temp dir");
-        let nsec = "7f7ff03d123456789abcdef0123456789abcdef0123456789abcdef0123456789a";
-        let port = 4000;
-        
-        let result = Settings::generate_android_config(temp_dir.path(), nsec, port);
-        assert!(result.is_ok());
-        
-        let config_content = result.unwrap();
-        assert!(config_content.contains("listen_port = 4000"));
-        // No mnemonic should be in config now (nsec is handled separately)
-        assert!(!config_content.contains("mnemonic = "));
-    }
-    
-    #[test]
-    fn test_android_config_json_roundtrip() {
-        let config = AndroidConfig::default();
-        let json = config.to_json().expect("Failed to serialize");
-        let parsed = AndroidConfig::from_json(&json).expect("Failed to parse");
-        
-        assert_eq!(config.port, parsed.port);
-        assert_eq!(config.mode, parsed.mode);
-        assert_eq!(config.mint_name, parsed.mint_name);
     }
 }
 
@@ -448,5 +373,21 @@ impl AndroidConfig {
         }
         
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_android_config_json_roundtrip() {
+        let config = AndroidConfig::default();
+        let json = config.to_json().expect("Failed to serialize");
+        let parsed = AndroidConfig::from_json(&json).expect("Failed to parse");
+        
+        assert_eq!(config.port, parsed.port);
+        assert_eq!(config.mode, parsed.mode);
+        assert_eq!(config.mint_name, parsed.mint_name);
     }
 } 
