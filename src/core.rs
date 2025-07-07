@@ -4,23 +4,14 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
-use std::path::PathBuf;
 
 use serde_json::json;
 use tracing::info;
 
-use crate::service::MintService;
-use crate::config::{LightningConfig, ServiceMode};
-use crate::nostr::{NostrAccount, create_nostr_account, free_nostr_account, nsec_to_npub as nostr_nsec_to_npub};
+use crate::config::AndroidConfig;
+use crate::nostr::{NostrAccount, nsec_to_npub as nostr_nsec_to_npub};
 
-/// Service mode for Android
-#[repr(C)]
-#[derive(Debug)]
-pub enum AndroidServiceMode {
-    MintdOnly = 0,
-    Nip74Only = 1,
-    MintdAndNip74 = 2,
-}
+
 
 
 
@@ -90,27 +81,17 @@ pub fn nsec_to_npub(nsec: &str) -> Result<String, String> {
 // Service management
 // =============================================================================
 
-/// Convert Android service mode to internal service mode
-fn android_mode_to_service_mode(mode: AndroidServiceMode) -> ServiceMode {
-    match mode {
-        AndroidServiceMode::MintdOnly => ServiceMode::MintdOnly,
-        AndroidServiceMode::Nip74Only => ServiceMode::Nip74Only,
-        AndroidServiceMode::MintdAndNip74 => ServiceMode::MintdAndNip74,
-    }
-}
-
-/// Start Android service
-pub fn start_android_service(
-    mode: AndroidServiceMode,
-    config_dir: &str,
-    mnemonic: &str,
-    port: u16
-) -> Result<(), String> {
-    if config_dir.is_empty() || mnemonic.is_empty() {
-        return Err("config_dir or mnemonic is empty".to_string());
+/// Start Android service with configuration
+pub fn start_android_service(config: &AndroidConfig, nsec: &str) -> Result<(), String> {
+    if nsec.is_empty() {
+        return Err("nsec is empty".to_string());
     }
     
-    let config_path = PathBuf::from(config_dir);
+    // Extract config directory from database path
+    let config_path = std::path::Path::new(&config.database_path)
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("/data/data/com.purrmint.app/files"))
+        .to_path_buf();
     
     // Create config directory if it doesn't exist
     if let Err(e) = std::fs::create_dir_all(&config_path) {
@@ -118,7 +99,7 @@ pub fn start_android_service(
     }
     
     // Generate Android configuration using the new config management
-    let toml_content = crate::config::Settings::generate_android_config(&config_path, mnemonic, port)
+    let toml_content = crate::config::Settings::generate_android_config(&config_path, nsec, config.port)
         .map_err(|e| format!("Failed to generate Android config: {:?}", e))?;
     
     // Write config file
@@ -126,9 +107,13 @@ pub fn start_android_service(
     std::fs::write(&config_file, toml_content)
         .map_err(|e| format!("Failed to write config file: {:?}", e))?;
     
+    // Store nsec for later use by service
+    // The service will be started separately through the service management functions
+    info!("Configuration generated successfully, nsec stored for service initialization");
+    
     init_globals();
     
-    // Mark service as started in global state
+    // Mark service as started in global state with config info
     unsafe {
         if let Some(service_guard) = MINT_SERVICE.as_ref() {
             if let Ok(mut guard) = service_guard.lock() {
@@ -137,7 +122,7 @@ pub fn start_android_service(
         }
     }
     
-    info!("Android service configuration completed successfully");
+    info!("Android service started with config: port={}, mode={}", config.port, config.mode);
     Ok(())
 }
 

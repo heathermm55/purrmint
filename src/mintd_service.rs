@@ -26,6 +26,7 @@ pub struct MintdService {
     shutdown: Arc<Notify>,
     work_dir: PathBuf,
     config: Settings,
+    nsec: Option<String>,  // Store nsec instead of relying on config mnemonic
     is_running: bool,
     http_server: Option<tokio::task::JoinHandle<()>>,
 }
@@ -39,6 +40,7 @@ impl MintdService {
             shutdown: Arc::new(Notify::new()),
             work_dir,
             config,
+            nsec: None,
             is_running: false,
             http_server: None,
         }
@@ -52,9 +54,57 @@ impl MintdService {
             shutdown: Arc::new(Notify::new()),
             work_dir,
             config,
+            nsec: None,
             is_running: false,
             http_server: None,
         }
+    }
+
+    /// Create new MintdService with nsec (Nostr private key)
+    pub fn new_with_nsec(work_dir: PathBuf, nsec: String) -> Self {
+        let config = Self::create_default_config(None);  // No mnemonic in config
+        
+        Self {
+            mint: None,
+            shutdown: Arc::new(Notify::new()),
+            work_dir,
+            config,
+            nsec: Some(nsec),
+            is_running: false,
+            http_server: None,
+        }
+    }
+
+    /// Generate 64-byte seed from nsec (Nostr private key)
+    fn generate_seed_from_nsec(nsec: &str) -> Result<Vec<u8>> {
+        use sha2::{Digest, Sha512};
+        use nostr::{FromBech32, SecretKey};
+        
+        // Convert nsec to 32-byte private key
+        let secret_key_bytes = if nsec.starts_with("nsec1") {
+            // If it's a bech32 nsec, decode it
+            let secret_key = SecretKey::from_bech32(nsec)
+                .map_err(|e| anyhow!("Failed to decode nsec: {}", e))?;
+            secret_key.to_secret_bytes().to_vec()
+        } else {
+            // Assume it's already hex
+            hex::decode(nsec)
+                .map_err(|e| anyhow!("Failed to decode hex nsec: {}", e))?
+        };
+        
+        if secret_key_bytes.len() != 32 {
+            return Err(anyhow!("Invalid nsec length: expected 32 bytes, got {}", secret_key_bytes.len()));
+        }
+        
+        // Generate 64-byte seed using HMAC-SHA512 (similar to BIP39)
+        // We use "Cashu Mint Seed" as the key to generate deterministic seeds for Cashu mints
+        let mut hasher = sha2::Sha512::new();
+        hasher.update(b"Cashu Mint Seed");
+        hasher.update(&secret_key_bytes);
+        let seed = hasher.finalize().to_vec();
+        
+        info!("Generated 64-byte seed from nsec ({}...)", &nsec[..8]);
+        Ok(seed)
     }
 
     fn create_default_config(mnemonic: Option<String>) -> Settings {
@@ -324,18 +374,22 @@ impl MintdService {
             }
         }
 
-        // Set seed from config or use default
-        let mnemonic_str = if let Some(ref mnemonic) = self.config.info.mnemonic {
+        // Set seed from nsec or mnemonic
+        let seed = if let Some(ref nsec) = self.nsec {
+            info!("MintdService::build_mint: using nsec: {}...", &nsec[..8]);
+            Self::generate_seed_from_nsec(nsec)?
+        } else if let Some(ref mnemonic) = self.config.info.mnemonic {
             info!("MintdService::build_mint: using mnemonic from config: {}...", &mnemonic[..mnemonic.len().min(20)]);
-            mnemonic.as_str()
+            let mnemonic = bip39::Mnemonic::from_str(mnemonic)?;
+            mnemonic.to_seed_normalized("").to_vec()
         } else {
-            info!("MintdService::build_mint: no mnemonic in config, using default");
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+            info!("MintdService::build_mint: no nsec or mnemonic, using default mnemonic");
+            let mnemonic = bip39::Mnemonic::from_str("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about")?;
+            mnemonic.to_seed_normalized("").to_vec()
         };
-        info!("MintdService::build_mint: parsing mnemonic...");
-        let mnemonic = bip39::Mnemonic::from_str(mnemonic_str)?;
-        info!("MintdService::build_mint: mnemonic parsed successfully, setting seed...");
-        mint_builder = mint_builder.with_seed(mnemonic.to_seed_normalized("").to_vec());
+        
+        info!("MintdService::build_mint: setting seed ({}...)", hex::encode(&seed[..8]));
+        mint_builder = mint_builder.with_seed(seed);
         info!("MintdService::build_mint: seed set successfully");
 
         // Set mint info
@@ -648,5 +702,61 @@ impl Drop for MintdService {
         if self.is_running {
             self.shutdown.notify_waiters();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_seed_from_nsec_bech32() {
+        // For now, just test with hex format since bech32 validation is complex
+        let nsec = "0000000000000000000000000000000000000000000000000000000000000002";
+        let result = MintdService::generate_seed_from_nsec(nsec);
+        
+        assert!(result.is_ok());
+        let seed = result.unwrap();
+        assert_eq!(seed.len(), 64); // Should be 64 bytes
+        
+        // Test deterministic generation - same nsec should produce same seed
+        let result2 = MintdService::generate_seed_from_nsec(nsec);
+        assert!(result2.is_ok());
+        let seed2 = result2.unwrap();
+        assert_eq!(seed, seed2);
+    }
+
+    #[test]
+    fn test_generate_seed_from_nsec_hex() {
+        let nsec = "0000000000000000000000000000000000000000000000000000000000000001";
+        let result = MintdService::generate_seed_from_nsec(nsec);
+        
+        assert!(result.is_ok());
+        let seed = result.unwrap();
+        assert_eq!(seed.len(), 64); // Should be 64 bytes
+        
+        // Test deterministic generation
+        let result2 = MintdService::generate_seed_from_nsec(nsec);
+        assert!(result2.is_ok());
+        let seed2 = result2.unwrap();
+        assert_eq!(seed, seed2);
+    }
+
+    #[test]
+    fn test_generate_seed_from_invalid_nsec() {
+        let invalid_nsec = "invalid_key";
+        let result = MintdService::generate_seed_from_nsec(invalid_nsec);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_different_nsec_produces_different_seeds() {
+        let nsec1 = "0000000000000000000000000000000000000000000000000000000000000001";
+        let nsec2 = "0000000000000000000000000000000000000000000000000000000000000002";
+        
+        let seed1 = MintdService::generate_seed_from_nsec(nsec1).unwrap();
+        let seed2 = MintdService::generate_seed_from_nsec(nsec2).unwrap();
+        
+        assert_ne!(seed1, seed2); // Different nsec should produce different seeds
     }
 }

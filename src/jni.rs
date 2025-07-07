@@ -4,12 +4,11 @@
 //! 2. Config methods - Configuration management
 //! 3. Service methods - Service lifecycle and status
 
-use std::ffi::{CStr, CString};
+
 use jni::JNIEnv;
 use jni::objects::{JClass, JString};
 use jni::sys::{jint, jstring};
-use crate::core::{AndroidServiceMode, free_string};
-use crate::config::{AndroidConfig, Settings};
+use crate::config::AndroidConfig;
 use std::ptr;
 use tracing::error;
 
@@ -190,7 +189,7 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMintWithConfig(
     nsec: JString,
 ) -> jint {
     let config_str = java_string_to_rust_string(&mut _env, config_json);
-    let _nsec_str = java_string_to_rust_string(&mut _env, nsec);
+    let nsec_str = java_string_to_rust_string(&mut _env, nsec);
     
     // Parse Android configuration
     let android_config = match AndroidConfig::from_json(&config_str) {
@@ -201,58 +200,12 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startMintWithConfig(
         }
     };
     
-    // Extract configuration parameters
-    let port = android_config.port;
-    let mode_str = &android_config.mode;
-    let data_dir = std::path::Path::new(&android_config.database_path)
-        .parent()
-        .unwrap_or_else(|| std::path::Path::new("/data/data/com.purrmint.app/files"));
-    
-    // Convert nsec to mnemonic or derive mnemonic from nsec
-    // For now, we'll use a default mnemonic but this should be derived from nsec
-    let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-    
-    // Generate TOML configuration using the new config management
-    match Settings::generate_android_config(data_dir, mnemonic, port) {
-        Ok(toml_content) => {
-            // Write TOML config file
-            let config_file = data_dir.join("mintd.toml");
-            if let Err(e) = std::fs::create_dir_all(data_dir) {
-                error!("Failed to create config directory: {:?}", e);
-                return 2;
-            }
-            
-            if let Err(e) = std::fs::write(&config_file, toml_content) {
-                error!("Failed to write config file: {:?}", e);
-                return 3;
-            }
-        },
-        Err(e) => {
-            error!("Failed to generate Android config: {:?}", e);
-            return 4;
-        }
-    }
-    
-    // Parse mode
-    let android_mode = match mode_str.as_str() {
-        "MintdOnly" => AndroidServiceMode::MintdOnly,
-        "Nip74Only" => AndroidServiceMode::Nip74Only,
-        "MintdAndNip74" => AndroidServiceMode::MintdAndNip74,
-        _ => AndroidServiceMode::MintdOnly,
-    };
-    
-    let config_dir_str = data_dir.to_string_lossy();
-    
-    match crate::core::start_android_service(
-        android_mode,
-        &config_dir_str,
-        mnemonic,
-        port,
-    ) {
+    // Start the service with the complete configuration and nsec
+    match crate::core::start_android_service(&android_config, &nsec_str) {
         Ok(()) => 0,
         Err(e) => {
             error!("Failed to start Android service: {}", e);
-            5
+            1
         }
     }
 }

@@ -76,6 +76,22 @@ impl MintService {
     where
         T: IntoIterator<Item = RelayUrl>,
     {
+        Self::new_with_nsec(mode, mint_info, lightning_config, relays, config_dir, mintd_port, None).await
+    }
+
+    /// Create a new service instance with nsec.
+    pub async fn new_with_nsec<T>(
+        mode: ServiceMode,
+        mint_info: cdkMintInfo,
+        lightning_config: LightningConfig,
+        relays: T,
+        config_dir: std::path::PathBuf,
+        mintd_port: u16,
+        nsec: Option<String>,
+    ) -> Result<Self, ServiceError>
+    where
+        T: IntoIterator<Item = RelayUrl>,
+    {
         let (signer, handler, client) = match mode {
             ServiceMode::MintdOnly => (None, None, None),
             ServiceMode::Nip74Only | ServiceMode::MintdAndNip74 => {
@@ -87,34 +103,40 @@ impl MintService {
 
         let mintd = match mode {
             ServiceMode::MintdOnly | ServiceMode::MintdAndNip74 => {
-                // Try to read mnemonic from config file using the new config management
-                let config_file = config_dir.join("mintd.toml");
-                tracing::info!("MintService::new: checking config file at {:?}", config_file);
-                
-                let mnemonic = if config_file.exists() {
-                    match crate::config::Settings::load_from_file(&config_file) {
-                        Ok(settings) => {
-                            tracing::info!("MintService::new: config file loaded successfully");
-                            if let Some(mnemonic) = settings.info.mnemonic {
-                                tracing::info!("MintService::new: found mnemonic in config: {}...", &mnemonic[..mnemonic.len().min(20)]);
-                                mnemonic
-                            } else {
-                                tracing::warn!("MintService::new: no mnemonic in config, using default");
+                if let Some(nsec) = nsec {
+                    // Use provided nsec
+                    tracing::info!("MintService::new_with_nsec: creating MintdService with nsec: {}...", &nsec[..8]);
+                    Some(MintdService::new_with_nsec(config_dir.clone(), nsec))
+                } else {
+                    // Try to read mnemonic from config file using the new config management
+                    let config_file = config_dir.join("mintd.toml");
+                    tracing::info!("MintService::new_with_nsec: checking config file at {:?}", config_file);
+                    
+                    let mnemonic = if config_file.exists() {
+                        match crate::config::Settings::load_from_file(&config_file) {
+                            Ok(settings) => {
+                                tracing::info!("MintService::new_with_nsec: config file loaded successfully");
+                                if let Some(mnemonic) = settings.info.mnemonic {
+                                    tracing::info!("MintService::new_with_nsec: found mnemonic in config: {}...", &mnemonic[..mnemonic.len().min(20)]);
+                                    mnemonic
+                                } else {
+                                    tracing::warn!("MintService::new_with_nsec: no mnemonic in config, using default");
+                                    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
+                                }
+                            },
+                            Err(e) => {
+                                tracing::warn!("MintService::new_with_nsec: failed to parse config file: {:?}, using default mnemonic", e);
                                 "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
                             }
-                        },
-                        Err(e) => {
-                            tracing::warn!("MintService::new: failed to parse config file: {:?}, using default mnemonic", e);
-                            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
                         }
-                    }
-                } else {
-                    tracing::warn!("MintService::new: config file not found, using default mnemonic");
-                    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
-                };
-                
-                tracing::info!("MintService::new: creating MintdService with mnemonic: {}...", &mnemonic[..mnemonic.len().min(20)]);
-                Some(MintdService::new_with_mnemonic(config_dir.clone(), mnemonic))
+                    } else {
+                        tracing::warn!("MintService::new_with_nsec: config file not found, using default mnemonic");
+                        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string()
+                    };
+                    
+                    tracing::info!("MintService::new_with_nsec: creating MintdService with mnemonic: {}...", &mnemonic[..mnemonic.len().min(20)]);
+                    Some(MintdService::new_with_mnemonic(config_dir.clone(), mnemonic))
+                }
             }
             ServiceMode::Nip74Only => None,
         };
