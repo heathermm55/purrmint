@@ -334,6 +334,28 @@ impl MintdService {
         
         mint_builder = mint_builder.with_seed(seed);
 
+        // Set mint pubkey from nsec if available
+        if let Some(ref nsec) = self.nsec {
+            use nostr::{FromBech32, SecretKey};
+            let secret_key = if nsec.starts_with("nsec1") {
+                SecretKey::from_bech32(nsec)
+                    .map_err(|e| anyhow!("Failed to decode nsec: {}", e))?
+            } else {
+                SecretKey::from_hex(nsec)
+                    .map_err(|e| anyhow!("Failed to decode hex nsec: {}", e))?
+            };
+            
+            let secp = nostr::secp256k1::Secp256k1::new();
+            let public_key = secret_key.public_key(&secp);
+            
+            // Convert secp256k1 public key to cdk public key
+            let pubkey_bytes = public_key.serialize();
+            let cdk_pubkey = cdk::nuts::PublicKey::from_hex(&hex::encode(&pubkey_bytes))?;
+            
+            mint_builder = mint_builder.with_pubkey(cdk_pubkey);
+            info!("Set mint pubkey from nsec: {}", hex::encode(&pubkey_bytes));
+        }
+
         // Set mint info
         mint_builder = mint_builder
             .with_name(self.config.mint_info.name.clone())
