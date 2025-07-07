@@ -12,10 +12,8 @@ use nostr::prelude::*;
 use serde_json::{json, Value};
 use tracing::{info, error};
 
-use crate::service::{MintService, ServiceMode};
-use crate::handler::default::DefaultRequestHandler;
-use crate::config::LightningConfig;
-use crate::mintd_service::MintdService;
+use crate::service::MintService;
+use crate::config::{LightningConfig, ServiceMode};
 
 /// FFI Error codes
 #[repr(C)]
@@ -286,7 +284,7 @@ pub extern "C" fn mint_start_with_mode(mode: FfiServiceMode, config_dir: *const 
                                         svc.set_signer(signer)?;
                                         
                                         // Set default handler that proxies to mintd
-                                        let handler = Arc::new(DefaultRequestHandler::new(port));
+                                        let handler = Arc::new(crate::nip74_service::DefaultRequestHandler::new(port));
                                         svc.set_handler(handler)?;
                                     }
                                 }

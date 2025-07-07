@@ -35,6 +35,38 @@ impl Default for LightningConfig {
 }
 
 // =============================================================================
+// Service Mode Configuration
+// =============================================================================
+
+/// Service operation mode
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceMode {
+    /// Only mintd service (HTTP API)
+    MintdOnly,
+    /// Only NIP-74 service (Nostr events)
+    Nip74Only,
+    /// Both mintd and NIP-74 services
+    MintdAndNip74,
+}
+
+impl Default for ServiceMode {
+    fn default() -> Self {
+        ServiceMode::MintdOnly
+    }
+}
+
+impl std::fmt::Display for ServiceMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ServiceMode::MintdOnly => write!(f, "mintd_only"),
+            ServiceMode::Nip74Only => write!(f, "nip74_only"),
+            ServiceMode::MintdAndNip74 => write!(f, "mintd_and_nip74"),
+        }
+    }
+}
+
+// =============================================================================
 // Configuration Structures
 // =============================================================================
 
@@ -135,6 +167,7 @@ pub struct Settings {
     pub ln: Ln,
     pub fake_wallet: Option<FakeWallet>,
     pub database: Database,
+    pub service_mode: ServiceMode,
 }
 
 // =============================================================================
@@ -211,6 +244,7 @@ impl Settings {
             ln,
             fake_wallet: Some(FakeWallet::default()),
             database,
+            service_mode: ServiceMode::default(),
         }
     }
 
@@ -292,6 +326,14 @@ impl AndroidConfig {
         settings.ln.ln_backend = match self.lightning_backend.as_str() {
             "fake" | "fakewallet" => LnBackend::FakeWallet,
             _ => LnBackend::None,
+        };
+        
+        // Set service mode
+        settings.service_mode = match self.mode.as_str() {
+            "MintdOnly" => ServiceMode::MintdOnly,
+            "Nip74Only" => ServiceMode::Nip74Only,
+            "MintdAndNip74" => ServiceMode::MintdAndNip74,
+            _ => ServiceMode::MintdOnly,
         };
         
         settings

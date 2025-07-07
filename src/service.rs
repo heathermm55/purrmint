@@ -8,23 +8,14 @@ use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::error;
 use crate::{OperationRequest, OperationResult, Nip74Result, Nip74Error};
-use crate::helpers::build_mint_info_event;
+use crate::nip74_service::build_mint_info_event;
 use crate::mintd_service::MintdService;
 use cdk::nuts::nut06::MintInfo as cdkMintInfo;
-use crate::config::LightningConfig;
+use crate::config::{LightningConfig, ServiceMode};
 use nostr::signer::NostrSigner;
 use nostr::{Filter, Kind, RelayUrl};
 
-/// Service operation modes
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ServiceMode {
-    /// Only mintd service (HTTP API)
-    MintdOnly,
-    /// Only NIP-74 service (Nostr events)
-    Nip74Only,
-    /// Both mintd and NIP-74 services
-    MintdAndNip74,
-}
+
 
 /// Errors raised by the [`MintService`].
 #[derive(Debug, Error)]
@@ -164,6 +155,22 @@ impl MintService {
             ServiceMode::MintdOnly => Err(ServiceError::InvalidMode),
             ServiceMode::Nip74Only | ServiceMode::MintdAndNip74 => {
                 self.handler = Some(handler);
+                Ok(())
+            }
+        }
+    }
+
+    /// Auto-configure the service with appropriate handlers based on mode
+    pub fn auto_configure(&mut self) -> Result<(), ServiceError> {
+        match self.mode {
+            ServiceMode::MintdOnly => {
+                // No handler needed for mintd-only mode
+                Ok(())
+            }
+            ServiceMode::Nip74Only | ServiceMode::MintdAndNip74 => {
+                // Create default request handler that proxies to mintd
+                let handler = Arc::new(crate::nip74_service::DefaultRequestHandler::new(self.mintd_port));
+                self.set_handler(handler)?;
                 Ok(())
             }
         }

@@ -110,6 +110,7 @@ impl MintdService {
                 max_delay_time: 3,
             }),
             database,
+            service_mode: crate::config::ServiceMode::MintdOnly,
         }
     }
 

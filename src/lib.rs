@@ -2,10 +2,8 @@
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-pub mod types;
-pub mod helpers;
+pub mod nip74_service;
 pub mod service;
-pub mod handler;
 pub mod ffi;
 pub mod config;
 pub mod mintd_service;
@@ -14,12 +12,20 @@ pub mod mintd_service;
 #[cfg(feature = "jni-support")]
 pub mod jni;
 
-// lightning module merged into config.rs
+// NIP-74 service types and functions
+pub use nip74_service::{
+    Nip74Error, Nip74Result, ResultStatus, ResultError, OperationMethod, 
+    OperationRequest, OperationResult, new_request_id, build_mint_info_event,
+    DefaultRequestHandler, DefaultMintHandler
+};
 
-pub use types::*;
-pub use helpers::*;
-pub use service::*;
-pub use handler::*;
+// Service types and functions
+pub use service::{ServiceError, MintService, RequestHandler};
+
+// Configuration types
+pub use config::ServiceMode;
+
+// FFI functions
 pub use ffi::*;
 
 pub use cdk::nuts::nut06::MintInfo; 
