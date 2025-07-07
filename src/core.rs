@@ -163,7 +163,7 @@ pub fn start_android_service(config: &AndroidConfig, nsec: &str) -> Result<(), S
     }
     
     // Create and start service using global runtime
-    let mut mint_service = MintdService::new_with_nsec(config_path, nsec.to_string());
+    let mut mint_service = MintdService::new_with_android_config(config_path, config, nsec.to_string());
     
     let rt = RUNTIME.get().unwrap();
     rt.block_on(async move {

@@ -17,7 +17,7 @@ use cdk::mint::{MintBuilder, MintMeltLimits};
 use cdk::types::QuoteTTL;
 use cdk::Bolt11Invoice;
 use cdk_sqlite::MintSqliteDatabase;
-use crate::config::{Settings, DatabaseEngine, LnBackend, Info, MintInfo, Ln, Database, FakeWallet};
+use crate::config::{Settings, DatabaseEngine, LnBackend, Info, MintInfo, Ln, Database, FakeWallet, AndroidConfig};
 use cdk_axum::cache::HttpCache;
 
 pub struct MintdService {
@@ -31,37 +31,24 @@ pub struct MintdService {
 }
 
 impl MintdService {
-    pub fn new(work_dir: PathBuf) -> Self {
-        let config = Self::create_default_config(None);
-        
-        Self {
-            mint: None,
-            shutdown: Arc::new(Notify::new()),
-            work_dir,
-            config,
-            nsec: None,
-            is_running: false,
-            http_server: None,
-        }
-    }
-
-    pub fn new_with_mnemonic(work_dir: PathBuf, mnemonic: String) -> Self {
-        let config = Self::create_default_config(Some(mnemonic));
-        
-        Self {
-            mint: None,
-            shutdown: Arc::new(Notify::new()),
-            work_dir,
-            config,
-            nsec: None,
-            is_running: false,
-            http_server: None,
-        }
-    }
-
     /// Create new MintdService with nsec (Nostr private key)
     pub fn new_with_nsec(work_dir: PathBuf, nsec: String) -> Self {
         let config = Self::create_default_config(None);
+        
+        Self {
+            mint: None,
+            shutdown: Arc::new(Notify::new()),
+            work_dir,
+            config,
+            nsec: Some(nsec),
+            is_running: false,
+            http_server: None,
+        }
+    }
+
+    /// Create new MintdService with Android configuration and nsec
+    pub fn new_with_android_config(work_dir: PathBuf, android_config: &crate::config::AndroidConfig, nsec: String) -> Self {
+        let config = Self::create_config_from_android(android_config);
         
         Self {
             mint: None,
@@ -127,6 +114,64 @@ impl MintdService {
 
         let ln = Ln {
             ln_backend: LnBackend::FakeWallet,
+            invoice_description: None,
+            min_mint: 1.into(),
+            max_mint: 1000000.into(),
+            min_melt: 1.into(),
+            max_melt: 1000000.into(),
+        };
+
+        let database = Database {
+            engine: DatabaseEngine::Sqlite,
+        };
+
+        Settings {
+            info,
+            mint_info,
+            ln,
+            fake_wallet: Some(FakeWallet {
+                supported_units: vec![
+                    cdk::nuts::CurrencyUnit::Sat,
+                    cdk::nuts::CurrencyUnit::Msat,
+                ],
+                fee_percent: 0.02,
+                reserve_fee_min: 1.into(),
+                min_delay_time: 1,
+                max_delay_time: 3,
+            }),
+            database,
+            service_mode: crate::config::ServiceMode::MintdOnly,
+        }
+    }
+
+    fn create_config_from_android(android_config: &AndroidConfig) -> Settings {
+        let info = Info {
+            url: format!("http://{}:{}/", android_config.host, android_config.port),
+            listen_host: android_config.host.clone(),
+            listen_port: android_config.port,
+            mnemonic: None,
+            signatory_url: None,
+            signatory_certs: None,
+            input_fee_ppk: None,
+        };
+
+        let mint_info = MintInfo {
+            name: android_config.mint_name.clone(),
+            pubkey: None,
+            description: android_config.description.clone(),
+            description_long: None,
+            icon_url: None,
+            motd: None,
+            contact_nostr_public_key: None,
+            contact_email: None,
+            tos_url: None,
+        };
+
+        let ln = Ln {
+            ln_backend: match android_config.lightning_backend.as_str() {
+                "fakewallet" | "fake" => LnBackend::FakeWallet,
+                _ => LnBackend::None,
+            },
             invoice_description: None,
             min_mint: 1.into(),
             max_mint: 1000000.into(),
