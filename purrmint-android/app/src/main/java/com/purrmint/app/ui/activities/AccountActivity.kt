@@ -136,21 +136,17 @@ class AccountActivity : AppCompatActivity() {
         try {
             // Clear login state
             loginManager.clearLoginState()
-            
             // Stop mint service if running
             val intent = Intent(this, PurrmintService::class.java)
             stopService(intent)
-            
-            // Show confirmation
+            // Show confirmation toast
             Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show()
-            
-            // Return to login activity
-            val resultIntent = Intent().apply {
-                putExtra("logout", true)
-            }
-            setResult(RESULT_OK, resultIntent)
+            // Start LoginActivity and clear back stack
+            val loginIntent = Intent(this, LoginActivity::class.java)
+            loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(loginIntent)
+            // Finish AccountActivity to prevent returning here
             finish()
-            
         } catch (e: Exception) {
             Log.e(TAG, "Error during logout", e)
             Toast.makeText(this, "Error during logout: ${e.message}", Toast.LENGTH_SHORT).show()

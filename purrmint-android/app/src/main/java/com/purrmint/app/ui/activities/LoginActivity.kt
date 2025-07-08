@@ -114,6 +114,14 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    private fun goToMainActivity() {
+        // Go to MainActivity and clear back stack
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
+
     private fun createAccount() {
         try {
             showStatus("Creating new Nostr account...")
@@ -125,14 +133,8 @@ class LoginActivity : AppCompatActivity() {
                 // Start the service
                 startPurrmintService()
                 
-                // Return success
-                val accountInfo = loginManager.getAccountInfo()
-                val resultIntent = Intent().apply {
-                    putExtra(EXTRA_LOGIN_SUCCESS, true)
-                    putExtra(EXTRA_ACCOUNT_INFO, accountInfo)
-                }
-                setResult(RESULT_OK, resultIntent)
-                finish()
+                // Go to main activity
+                goToMainActivity()
             } else {
                 showStatus("Failed to create account")
                 Toast.makeText(this, "Failed to create account", Toast.LENGTH_SHORT).show()
@@ -162,14 +164,8 @@ class LoginActivity : AppCompatActivity() {
                 // Start the service
                 startPurrmintService()
                 
-                // Return success
-                val accountInfo = loginManager.getAccountInfo()
-                val resultIntent = Intent().apply {
-                    putExtra(EXTRA_LOGIN_SUCCESS, true)
-                    putExtra(EXTRA_ACCOUNT_INFO, accountInfo)
-                }
-                setResult(RESULT_OK, resultIntent)
-                finish()
+                // Go to main activity
+                goToMainActivity()
             } else {
                 showStatus("Login failed - Invalid NSEC key")
                 Toast.makeText(this, "Login failed - Invalid NSEC key", Toast.LENGTH_SHORT).show()
