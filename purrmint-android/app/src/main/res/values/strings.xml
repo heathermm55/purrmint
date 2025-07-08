@@ -114,6 +114,15 @@
     <string name="version">Version</string>
     <string name="app_version">v1.0.0</string>
     
+    <!-- Main Activity UI strings -->
+    <string name="mint_status">Mint Status</string>
+    <string name="online">Online</string>
+    <string name="offline">Offline</string>
+    <string name="please_login_first">Please login first</string>
+    <string name="start_mint_service">Start Mint Service</string>
+    <string name="service_unavailable">Service Unavailable</string>
+    <string name="welcome_message">Welcome to Purrmint!\nPlease login to start.</string>
+    
     <!-- New string for current version -->
     <string name="current_version">Version %1$s</string>
 </resources> 

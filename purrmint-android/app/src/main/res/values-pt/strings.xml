@@ -113,4 +113,13 @@
     <string name="about">Sobre</string>
     <string name="version">Versão</string>
     <string name="app_version">v1.0.0</string>
+    
+    <!-- Main Activity UI strings -->
+    <string name="mint_status">Status da Mint</string>
+    <string name="online">Online</string>
+    <string name="offline">Offline</string>
+    <string name="please_login_first">Por favor, faça login primeiro</string>
+    <string name="start_mint_service">Iniciar Serviço Mint</string>
+    <string name="service_unavailable">Serviço Indisponível</string>
+    <string name="welcome_message">Bem-vindo ao Purrmint!\nPor favor, faça login para começar.</string>
 </resources> 

@@ -8,7 +8,7 @@ class PurrmintApplication : Application() {
     
     override fun attachBaseContext(base: Context) {
         val languageManager = LanguageManager(base)
-        val context = languageManager.applyLanguage(base)
+        val context = languageManager.applyLanguageToBaseContext(base)
         super.attachBaseContext(context)
     }
     
@@ -19,4 +19,6 @@ class PurrmintApplication : Application() {
         val languageManager = LanguageManager(this)
         languageManager.updateConfiguration(resources)
     }
+    
+    // Remove the problematic getResources override
 } 

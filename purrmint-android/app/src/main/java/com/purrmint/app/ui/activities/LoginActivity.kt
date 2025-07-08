@@ -16,6 +16,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.purrmint.app.R
 import com.purrmint.app.core.managers.LoginManager
+import com.purrmint.app.core.managers.LanguageManager
 import com.purrmint.app.core.services.PurrmintService
 
 class LoginActivity : AppCompatActivity() {
@@ -33,6 +34,9 @@ class LoginActivity : AppCompatActivity() {
     // Login Manager
     private lateinit var loginManager: LoginManager
     
+    // Language Manager
+    private lateinit var languageManager: LanguageManager
+    
     companion object {
         private const val TAG = "LoginActivity"
         const val EXTRA_LOGIN_SUCCESS = "login_success"
@@ -41,10 +45,15 @@ class LoginActivity : AppCompatActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
-
-        // Initialize login manager
+        
+        // Initialize managers
         loginManager = LoginManager(this)
+        languageManager = LanguageManager(this)
+        
+        // Apply current language
+        languageManager.updateConfiguration(resources)
+        
+        setContentView(R.layout.activity_login)
         
         // Initialize UI components
         initializeViews()

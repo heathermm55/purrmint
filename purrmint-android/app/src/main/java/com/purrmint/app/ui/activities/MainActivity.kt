@@ -77,6 +77,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         configManager = ConfigManager(this)
         languageManager = LanguageManager(this)
         
+        // Apply current language
+        languageManager.updateConfiguration(resources)
+        
         // Check login status
         if (!loginManager.isLoggedIn()) {
             // Not logged in, go to login activity
@@ -584,13 +587,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (isOnline) {
             statusIcon.setImageResource(R.drawable.ic_status_online)
             statusIcon.setColorFilter(resources.getColor(R.color.success_color, null))
-            statusChip.text = "Online"
+            statusChip.text = getString(R.string.online)
             statusChip.setChipBackgroundColorResource(R.color.success_container_color)
             statusChip.setTextColor(resources.getColor(R.color.success_color, null))
         } else {
             statusIcon.setImageResource(R.drawable.ic_status_offline)
             statusIcon.setColorFilter(resources.getColor(R.color.error_color, null))
-            statusChip.text = "Offline"
+            statusChip.text = getString(R.string.offline)
             statusChip.setChipBackgroundColorResource(R.color.error_container_color)
             statusChip.setTextColor(resources.getColor(R.color.error_color, null))
         }
@@ -603,13 +606,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun enableStartButton() {
         startButton.isEnabled = true
-        startButton.text = "Start Mint Service"
+        startButton.text = getString(R.string.start_mint_service)
         startButton.setIconResource(R.drawable.ic_play)
     }
 
     private fun disableStartButton() {
         startButton.isEnabled = false
-        startButton.text = "Service Unavailable"
+        startButton.text = getString(R.string.service_unavailable)
         startButton.setIconResource(R.drawable.ic_status_offline)
     }
 

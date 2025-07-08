@@ -74,7 +74,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Mint Status"
+                                android:text="@string/mint_status"
                                 android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
                                 android:textColor="@color/on_surface_color" />
 
@@ -111,7 +111,7 @@
                                 android:id="@+id/statusChip"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Offline"
+                                android:text="@string/offline"
                                 app:chipBackgroundColor="@color/error_container_color"
                                 android:textColor="@color/error_color"
                                 app:chipStrokeWidth="0dp" />
@@ -122,7 +122,7 @@
                             android:id="@+id/statusTextView"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Please login first"
+                            android:text="@string/please_login_first"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:textColor="@color/on_surface_variant_color"
                             android:layout_marginBottom="16dp" />
@@ -131,7 +131,7 @@
                             android:id="@+id/startButton"
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            android:text="Start Mint Service"
+                            android:text="@string/start_mint_service"
                             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
                             app:icon="@drawable/ic_play"
                             app:iconGravity="textStart"
@@ -173,19 +173,19 @@
                                 app:tint="@color/primary_color"
                                 android:layout_marginEnd="8dp" />
 
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Service Logs"
-                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                                android:textColor="@color/on_surface_color" />
+                                                    <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/service_logs"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                            android:textColor="@color/on_surface_color" />
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/clearLogsButton"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Clear"
+                                android:text="@string/clear_logs"
                                 android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
                                 app:icon="@drawable/ic_clear"
                                 app:iconGravity="textStart"
@@ -216,7 +216,7 @@
                                     android:id="@+id/logsText"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:text="Welcome to Purrmint!\nPlease login to start."
+                                    android:text="@string/welcome_message"
                                     android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                                     android:textColor="@color/logs_text_color"
                                     android:fontFamily="monospace"

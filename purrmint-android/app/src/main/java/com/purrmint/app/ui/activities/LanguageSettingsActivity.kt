@@ -26,7 +26,7 @@ class LanguageSettingsActivity : AppCompatActivity() {
         languageManager = LanguageManager(this)
         
         // Apply current language
-        languageManager.applyLanguage(this)
+        languageManager.updateConfiguration(resources)
         setContentView(R.layout.activity_language_settings)
         
         initializeViews()
@@ -50,12 +50,13 @@ class LanguageSettingsActivity : AppCompatActivity() {
     }
     
     private fun onLanguageSelected(languageCode: String) {
+        // Save the selected language
         languageManager.setLanguage(languageCode)
         
-        // Restart the app to apply the new language
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
+        // Show a message to the user
+        android.widget.Toast.makeText(this, "Language changed. Please restart the app.", android.widget.Toast.LENGTH_LONG).show()
+        
+        // Go back to main activity
         finish()
     }
     

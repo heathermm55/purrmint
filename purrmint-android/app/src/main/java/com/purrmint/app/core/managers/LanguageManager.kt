@@ -14,7 +14,7 @@ class LanguageManager(private val context: Context) {
         private const val KEY_LANGUAGE = "selected_language"
         
         const val LANGUAGE_ENGLISH = "en"
-        const val LANGUAGE_CHINESE = "zh"
+        const val LANGUAGE_CHINESE = "zh-CN"
         const val LANGUAGE_JAPANESE = "ja"
         const val LANGUAGE_PORTUGUESE = "pt"
     }
@@ -52,7 +52,12 @@ class LanguageManager(private val context: Context) {
      */
     fun applyLanguage(context: Context): Context {
         val language = getCurrentLanguage()
-        val locale = Locale(language)
+        val locale = when (language) {
+            LANGUAGE_CHINESE -> Locale.CHINESE
+            LANGUAGE_JAPANESE -> Locale.JAPANESE
+            LANGUAGE_PORTUGUESE -> Locale("pt")
+            else -> Locale.ENGLISH
+        }
         Locale.setDefault(locale)
         
         val config = Configuration(context.resources.configuration)
@@ -67,11 +72,40 @@ class LanguageManager(private val context: Context) {
     }
     
     /**
+     * Apply language to base context (for Application)
+     */
+    fun applyLanguageToBaseContext(base: Context): Context {
+        val language = getCurrentLanguage()
+        val locale = when (language) {
+            LANGUAGE_CHINESE -> Locale.CHINESE
+            LANGUAGE_JAPANESE -> Locale.JAPANESE
+            LANGUAGE_PORTUGUESE -> Locale("pt")
+            else -> Locale.ENGLISH
+        }
+        Locale.setDefault(locale)
+        
+        val config = Configuration(base.resources.configuration)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            config.setLocale(locale)
+        } else {
+            @Suppress("DEPRECATION")
+            config.locale = locale
+        }
+        
+        return base.createConfigurationContext(config)
+    }
+    
+    /**
      * Update the configuration for the current activity
      */
     fun updateConfiguration(resources: Resources) {
         val language = getCurrentLanguage()
-        val locale = Locale(language)
+        val locale = when (language) {
+            LANGUAGE_CHINESE -> Locale.CHINESE
+            LANGUAGE_JAPANESE -> Locale.JAPANESE
+            LANGUAGE_PORTUGUESE -> Locale("pt")
+            else -> Locale.ENGLISH
+        }
         Locale.setDefault(locale)
         
         val config = Configuration(resources.configuration)

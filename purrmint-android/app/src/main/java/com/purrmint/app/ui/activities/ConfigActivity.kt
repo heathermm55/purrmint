@@ -11,6 +11,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.appbar.MaterialToolbar
 import com.purrmint.app.R
+import com.purrmint.app.core.managers.LanguageManager
 
 class ConfigActivity : AppCompatActivity() {
     
@@ -57,6 +58,11 @@ class ConfigActivity : AppCompatActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Apply current language
+        val languageManager = LanguageManager(this)
+        languageManager.updateConfiguration(resources)
+        
         setContentView(R.layout.activity_config)
         
         initializeViews()

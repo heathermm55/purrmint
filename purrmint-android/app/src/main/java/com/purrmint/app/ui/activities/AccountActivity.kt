@@ -15,6 +15,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.purrmint.app.R
 import com.purrmint.app.core.managers.LoginManager
+import com.purrmint.app.core.managers.LanguageManager
 import com.purrmint.app.core.services.PurrmintService
 import org.json.JSONObject
 
@@ -35,6 +36,11 @@ class AccountActivity : AppCompatActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Apply current language
+        val languageManager = LanguageManager(this)
+        languageManager.updateConfiguration(resources)
+        
         setContentView(R.layout.activity_account)
         
         // Initialize login manager
