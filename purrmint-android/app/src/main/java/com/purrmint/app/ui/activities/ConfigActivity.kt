@@ -175,6 +175,12 @@ class ConfigActivity : AppCompatActivity() {
                 return
             }
             
+            // Validate lightning backend
+            if (lightningBackend !in listOf("fakewallet", "cln", "lnbits")) {
+                Log.w(TAG, "Invalid lightning backend: '$lightningBackend'")
+                return
+            }
+            
             // Create result intent
             val resultIntent = Intent().apply {
                 putExtra(EXTRA_PORT, port)

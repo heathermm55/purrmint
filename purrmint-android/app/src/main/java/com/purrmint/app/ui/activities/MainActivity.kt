@@ -162,17 +162,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     val lnbitsInvoiceApiKey = data.getStringExtra(ConfigActivity.EXTRA_LNBITS_INVOICE_API_KEY)
                     val lnbitsApiUrl = data.getStringExtra(ConfigActivity.EXTRA_LNBITS_API_URL)
                     
-                    // Save configuration for future use
-                    configManager.saveConfiguration(
-                        port = port,
-                        mintName = mintName,
-                        description = description,
-                        lightningBackend = lightningBackend,
-                        lnbitsAdminApiKey = lnbitsAdminApiKey,
-                        lnbitsInvoiceApiKey = lnbitsInvoiceApiKey,
-                        lnbitsApiUrl = lnbitsApiUrl
-                    )
-                    
                     appendLog("Configuration received:")
                     appendLog("  Port: $port")
                     appendLog("  Mint Name: $mintName")
@@ -184,6 +173,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         appendLog("  LNBits Invoice API Key: ${lnbitsInvoiceApiKey?.take(8)}...")
                         appendLog("  LNBits API URL: $lnbitsApiUrl")
                     }
+                    
+                    // Save configuration for future use
+                    configManager.saveConfiguration(
+                        port = port,
+                        mintName = mintName,
+                        description = description,
+                        lightningBackend = lightningBackend,
+                        lnbitsAdminApiKey = lnbitsAdminApiKey,
+                        lnbitsInvoiceApiKey = lnbitsInvoiceApiKey,
+                        lnbitsApiUrl = lnbitsApiUrl
+                    )
                     
                     // Start the service with configuration
                     startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
@@ -468,6 +468,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
 
             val purrmintManager = purrmintService!!.getPurrmintManager()
+            
+            // Stop existing service first to ensure new configuration takes effect
+            appendLog("🔄 Stopping existing service to apply new configuration...")
+            val stopSuccess = purrmintManager.stopMintService()
+            if (stopSuccess) {
+                appendLog("✅ Existing service stopped successfully")
+            } else {
+                appendLog("⚠️ Failed to stop existing service, but continuing...")
+            }
+            
+            // Wait a moment for service to fully stop
+            Thread.sleep(1000)
             
             // Get current account's nsec for service
             val nsec = loginManager.getNsecKey()
