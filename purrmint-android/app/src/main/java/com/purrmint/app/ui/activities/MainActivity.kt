@@ -210,7 +210,7 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this, ConfigActivity::class.java)
                 startActivityForResult(intent, REQUEST_CONFIG)
             } else {
-                Toast.makeText(this, "请先停止Mint服务再修改配置", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Please stop Mint service before modifying configuration", Toast.LENGTH_SHORT).show()
             }
         }
         
