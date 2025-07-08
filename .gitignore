@@ -5,3 +5,4 @@
 /purrmint-android/.idea
 export-android-env.sh
 purrmint-android/local.properties
+build-release.sh
