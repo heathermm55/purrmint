@@ -17,7 +17,7 @@
     <string name="or">OR</string>
     
     <!-- Main Activity -->
-    <string name="dashboard">Dashboard</string>
+    <string name="dashboard">PurrMint</string>
     <string name="account_info">Account Info</string>
     <string name="mint_configuration">Mint Configuration</string>
     <string name="service_control">Service Control</string>
@@ -107,6 +107,7 @@
     
     <!-- Language Settings -->
     <string name="language_settings">Language Settings</string>
+    <string name="language_changed_successfully">Language changed successfully</string>
     
     <!-- Navigation Drawer -->
     <string name="user">User</string>

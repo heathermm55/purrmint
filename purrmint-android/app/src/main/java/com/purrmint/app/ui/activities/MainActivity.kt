@@ -67,6 +67,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         private const val REQUEST_CONFIG = 1001
         private const val REQUEST_LOGIN = 1002
         private const val REQUEST_ACCOUNT = 1003
+        private const val REQUEST_LANGUAGE = 1004
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -197,7 +198,27 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     }
                 }
             }
+            REQUEST_LANGUAGE -> {
+                if (resultCode == RESULT_OK) {
+                    // Language was changed, update UI texts
+                    recreate()
+                }
+            }
         }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Update UI text when returning from language settings
+        updateUITexts()
+    }
+    
+    private fun updateUITexts() {
+        // Update all text elements with current language
+        toolbar.title = getString(R.string.dashboard)
+        startButton.text = if (isMintRunning) getString(R.string.stop_service) else getString(R.string.start_service)
+        clearLogsButton.text = getString(R.string.clear_logs)
+        statusTextView.text = getString(R.string.mint_status)
     }
 
     private fun initializeViews() {
@@ -710,7 +731,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         when (item.itemId) {
             R.id.nav_language -> {
                 val intent = Intent(this, LanguageSettingsActivity::class.java)
-                startActivity(intent)
+                startActivityForResult(intent, REQUEST_LANGUAGE)
             }
             R.id.nav_version -> {
                 showVersionInfo()

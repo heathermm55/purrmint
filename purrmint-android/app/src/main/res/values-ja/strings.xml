@@ -17,7 +17,7 @@
     <string name="or">または</string>
     
     <!-- Main Activity -->
-    <string name="dashboard">ダッシュボード</string>
+    <string name="dashboard">PurrMint</string>
     <string name="account_info">アカウント情報</string>
     <string name="mint_configuration">ミント設定</string>
     <string name="service_control">サービス制御</string>
@@ -107,6 +107,7 @@
     
     <!-- Language Settings -->
     <string name="language_settings">言語設定</string>
+    <string name="language_changed_successfully">言語が正常に変更されました</string>
     
     <!-- Navigation Drawer -->
     <string name="user">ユーザー</string>

@@ -17,7 +17,7 @@
     <string name="or">OU</string>
     
     <!-- Main Activity -->
-    <string name="dashboard">Painel</string>
+    <string name="dashboard">PurrMint</string>
     <string name="account_info">Informações da Conta</string>
     <string name="mint_configuration">Configuração da Casa da Moeda</string>
     <string name="service_control">Controle do Serviço</string>
@@ -107,6 +107,7 @@
     
     <!-- Language Settings -->
     <string name="language_settings">Configurações de Idioma</string>
+    <string name="language_changed_successfully">Idioma alterado com sucesso</string>
     
     <!-- Navigation Drawer -->
     <string name="user">Usuário</string>

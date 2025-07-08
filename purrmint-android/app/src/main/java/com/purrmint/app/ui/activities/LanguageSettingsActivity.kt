@@ -53,10 +53,16 @@ class LanguageSettingsActivity : AppCompatActivity() {
         // Save the selected language
         languageManager.setLanguage(languageCode)
         
-        // Show a message to the user
-        android.widget.Toast.makeText(this, "Language changed. Please restart the app.", android.widget.Toast.LENGTH_LONG).show()
+        // Apply language immediately
+        languageManager.updateConfiguration(resources)
         
-        // Go back to main activity
+        // Show success message
+        android.widget.Toast.makeText(this, R.string.language_changed_successfully, android.widget.Toast.LENGTH_SHORT).show()
+        
+        // Set result to indicate language was changed
+        setResult(RESULT_OK)
+        
+        // Finish and return to MainActivity
         finish()
     }
     

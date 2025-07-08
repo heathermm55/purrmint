@@ -17,7 +17,7 @@
     <string name="or">或</string>
     
     <!-- Main Activity -->
-    <string name="dashboard">仪表板</string>
+    <string name="dashboard">PurrMint</string>
     <string name="account_info">账户信息</string>
     <string name="mint_configuration">铸币配置</string>
     <string name="service_control">服务控制</string>
@@ -107,6 +107,7 @@
     
     <!-- Language Settings -->
     <string name="language_settings">语言设置</string>
+    <string name="language_changed_successfully">语言切换成功</string>
     
     <!-- Navigation Drawer -->
     <string name="user">用户</string>
