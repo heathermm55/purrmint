@@ -107,4 +107,10 @@
     
     <!-- Language Settings -->
     <string name="language_settings">语言设置</string>
+    
+    <!-- Navigation Drawer -->
+    <string name="user">用户</string>
+    <string name="about">关于</string>
+    <string name="version">版本</string>
+    <string name="app_version">v1.0.0</string>
 </resources> 

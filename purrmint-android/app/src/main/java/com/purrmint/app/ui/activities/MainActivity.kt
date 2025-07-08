@@ -19,6 +19,9 @@ import android.widget.TextView
 import android.widget.ImageView
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
+import androidx.drawerlayout.widget.DrawerLayout
+import com.google.android.material.navigation.NavigationView
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.chip.Chip
@@ -30,10 +33,12 @@ import com.purrmint.app.core.services.PurrmintService
 import android.os.Handler
 import android.os.Looper
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
     
     // UI Components
-    private lateinit var btnSettings: ImageButton
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var navigationView: NavigationView
+    private lateinit var toolbar: MaterialToolbar
     private lateinit var btnConfig: ImageButton
     private lateinit var statusIcon: ImageView
     private lateinit var statusChip: Chip
@@ -193,7 +198,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeViews() {
-        btnSettings = findViewById(R.id.btnSettings)
+        drawerLayout = findViewById(R.id.drawerLayout)
+        navigationView = findViewById(R.id.navigationView)
+        toolbar = findViewById(R.id.topAppBar)
         btnConfig = findViewById(R.id.btnConfig)
         statusIcon = findViewById(R.id.statusIcon)
         statusChip = findViewById(R.id.statusChip)
@@ -202,14 +209,13 @@ class MainActivity : AppCompatActivity() {
         clearLogsButton = findViewById(R.id.clearLogsButton)
         logsText = findViewById(R.id.logsText)
         
-        // Restore config button functionality
-        btnConfig.setImageResource(R.drawable.ic_settings)
-        btnConfig.contentDescription = "Configure Mint"
+        // Setup toolbar and navigation drawer
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_menu)
+        navigationView.setNavigationItemSelectedListener(this)
         
-        btnSettings.setOnClickListener {
-            val intent = Intent(this, SettingsActivity::class.java)
-            startActivity(intent)
-        }
+        // Setup config button
         btnConfig.setOnClickListener {
             if (!isMintRunning) {
                 val intent = Intent(this, ConfigActivity::class.java)
@@ -671,5 +677,53 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+    
+    // Menu handling
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+    
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_user -> {
+                val intent = Intent(this, AccountActivity::class.java)
+                startActivityForResult(intent, REQUEST_ACCOUNT)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+    
+    override fun onSupportNavigateUp(): Boolean {
+        // Handle navigation icon click (hamburger menu)
+        drawerLayout.openDrawer(navigationView)
+        return true
+    }
+    
+    // Navigation drawer item selection
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.nav_language -> {
+                val intent = Intent(this, LanguageSettingsActivity::class.java)
+                startActivity(intent)
+            }
+            R.id.nav_version -> {
+                showVersionInfo()
+            }
+        }
+        
+        // Close the drawer
+        drawerLayout.closeDrawers()
+        return true
+    }
+    
+    private fun showVersionInfo() {
+        val versionName = packageManager.getPackageInfo(packageName, 0).versionName
+        val versionCode = packageManager.getPackageInfo(packageName, 0).versionCode
+        val versionText = "Version $versionName ($versionCode)"
+        
+        Toast.makeText(this, versionText, Toast.LENGTH_LONG).show()
     }
 } 

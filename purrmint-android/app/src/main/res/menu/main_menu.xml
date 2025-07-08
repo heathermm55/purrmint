@@ -3,20 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     
     <item
-        android:id="@+id/action_account"
-        android:title="@string/account_details"
-        android:icon="@drawable/ic_account"
-        app:showAsAction="ifRoom" />
+        android:id="@+id/action_user"
+        android:icon="@drawable/ic_person"
+        android:title="@string/user"
+        app:showAsAction="always" />
     
-    <item
-        android:id="@+id/action_logout"
-        android:title="@string/logout"
-        app:showAsAction="never" />
-    
-    <item
-        android:id="@+id/action_language_settings"
-        android:title="@string/language_settings"
-        android:icon="@drawable/ic_language"
-        app:showAsAction="never" />
-        
 </menu> 
