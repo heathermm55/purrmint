@@ -218,11 +218,11 @@ class PurrmintManager(private val context: Context) {
             val result = native.startMintWithConfig(config, nsec)
             val success = result == 0  // 0 = success in Rust
             
-            if (success) {
-                Log.i(TAG, "Mint service started successfully")
-            } else {
+                    if (success) {
+                        Log.i(TAG, "Mint service started successfully")
+                    } else {
                 Log.e(TAG, "Failed to start mint service - result code: $result")
-            }
+                }
             
             success
         } catch (e: Exception) {

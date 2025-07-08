@@ -1,11 +1,11 @@
 //! Service management for the mint
 
+use crate::mintd_service::MintdService;
+use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::info;
-use serde_json::Value;
-use crate::mintd_service::MintdService;
 
 /// Service configuration
 #[derive(Debug, Clone)]
@@ -59,7 +59,7 @@ impl MintService {
     pub fn new_with_nsec(work_dir: PathBuf, nsec: String) -> Self {
         info!("Creating MintService with nsec: {}...", &nsec[..8]);
         let service = Self::new(work_dir.clone());
-        
+
         // Initialize mint service with nsec
         let state = service.state.clone();
         tokio::spawn(async move {
@@ -67,7 +67,7 @@ impl MintService {
             let mut state = state.lock().await;
             state.mint_service = Some(Arc::new(Mutex::new(mintd)));
         });
-        
+
         service
     }
 
@@ -83,7 +83,7 @@ impl MintService {
             mintd.start().await?;
             info!("Mint service started successfully");
         }
-        
+
         self.is_running = true;
         Ok(())
     }
@@ -100,7 +100,7 @@ impl MintService {
             mintd.stop().await?;
             info!("Mint service stopped");
         }
-        
+
         self.is_running = false;
         Ok(())
     }
@@ -124,4 +124,4 @@ impl MintService {
     pub fn is_running(&self) -> bool {
         self.is_running
     }
-} 
+}

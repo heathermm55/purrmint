@@ -255,7 +255,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             } else {
                 // Check if we have configuration
                 if (configManager.hasConfiguration()) {
-                    startMintService()
+                startMintService()
                 } else {
                     // No configuration - generate default config and launch config activity
                     appendLog("📝 Generating default configuration...")
@@ -298,7 +298,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (npubAddress != null) {
             updateAccountInfo("Account: $npubAddress")
         } else if (accountInfo != null) {
-            updateAccountInfo("Account: $accountInfo")
+                updateAccountInfo("Account: $accountInfo")
         }
         
         // Enable start button
@@ -453,7 +453,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         // Try one more time with a fresh bind
                         bindPurrmintService()
                         Handler(Looper.getMainLooper()).postDelayed({
-                            if (isServiceBound && purrmintService != null) {
+            if (isServiceBound && purrmintService != null) {
                                 appendLog("✅ Service bound successfully on retry, starting...")
                                 startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
                             } else {
@@ -467,7 +467,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 return
             }
 
-            val purrmintManager = purrmintService!!.getPurrmintManager()
+                val purrmintManager = purrmintService!!.getPurrmintManager()
             
             // Stop existing service first to ensure new configuration takes effect
             appendLog("🔄 Stopping existing service to apply new configuration...")
@@ -480,9 +480,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             
             // Wait a moment for service to fully stop
             Thread.sleep(1000)
-            
-            // Get current account's nsec for service
-            val nsec = loginManager.getNsecKey()
+                
+                // Get current account's nsec for service
+                val nsec = loginManager.getNsecKey()
             
             // Validate that we have an nsec
             if (nsec == null || nsec.isEmpty()) {
@@ -490,28 +490,28 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 updateStatus("No nsec key found", false)
                 return
             }
-            
-            // Auto-generate config if not exists
-            if (!purrmintManager.configExists()) {
-                appendLog("Generating default config...")
-                val success = configManager.generateAndSaveDefaultConfig()
-                if (!success) {
-                    appendLog("❌ Failed to generate default config")
-                    updateStatus("Failed to generate config", false)
-                    return
+                
+                // Auto-generate config if not exists
+                if (!purrmintManager.configExists()) {
+                    appendLog("Generating default config...")
+                    val success = configManager.generateAndSaveDefaultConfig()
+                    if (!success) {
+                        appendLog("❌ Failed to generate default config")
+                        updateStatus("Failed to generate config", false)
+                        return
+                    }
                 }
-            }
-            
-            // Auto-generate Nostr account if not exists
-            if (!purrmintManager.accountExists()) {
-                appendLog("Creating Nostr account...")
-                val account = purrmintManager.createNostrAccount()
-                if (account == null) {
-                    appendLog("❌ Failed to create Nostr account")
-                    updateStatus("Failed to create account", false)
-                    return
+                
+                // Auto-generate Nostr account if not exists
+                if (!purrmintManager.accountExists()) {
+                    appendLog("Creating Nostr account...")
+                    val account = purrmintManager.createNostrAccount()
+                    if (account == null) {
+                        appendLog("❌ Failed to create Nostr account")
+                        updateStatus("Failed to create account", false)
+                        return
+                    }
                 }
-            }
 
             // Create configuration JSON with lightning backend settings
             val configJson = buildString {
@@ -567,14 +567,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             appendLog("Using configuration: $configJson")
 
             val success = purrmintManager.startMintServiceWithConfig(nsec, configJson)
-            if (success) {
-                updateStatus("Service is running", true)
-                appendLog("✅ Mint service started successfully!")
+                if (success) {
+                    updateStatus("Service is running", true)
+                    appendLog("✅ Mint service started successfully!")
                 appendLog("✅ Service available at http://127.0.0.1:$port")
-                updateStartButton("Stop Service", true)
-            } else {
-                updateStatus("Failed to start service", false)
-                appendLog("❌ Failed to start mint service")
+                    updateStartButton("Stop Service", true)
+                } else {
+                    updateStatus("Failed to start service", false)
+                    appendLog("❌ Failed to start mint service")
             }
         } catch (e: Exception) {
             updateStatus("Error: ${e.message}", false)

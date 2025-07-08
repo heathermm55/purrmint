@@ -152,13 +152,13 @@ class ConfigActivity : AppCompatActivity() {
             updateLightningConfigVisibility(existingConfig.lightningBackend)
         } else {
             // Load default values
-            portInput.setText("3338")
-            mintNameInput.setText("My Mint")
-            descriptionInput.setText("A simple mint service")
-            
-            // Set default lightning backend
-            lightningBackendSpinner.setText("fakewallet", false)
-            updateLightningConfigVisibility("fakewallet")
+        portInput.setText("3338")
+        mintNameInput.setText("My Mint")
+        descriptionInput.setText("A simple mint service")
+        
+        // Set default lightning backend
+        lightningBackendSpinner.setText("fakewallet", false)
+        updateLightningConfigVisibility("fakewallet")
         }
     }
     
