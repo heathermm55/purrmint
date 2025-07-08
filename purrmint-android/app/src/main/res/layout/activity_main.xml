@@ -38,18 +38,6 @@
 
         </com.google.android.material.appbar.MaterialToolbar>
 
-        <!-- Tab Layout -->
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tabLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/surface_color"
-            app:tabTextColor="@color/on_surface_variant_color"
-            app:tabSelectedTextColor="@color/primary_color"
-            app:tabIndicatorColor="@color/primary_color"
-            app:tabMode="fixed"
-            app:tabGravity="fill" />
-
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
