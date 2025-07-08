@@ -139,7 +139,6 @@ class MainActivity : AppCompatActivity() {
                 if (resultCode == RESULT_OK && data != null) {
                     // Get configuration from ConfigActivity
                     val port = data.getStringExtra(ConfigActivity.EXTRA_PORT)?.toIntOrNull() ?: 3338
-                    val host = data.getStringExtra(ConfigActivity.EXTRA_HOST) ?: "0.0.0.0"
                     val mintName = data.getStringExtra(ConfigActivity.EXTRA_MINT_NAME) ?: "My Mint"
                     val description = data.getStringExtra(ConfigActivity.EXTRA_DESCRIPTION) ?: "A simple mint service"
                     val lightningBackend = data.getStringExtra(ConfigActivity.EXTRA_LIGHTNING_BACKEND) ?: "fakewallet"
@@ -151,13 +150,17 @@ class MainActivity : AppCompatActivity() {
                     
                     // Save configuration for future use
                     configManager.saveConfiguration(
-                        host, port, mintName, description, lightningBackend,
-                        lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl
+                        port = port,
+                        mintName = mintName,
+                        description = description,
+                        lightningBackend = lightningBackend,
+                        lnbitsAdminApiKey = lnbitsAdminApiKey,
+                        lnbitsInvoiceApiKey = lnbitsInvoiceApiKey,
+                        lnbitsApiUrl = lnbitsApiUrl
                     )
                     
                     appendLog("Configuration received:")
                     appendLog("  Port: $port")
-                    appendLog("  Host: $host")
                     appendLog("  Mint Name: $mintName")
                     appendLog("  Description: $description")
                     appendLog("  Lightning Backend: $lightningBackend")
@@ -169,7 +172,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     
                     // Start the service with configuration
-                    startServiceWithConfig(host, port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
+                    startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
                 }
             }
             REQUEST_ACCOUNT -> {
@@ -372,7 +375,6 @@ class MainActivity : AppCompatActivity() {
             val config = configManager.getConfiguration()
             appendLog("Using saved configuration:")
             appendLog("  Port: ${config.port}")
-            appendLog("  Host: ${config.host}")
             appendLog("  Mint Name: ${config.mintName}")
             appendLog("  Description: ${config.description}")
             appendLog("  Lightning Backend: ${config.lightningBackend}")
@@ -384,7 +386,7 @@ class MainActivity : AppCompatActivity() {
             }
             
             startServiceWithConfig(
-                config.host, config.port, config.mintName, config.description, config.lightningBackend,
+                config.port, config.mintName, config.description, config.lightningBackend,
                 config.lnbitsAdminApiKey, config.lnbitsInvoiceApiKey, config.lnbitsApiUrl
             )
         } else {
@@ -394,7 +396,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun startServiceWithConfig(host: String, port: Int, mintName: String, description: String, lightningBackend: String, lnbitsAdminApiKey: String? = null, lnbitsInvoiceApiKey: String? = null, lnbitsApiUrl: String? = null) {
+    private fun startServiceWithConfig(port: Int, mintName: String, description: String, lightningBackend: String, lnbitsAdminApiKey: String? = null, lnbitsInvoiceApiKey: String? = null, lnbitsApiUrl: String? = null) {
         try {
             updateStatus("Starting mint service...", false)
             appendLog("Starting mint service with configuration...")
@@ -408,7 +410,7 @@ class MainActivity : AppCompatActivity() {
                 Handler(Looper.getMainLooper()).postDelayed({
                     if (isServiceBound && purrmintService != null) {
                         appendLog("✅ Service bound successfully, retrying start...")
-                        startServiceWithConfig(host, port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
+                        startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
                     } else {
                         appendLog("❌ Service binding failed after 5 seconds")
                         appendLog("💡 Trying to restart service binding...")
@@ -418,7 +420,7 @@ class MainActivity : AppCompatActivity() {
                         Handler(Looper.getMainLooper()).postDelayed({
                             if (isServiceBound && purrmintService != null) {
                                 appendLog("✅ Service bound successfully on retry, starting...")
-                                startServiceWithConfig(host, port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
+                                startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
                             } else {
                                 appendLog("❌ Service binding failed completely")
                                 updateStatus("Service binding failed", false)
@@ -469,7 +471,7 @@ class MainActivity : AppCompatActivity() {
                 append("""
                     {
                         "port": $port,
-                        "host": "$host",
+                        "host": "127.0.0.1",
                         "mintName": "$mintName",
                         "description": "$description",
                         "lightningBackend": "$lightningBackend",
@@ -521,7 +523,7 @@ class MainActivity : AppCompatActivity() {
             if (success) {
                 updateStatus("Service is running", true)
                 appendLog("✅ Mint service started successfully!")
-                appendLog("✅ Service available at http://$host:$port")
+                appendLog("✅ Service available at http://127.0.0.1:$port")
                 updateStartButton("Stop Service", true)
             } else {
                 updateStatus("Failed to start service", false)

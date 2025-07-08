@@ -15,7 +15,6 @@ import com.purrmint.app.R
 class ConfigActivity : AppCompatActivity() {
     
     private lateinit var portInput: TextInputEditText
-    private lateinit var hostInput: TextInputEditText
     private lateinit var mintNameInput: TextInputEditText
     private lateinit var descriptionInput: TextInputEditText
     private lateinit var btnCancel: MaterialButton
@@ -25,18 +24,12 @@ class ConfigActivity : AppCompatActivity() {
     // Lightning configuration views
     private lateinit var lightningBackendSpinner: AutoCompleteTextView
     private lateinit var clnConfigLayout: View
-    private lateinit var lndConfigLayout: View
     private lateinit var lnbitsConfigLayout: View
     private lateinit var fakeWalletConfigLayout: View
     
     // CLN inputs
     private lateinit var clnRpcPathInput: TextInputEditText
     private lateinit var clnFeePercentInput: TextInputEditText
-    
-    // LND inputs
-    private lateinit var lndAddressInput: TextInputEditText
-    private lateinit var lndMacaroonFileInput: TextInputEditText
-    private lateinit var lndCertFileInput: TextInputEditText
     
     // LNBits inputs
     private lateinit var lnbitsAdminApiKeyInput: TextInputEditText
@@ -50,15 +43,11 @@ class ConfigActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "ConfigActivity"
         const val EXTRA_PORT = "port"
-        const val EXTRA_HOST = "host"
         const val EXTRA_MINT_NAME = "mint_name"
         const val EXTRA_DESCRIPTION = "description"
         const val EXTRA_LIGHTNING_BACKEND = "lightning_backend"
         const val EXTRA_CLN_RPC_PATH = "cln_rpc_path"
         const val EXTRA_CLN_FEE_PERCENT = "cln_fee_percent"
-        const val EXTRA_LND_ADDRESS = "lnd_address"
-        const val EXTRA_LND_MACAROON_FILE = "lnd_macaroon_file"
-        const val EXTRA_LND_CERT_FILE = "lnd_cert_file"
         const val EXTRA_LNBITS_ADMIN_API_KEY = "lnbits_admin_api_key"
         const val EXTRA_LNBITS_INVOICE_API_KEY = "lnbits_invoice_api_key"
         const val EXTRA_LNBITS_API_URL = "lnbits_api_url"
@@ -78,7 +67,6 @@ class ConfigActivity : AppCompatActivity() {
     
     private fun initializeViews() {
         portInput = findViewById(R.id.portInput)
-        hostInput = findViewById(R.id.hostInput)
         mintNameInput = findViewById(R.id.mintNameInput)
         descriptionInput = findViewById(R.id.descriptionInput)
         btnCancel = findViewById(R.id.btnCancel)
@@ -88,18 +76,12 @@ class ConfigActivity : AppCompatActivity() {
         // Lightning configuration views
         lightningBackendSpinner = findViewById(R.id.lightningBackendSpinner)
         clnConfigLayout = findViewById(R.id.clnConfigLayout)
-        lndConfigLayout = findViewById(R.id.lndConfigLayout)
         lnbitsConfigLayout = findViewById(R.id.lnbitsConfigLayout)
         fakeWalletConfigLayout = findViewById(R.id.fakeWalletConfigLayout)
         
         // CLN inputs
         clnRpcPathInput = findViewById(R.id.clnRpcPathInput)
         clnFeePercentInput = findViewById(R.id.clnFeePercentInput)
-        
-        // LND inputs
-        lndAddressInput = findViewById(R.id.lndAddressInput)
-        lndMacaroonFileInput = findViewById(R.id.lndMacaroonFileInput)
-        lndCertFileInput = findViewById(R.id.lndCertFileInput)
         
         // LNBits inputs
         lnbitsAdminApiKeyInput = findViewById(R.id.lnbitsAdminApiKeyInput)
@@ -112,7 +94,7 @@ class ConfigActivity : AppCompatActivity() {
     }
     
     private fun setupLightningBackendSpinner() {
-        val backends = arrayOf("fakewallet", "cln", "lnd", "lnbits")
+        val backends = arrayOf("fakewallet", "cln", "lnbits")
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, backends)
         lightningBackendSpinner.setAdapter(adapter)
         
@@ -125,14 +107,12 @@ class ConfigActivity : AppCompatActivity() {
     private fun updateLightningConfigVisibility(backend: String) {
         // Hide all config layouts first
         clnConfigLayout.visibility = View.GONE
-        lndConfigLayout.visibility = View.GONE
         lnbitsConfigLayout.visibility = View.GONE
         fakeWalletConfigLayout.visibility = View.GONE
         
         // Show the appropriate config layout
         when (backend) {
             "cln" -> clnConfigLayout.visibility = View.VISIBLE
-            "lnd" -> lndConfigLayout.visibility = View.VISIBLE
             "lnbits" -> lnbitsConfigLayout.visibility = View.VISIBLE
             "fakewallet" -> fakeWalletConfigLayout.visibility = View.VISIBLE
         }
@@ -160,7 +140,6 @@ class ConfigActivity : AppCompatActivity() {
         if (existingConfig != null) {
             // Load existing configuration
             portInput.setText(existingConfig.port.toString())
-            hostInput.setText(existingConfig.host)
             mintNameInput.setText(existingConfig.mintName)
             descriptionInput.setText(existingConfig.description)
             lightningBackendSpinner.setText(existingConfig.lightningBackend, false)
@@ -168,7 +147,6 @@ class ConfigActivity : AppCompatActivity() {
         } else {
             // Load default values
             portInput.setText("3338")
-            hostInput.setText("0.0.0.0")
             mintNameInput.setText("My Mint")
             descriptionInput.setText("A simple mint service")
             
@@ -181,13 +159,12 @@ class ConfigActivity : AppCompatActivity() {
     private fun startService() {
         try {
             val port = portInput.text.toString().trim()
-            val host = hostInput.text.toString().trim()
             val mintName = mintNameInput.text.toString().trim()
             val description = descriptionInput.text.toString().trim()
             val lightningBackend = lightningBackendSpinner.text.toString().trim()
             
             // Validate required inputs
-            if (port.isEmpty() || host.isEmpty() || mintName.isEmpty() || lightningBackend.isEmpty()) {
+            if (port.isEmpty() || mintName.isEmpty() || lightningBackend.isEmpty()) {
                 Log.w(TAG, "Required fields are empty")
                 return
             }
@@ -195,7 +172,6 @@ class ConfigActivity : AppCompatActivity() {
             // Create result intent
             val resultIntent = Intent().apply {
                 putExtra(EXTRA_PORT, port)
-                putExtra(EXTRA_HOST, host)
                 putExtra(EXTRA_MINT_NAME, mintName)
                 putExtra(EXTRA_DESCRIPTION, description)
                 putExtra(EXTRA_LIGHTNING_BACKEND, lightningBackend)
@@ -205,11 +181,6 @@ class ConfigActivity : AppCompatActivity() {
                     "cln" -> {
                         putExtra(EXTRA_CLN_RPC_PATH, clnRpcPathInput.text.toString().trim())
                         putExtra(EXTRA_CLN_FEE_PERCENT, clnFeePercentInput.text.toString().trim())
-                    }
-                    "lnd" -> {
-                        putExtra(EXTRA_LND_ADDRESS, lndAddressInput.text.toString().trim())
-                        putExtra(EXTRA_LND_MACAROON_FILE, lndMacaroonFileInput.text.toString().trim())
-                        putExtra(EXTRA_LND_CERT_FILE, lndCertFileInput.text.toString().trim())
                     }
                     "lnbits" -> {
                         putExtra(EXTRA_LNBITS_ADMIN_API_KEY, lnbitsAdminApiKeyInput.text.toString().trim())
