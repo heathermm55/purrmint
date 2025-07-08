@@ -557,6 +557,8 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 [[package]]
 name = "cashu"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bf9751a6d33afd95a071d6f579638eb0b30f6364b0b944eafef3609baec5fac"
 dependencies = [
  "bitcoin 0.32.6",
  "cbor-diag",
@@ -601,7 +603,7 @@ dependencies = [
  "serde_json",
  "syn",
  "tempfile",
- "toml",
+ "toml 0.8.23",
 ]
 
 [[package]]
@@ -637,6 +639,8 @@ dependencies = [
 [[package]]
 name = "cdk"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4659439ebed6cfe289125e78c05711476ab40302ed2ebf29d242d2d8072126f6"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -670,6 +674,8 @@ dependencies = [
 [[package]]
 name = "cdk-axum"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4b26657305d3dc7d0dfe9472b0cb731448dc8d8b5d59ddc6abc30cf0ee012d0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -689,6 +695,8 @@ dependencies = [
 [[package]]
 name = "cdk-cln"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebead6ec40e61be6879259e82d525c20bb62ea44a53e66b2a8c121df04d402b8"
 dependencies = [
  "async-trait",
  "bitcoin 0.32.6",
@@ -706,6 +714,8 @@ dependencies = [
 [[package]]
 name = "cdk-common"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "749a2e74031996f19b9dda606a6815566a5f5f7444f8827c8a523a557bc62ceb"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -728,6 +738,8 @@ dependencies = [
 [[package]]
 name = "cdk-fake-wallet"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8671bd94264065b179e0712a8707481dc08a18e0ed8fbdc1700bff47d0fca84"
 dependencies = [
  "async-trait",
  "bitcoin 0.32.6",
@@ -747,6 +759,8 @@ dependencies = [
 [[package]]
 name = "cdk-lnbits"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1db16336f790169e9da8ccacaf229107740bc8e452ae026834bec56ab9330d12"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -765,6 +779,8 @@ dependencies = [
 [[package]]
 name = "cdk-signatory"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "365356ec310adf7f9051b4b5d50c8146aca16b672119f11b76b60ba449eec145"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -788,6 +804,8 @@ dependencies = [
 [[package]]
 name = "cdk-sqlite"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbe958fb6d94d86492dba36692aecc11fa65d23937f66d41b780167b1c5301bf"
 dependencies = [
  "async-trait",
  "bitcoin 0.32.6",
@@ -2129,7 +2147,9 @@ dependencies = [
 
 [[package]]
 name = "nostr"
-version = "0.42.1"
+version = "0.42.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d193102a62a22b61f9a61b9df54fb19ebab8c1763d088fbb9a6f0f57000fba2d"
 dependencies = [
  "aes",
  "base64 0.22.1",
@@ -2141,6 +2161,7 @@ dependencies = [
  "chacha20poly1305",
  "getrandom 0.2.16",
  "instant",
+ "regex",
  "scrypt",
  "secp256k1 0.29.1",
  "serde",
@@ -2152,6 +2173,8 @@ dependencies = [
 [[package]]
 name = "nostr-connect"
 version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29bcce69dcfe07f399cba2f304b2b0662764eaf35b8e227049c063b1d2ec37d0"
 dependencies = [
  "async-utility",
  "nostr",
@@ -2163,6 +2186,8 @@ dependencies = [
 [[package]]
 name = "nostr-database"
 version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6aafe85dc7c039c399796043b76009fa744c3a45ac073a023932f7b7d91b1e7"
 dependencies = [
  "lru",
  "nostr",
@@ -2172,6 +2197,8 @@ dependencies = [
 [[package]]
 name = "nostr-relay-pool"
 version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df4d5628d2444349570fb185b0c2d92cfdb7e68d62b13bf3e8a4348b5de7430b"
 dependencies = [
  "async-utility",
  "async-wsocket",
@@ -2187,12 +2214,15 @@ dependencies = [
 [[package]]
 name = "nostr-sdk"
 version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1e928ba9ac2695fbe10b8aefda59f2abfeb23c10a0e86a0b3e0f6a27bb274a2"
 dependencies = [
  "async-utility",
  "nostr",
  "nostr-database",
  "nostr-relay-pool",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -2555,7 +2585,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.12",
  "tokio",
- "toml",
+ "toml 0.9.0",
  "tower",
  "tower-http",
  "tracing",
@@ -3132,6 +3162,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_spanned"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40734c41988f7306bb04f0ecf60ec0f3f1caa34290e4e8ea471dcd3346483b83"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_urlencoded"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3554,9 +3593,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc1beb996b9d83529a9e75c17a1686767d148d70663143c7854d8b4a09ced362"
 dependencies = [
  "serde",
- "serde_spanned",
- "toml_datetime",
+ "serde_spanned 0.6.9",
+ "toml_datetime 0.6.11",
  "toml_edit",
+]
+
+[[package]]
+name = "toml"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f271e09bde39ab52250160a67e88577e0559ad77e9085de6e9051a2c4353f8f8"
+dependencies = [
+ "indexmap 2.10.0",
+ "serde",
+ "serde_spanned 1.0.0",
+ "toml_datetime 0.7.0",
+ "toml_parser",
+ "toml_writer",
+ "winnow",
 ]
 
 [[package]]
@@ -3569,6 +3623,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml_datetime"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bade1c3e902f58d73d3f294cd7f20391c1cb2fbcb643b73566bc773971df91e3"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "toml_edit"
 version = "0.22.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3576,9 +3639,18 @@ checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
 dependencies = [
  "indexmap 2.10.0",
  "serde",
- "serde_spanned",
- "toml_datetime",
+ "serde_spanned 0.6.9",
+ "toml_datetime 0.6.11",
  "toml_write",
+ "winnow",
+]
+
+[[package]]
+name = "toml_parser"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5c1c469eda89749d2230d8156a5969a69ffe0d6d01200581cdc6110674d293e"
+dependencies = [
  "winnow",
 ]
 
@@ -3587,6 +3659,12 @@ name = "toml_write"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
+
+[[package]]
+name = "toml_writer"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b679217f2848de74cabd3e8fc5e6d66f40b7da40f8e1954d92054d9010690fd5"
 
 [[package]]
 name = "tonic"

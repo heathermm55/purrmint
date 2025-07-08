@@ -1,9 +1,9 @@
 [package]
 name = "purrmint"
-version = "0.1.0"
-edition = "2021"
-authors = ["PurrMint Developers"]
-description = "High-level Cashu NIP-74 mint service suitable for Android (via JNI)"
+version = "0.0.1"
+edition = "2025"
+authors = ["heatherm"]
+description = "Mobile Cashu mint service suitable for Android (via JNI)"
 license = "MIT"
 repository = "https://github.com/purrmint/purrmint"
 keywords = ["cashu", "nostr", "nip74", "mint", "lightning"]
@@ -13,9 +13,6 @@ categories = ["api-bindings", "cryptography", "network-programming"]
 name = "purrmint"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
-[build-dependencies]
-cbindgen = "0.29"
-
 [dependencies]
 # Async runtime
 tokio = { version = "1", features = ["full"] }
@@ -23,17 +20,17 @@ async-trait = "0.1"
 tracing = { version = "0.1", default-features = false, features = ["attributes", "log"] }
 futures = "0.3"
 
-nostr = { path = "../nostr/crates/nostr", features = ["std", "nip44"] }
-nostr-sdk = { path = "../nostr/crates/nostr-sdk" }
-nostr-connect = { path = "../nostr/crates/nostr-connect" }
+nostr = { version = "0.42", features = ["std", "nip44"] }
+nostr-sdk = { version = "0.42" }
+nostr-connect = { version = "0.42" }
 
-cdk = { path = "../cdk/crates/cdk", features = ["mint"] }
-cdk-sqlite = { path = "../cdk/crates/cdk-sqlite", features = ["mint"] }
-cdk-common = { path = "../cdk/crates/cdk-common" }
-cdk-fake-wallet = { path = "../cdk/crates/cdk-fake-wallet" }
-cdk-lnbits = { path = "../cdk/crates/cdk-lnbits" }
-cdk-cln = { path = "../cdk/crates/cdk-cln" }
-cdk-axum = { path = "../cdk/crates/cdk-axum" }
+cdk = { version = "0.11", features = ["mint"] }
+cdk-sqlite = { version = "0.11", features = ["mint"] }
+cdk-common = { version = "0.11" }
+cdk-fake-wallet = { version = "0.11" }
+cdk-lnbits = { version = "0.11" }
+cdk-cln = { version = "0.11" }
+cdk-axum = { version = "0.11" }
 
 # HTTP server dependencies - use compatible versions with cdk
 axum = "0.8.1"
@@ -45,7 +42,7 @@ bip39 = { version = "2.0", features = ["rand"] }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-toml = "0.8"
+toml = "0.9"
 thiserror = "2"
 anyhow = "1"
 sha2 = "0.10"
