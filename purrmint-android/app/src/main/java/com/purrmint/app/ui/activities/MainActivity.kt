@@ -13,6 +13,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import com.purrmint.app.core.managers.LanguageManager
 import android.widget.Button
 import android.widget.TextView
 import android.widget.ImageView
@@ -32,7 +33,7 @@ import android.os.Looper
 class MainActivity : AppCompatActivity() {
     
     // UI Components
-    private lateinit var btnAccount: ImageButton
+    private lateinit var btnSettings: ImageButton
     private lateinit var btnConfig: ImageButton
     private lateinit var statusIcon: ImageView
     private lateinit var statusChip: Chip
@@ -53,6 +54,9 @@ class MainActivity : AppCompatActivity() {
     // Configuration Manager
     private lateinit var configManager: ConfigManager
     
+    // Language Manager
+    private lateinit var languageManager: LanguageManager
+    
     companion object {
         private const val TAG = "MainActivity"
         private const val REQUEST_CONFIG = 1001
@@ -66,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         // Initialize managers
         loginManager = LoginManager(this)
         configManager = ConfigManager(this)
+        languageManager = LanguageManager(this)
         
         // Check login status
         if (!loginManager.isLoggedIn()) {
@@ -188,7 +193,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeViews() {
-        btnAccount = findViewById(R.id.btnAccount)
+        btnSettings = findViewById(R.id.btnSettings)
         btnConfig = findViewById(R.id.btnConfig)
         statusIcon = findViewById(R.id.statusIcon)
         statusChip = findViewById(R.id.statusChip)
@@ -201,8 +206,8 @@ class MainActivity : AppCompatActivity() {
         btnConfig.setImageResource(R.drawable.ic_settings)
         btnConfig.contentDescription = "Configure Mint"
         
-        btnAccount.setOnClickListener {
-            val intent = Intent(this, AccountActivity::class.java)
+        btnSettings.setOnClickListener {
+            val intent = Intent(this, SettingsActivity::class.java)
             startActivity(intent)
         }
         btnConfig.setOnClickListener {
@@ -210,7 +215,7 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this, ConfigActivity::class.java)
                 startActivityForResult(intent, REQUEST_CONFIG)
             } else {
-                Toast.makeText(this, "Please stop Mint service before modifying configuration", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.please_stop_mint_service), Toast.LENGTH_SHORT).show()
             }
         }
         
@@ -232,7 +237,7 @@ class MainActivity : AppCompatActivity() {
                         startActivityForResult(intent, REQUEST_CONFIG)
                     } else {
                         appendLog("❌ Failed to generate default configuration")
-                        Toast.makeText(this, "Failed to generate default configuration", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, getString(R.string.failed_to_generate_config), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -278,7 +283,7 @@ class MainActivity : AppCompatActivity() {
         loginManager.clearLoginState()
         
         // Show confirmation
-        Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.logged_out_successfully), Toast.LENGTH_SHORT).show()
         
         // Restart activity to show login screen
         recreate()
@@ -392,7 +397,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             // No configuration exists - this should not happen as we generate config first
             appendLog("❌ No configuration found - please create a new mint first")
-            Toast.makeText(this, "Please create a new mint first", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.please_create_new_mint), Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -424,7 +429,7 @@ class MainActivity : AppCompatActivity() {
                             } else {
                                 appendLog("❌ Service binding failed completely")
                                 updateStatus("Service binding failed", false)
-                                Toast.makeText(this, "Service binding failed. Please restart the app.", Toast.LENGTH_LONG).show()
+                                Toast.makeText(this, getString(R.string.service_binding_failed), Toast.LENGTH_LONG).show()
                             }
                         }, 3000) // Wait 3 more seconds
                     }

@@ -1,0 +1,110 @@
+<resources>
+    <string name="app_name">PurrMint</string>
+    <string name="test_ffi">FFIテスト</string>
+    <string name="create_account">アカウント作成</string>
+    <string name="get_info">情報取得</string>
+    <string name="get_status">ステータス取得</string>
+    
+    <!-- Login Activity -->
+    <string name="welcome_to_purrmint">PurrMintへようこそ</string>
+    <string name="login_subtitle">新しいNostrアカウントを作成するか、既存のアカウントをインポート</string>
+    <string name="create_new_account">新しいアカウントを作成</string>
+    <string name="create_account_description">新しいキーで新しいNostrアカウントを生成</string>
+    <string name="import_existing_account">既存のアカウントをインポート</string>
+    <string name="import_account_description">秘密鍵を使用して既存のNostrアカウントをインポート</string>
+    <string name="secret_key_hint">秘密鍵を入力してください (nsec...)</string>
+    <string name="import_account">アカウントをインポート</string>
+    <string name="or">または</string>
+    
+    <!-- Main Activity -->
+    <string name="dashboard">ダッシュボード</string>
+    <string name="account_info">アカウント情報</string>
+    <string name="mint_configuration">ミント設定</string>
+    <string name="service_control">サービス制御</string>
+    <string name="service_logs">サービスログ</string>
+    <string name="logout">ログアウト</string>
+    <string name="account_details">アカウント詳細</string>
+    
+    <!-- Service Control -->
+    <string name="start_service">サービス開始</string>
+    <string name="stop_service">サービス停止</string>
+    <string name="pause_service">サービス一時停止</string>
+    <string name="service_running">サービス実行中</string>
+    <string name="service_stopped">サービス停止中</string>
+    <string name="service_paused">サービス一時停止中</string>
+    
+    <!-- Configuration -->
+    <string name="mint_identifier">ミント識別子</string>
+    <string name="mint_identifier_hint">ミント識別子を入力</string>
+    <string name="relay_urls">リレーURL</string>
+    <string name="relay_urls_hint">リレーURLを入力（1行に1つ）</string>
+    <string name="lightning_backend">ライトニングネットワークバックエンド</string>
+    <string name="lightning_backend_hint">ライトニングネットワークバックエンドを選択</string>
+    <string name="save_configuration">設定を保存</string>
+    <string name="configuration_saved">設定が正常に保存されました</string>
+    <string name="configuration_error">設定の保存中にエラーが発生しました</string>
+    
+    <!-- Logs -->
+    <string name="clear_logs">ログをクリア</string>
+    <string name="export_logs">ログをエクスポート</string>
+    <string name="no_logs_available">ログがありません</string>
+    
+    <!-- Common -->
+    <string name="loading">読み込み中...</string>
+    <string name="error">エラー</string>
+    <string name="success">成功</string>
+    <string name="cancel">キャンセル</string>
+    <string name="ok">OK</string>
+    
+    <!-- Additional strings from MainActivity -->
+    <string name="please_stop_mint_service">設定を変更する前にMintサービスを停止してください</string>
+    <string name="failed_to_generate_config">デフォルト設定の生成に失敗しました</string>
+    <string name="please_create_new_mint">最初に新しいミントを作成してください</string>
+    <string name="logged_out_successfully">正常にログアウトしました</string>
+    <string name="service_connected_successfully">サービスが正常に接続されました</string>
+    <string name="service_connected_different_process">サービスが接続されました（異なるプロセス）</string>
+    <string name="service_connection_failed">サービス接続に失敗しました</string>
+    <string name="service_disconnected">サービスが切断されました</string>
+    <string name="attempting_to_bind_service">サービスへのバインドを試行中...</string>
+    <string name="failed_to_bind_service">サービスへのバインドに失敗しました</string>
+    <string name="error_binding_service">サービスへのバインド中にエラーが発生しました</string>
+    <string name="using_saved_configuration">保存された設定を使用</string>
+    <string name="port">ポート</string>
+    <string name="mint_name">ミント名</string>
+    <string name="description">説明</string>
+    <string name="lightning_backend_label">ライトニングネットワークバックエンド</string>
+    <string name="lnbits_admin_api_key">LNBits管理者APIキー</string>
+    <string name="lnbits_invoice_api_key">LNBits請求書APIキー</string>
+    <string name="lnbits_api_url">LNBits API URL</string>
+    <string name="no_configuration_found">設定が見つかりません</string>
+    <string name="starting_mint_service">ミントサービスを開始中...</string>
+    <string name="starting_mint_service_with_config">設定を使用してミントサービスを開始中...</string>
+    <string name="service_not_bound">サービスがバインドされていません</string>
+    <string name="waiting_for_binding">バインドの完了を待機中...</string>
+    <string name="service_binding_failed">サービスバインドに失敗しました。アプリを再起動してください。</string>
+    <string name="configuration_corrupted">設定が破損しています。再設定してください。</string>
+    
+    <!-- Account Activity -->
+    <string name="npub_not_available">NPUB利用不可</string>
+    <string name="nsec_not_available">NSEC利用不可</string>
+    <string name="no_account_info_available">アカウント情報が利用できません</string>
+    <string name="error_loading_account_info">アカウント情報の読み込み中にエラーが発生しました</string>
+    <string name="copied_to_clipboard">%1$sがクリップボードにコピーされました</string>
+    <string name="failed_to_copy">%1$sのコピーに失敗しました</string>
+    <string name="logout_title">ログアウト</string>
+    <string name="logout_message">ログアウトしますか？これによりミントサービスが停止し、アカウント情報がクリアされます。</string>
+    <string name="logout_button">ログアウト</string>
+    <string name="error_during_logout">ログアウト中にエラーが発生しました：%1$s</string>
+    
+    <!-- Login Activity -->
+    <string name="creating_new_account">新しいNostrアカウントを作成中...</string>
+    <string name="failed_to_create_account">アカウント作成に失敗しました</string>
+    <string name="error_creating_account">アカウント作成中にエラーが発生しました：%1$s</string>
+    <string name="please_enter_nsec_key">NSECキーを入力してください</string>
+    <string name="logging_in">ログイン中...</string>
+    <string name="login_failed_invalid_nsec">ログインに失敗しました - 無効なNSECキー</string>
+    <string name="error_logging_in">ログイン中にエラーが発生しました：%1$s</string>
+    
+    <!-- Language Settings -->
+    <string name="language_settings">言語設定</string>
+</resources> 

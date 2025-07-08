@@ -85,27 +85,27 @@ class AccountActivity : AppCompatActivity() {
                     if (npub.isNotEmpty()) {
                         npubInput.setText(npub)
                     } else {
-                        npubInput.setText("NPUB not available")
+                        npubInput.setText(getString(R.string.npub_not_available))
                     }
                     
                     if (nsec.isNotEmpty()) {
                         nsecInput.setText(nsec)
                     } else {
-                        nsecInput.setText("NSEC not available")
+                        nsecInput.setText(getString(R.string.nsec_not_available))
                     }
                 } catch (e: Exception) {
                     // If not JSON, treat as simple string
                     npubInput.setText(accountInfo)
-                    nsecInput.setText("NSEC not available")
+                    nsecInput.setText(getString(R.string.nsec_not_available))
                 }
             } else {
-                npubInput.setText("No account info available")
-                nsecInput.setText("No account info available")
+                npubInput.setText(getString(R.string.no_account_info_available))
+                nsecInput.setText(getString(R.string.no_account_info_available))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading account info", e)
-            npubInput.setText("Error loading account info")
-            nsecInput.setText("Error loading account info")
+            npubInput.setText(getString(R.string.error_loading_account_info))
+            nsecInput.setText(getString(R.string.error_loading_account_info))
         }
     }
     
@@ -114,21 +114,21 @@ class AccountActivity : AppCompatActivity() {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText(label, text)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(this, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.copied_to_clipboard, label), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Log.e(TAG, "Error copying to clipboard", e)
-            Toast.makeText(this, "Failed to copy $label", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.failed_to_copy, label), Toast.LENGTH_SHORT).show()
         }
     }
     
     private fun showLogoutDialog() {
         AlertDialog.Builder(this)
-            .setTitle("Logout")
-            .setMessage("Are you sure you want to logout? This will stop the mint service and clear your account information.")
-            .setPositiveButton("Logout") { _, _ ->
+            .setTitle(getString(R.string.logout_title))
+            .setMessage(getString(R.string.logout_message))
+            .setPositiveButton(getString(R.string.logout_button)) { _, _ ->
                 logout()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
     
@@ -140,7 +140,7 @@ class AccountActivity : AppCompatActivity() {
             val intent = Intent(this, PurrmintService::class.java)
             stopService(intent)
             // Show confirmation toast
-            Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.logged_out_successfully), Toast.LENGTH_SHORT).show()
             // Start LoginActivity and clear back stack
             val loginIntent = Intent(this, LoginActivity::class.java)
             loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -149,7 +149,7 @@ class AccountActivity : AppCompatActivity() {
             finish()
         } catch (e: Exception) {
             Log.e(TAG, "Error during logout", e)
-            Toast.makeText(this, "Error during logout: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.error_during_logout, e.message), Toast.LENGTH_SHORT).show()
         }
     }
 } 

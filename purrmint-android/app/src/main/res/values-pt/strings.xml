@@ -1,0 +1,110 @@
+<resources>
+    <string name="app_name">PurrMint</string>
+    <string name="test_ffi">Testar FFI</string>
+    <string name="create_account">Criar Conta</string>
+    <string name="get_info">Obter Informações</string>
+    <string name="get_status">Obter Status</string>
+    
+    <!-- Login Activity -->
+    <string name="welcome_to_purrmint">Bem-vindo ao PurrMint</string>
+    <string name="login_subtitle">Crie uma nova conta Nostr ou importe uma existente</string>
+    <string name="create_new_account">Criar Nova Conta</string>
+    <string name="create_account_description">Gerar uma nova conta Nostr com chaves frescas</string>
+    <string name="import_existing_account">Importar Conta Existente</string>
+    <string name="import_account_description">Importe sua conta Nostr existente usando sua chave secreta</string>
+    <string name="secret_key_hint">Digite sua chave secreta (nsec...)</string>
+    <string name="import_account">Importar Conta</string>
+    <string name="or">OU</string>
+    
+    <!-- Main Activity -->
+    <string name="dashboard">Painel</string>
+    <string name="account_info">Informações da Conta</string>
+    <string name="mint_configuration">Configuração da Casa da Moeda</string>
+    <string name="service_control">Controle do Serviço</string>
+    <string name="service_logs">Logs do Serviço</string>
+    <string name="logout">Sair</string>
+    <string name="account_details">Detalhes da Conta</string>
+    
+    <!-- Service Control -->
+    <string name="start_service">Iniciar Serviço</string>
+    <string name="stop_service">Parar Serviço</string>
+    <string name="pause_service">Pausar Serviço</string>
+    <string name="service_running">Serviço em Execução</string>
+    <string name="service_stopped">Serviço Parado</string>
+    <string name="service_paused">Serviço Pausado</string>
+    
+    <!-- Configuration -->
+    <string name="mint_identifier">Identificador da Casa da Moeda</string>
+    <string name="mint_identifier_hint">Digite o identificador da casa da moeda</string>
+    <string name="relay_urls">URLs dos Relés</string>
+    <string name="relay_urls_hint">Digite as URLs dos relés (uma por linha)</string>
+    <string name="lightning_backend">Backend Lightning</string>
+    <string name="lightning_backend_hint">Selecione o backend Lightning</string>
+    <string name="save_configuration">Salvar Configuração</string>
+    <string name="configuration_saved">Configuração salva com sucesso</string>
+    <string name="configuration_error">Erro ao salvar configuração</string>
+    
+    <!-- Logs -->
+    <string name="clear_logs">Limpar Logs</string>
+    <string name="export_logs">Exportar Logs</string>
+    <string name="no_logs_available">Nenhum log disponível</string>
+    
+    <!-- Common -->
+    <string name="loading">Carregando...</string>
+    <string name="error">Erro</string>
+    <string name="success">Sucesso</string>
+    <string name="cancel">Cancelar</string>
+    <string name="ok">OK</string>
+    
+    <!-- Additional strings from MainActivity -->
+    <string name="please_stop_mint_service">Por favor, pare o serviço Mint antes de modificar a configuração</string>
+    <string name="failed_to_generate_config">Falha ao gerar configuração padrão</string>
+    <string name="please_create_new_mint">Por favor, crie uma nova casa da moeda primeiro</string>
+    <string name="logged_out_successfully">Saiu com sucesso</string>
+    <string name="service_connected_successfully">Serviço conectado com sucesso</string>
+    <string name="service_connected_different_process">Serviço conectado (processo diferente)</string>
+    <string name="service_connection_failed">Falha na conexão do serviço</string>
+    <string name="service_disconnected">Serviço desconectado</string>
+    <string name="attempting_to_bind_service">Tentando vincular ao serviço...</string>
+    <string name="failed_to_bind_service">Falha ao vincular ao serviço</string>
+    <string name="error_binding_service">Erro ao vincular ao serviço</string>
+    <string name="using_saved_configuration">Usando configuração salva</string>
+    <string name="port">Porta</string>
+    <string name="mint_name">Nome da Casa da Moeda</string>
+    <string name="description">Descrição</string>
+    <string name="lightning_backend_label">Backend Lightning</string>
+    <string name="lnbits_admin_api_key">Chave API Admin LNBits</string>
+    <string name="lnbits_invoice_api_key">Chave API de Fatura LNBits</string>
+    <string name="lnbits_api_url">URL da API LNBits</string>
+    <string name="no_configuration_found">Nenhuma configuração encontrada</string>
+    <string name="starting_mint_service">Iniciando serviço da casa da moeda...</string>
+    <string name="starting_mint_service_with_config">Iniciando serviço da casa da moeda com configuração...</string>
+    <string name="service_not_bound">Serviço não vinculado</string>
+    <string name="waiting_for_binding">Aguardando conclusão da vinculação...</string>
+    <string name="service_binding_failed">Falha na vinculação do serviço. Por favor, reinicie o aplicativo.</string>
+    <string name="configuration_corrupted">Configuração corrompida. Por favor, reconfigure.</string>
+    
+    <!-- Account Activity -->
+    <string name="npub_not_available">NPUB não disponível</string>
+    <string name="nsec_not_available">NSEC não disponível</string>
+    <string name="no_account_info_available">Informações da conta não disponíveis</string>
+    <string name="error_loading_account_info">Erro ao carregar informações da conta</string>
+    <string name="copied_to_clipboard">%1$s copiado para a área de transferência</string>
+    <string name="failed_to_copy">Falha ao copiar %1$s</string>
+    <string name="logout_title">Sair</string>
+    <string name="logout_message">Tem certeza de que deseja sair? Isso irá parar o serviço da casa da moeda e limpar suas informações da conta.</string>
+    <string name="logout_button">Sair</string>
+    <string name="error_during_logout">Erro durante o logout: %1$s</string>
+    
+    <!-- Login Activity -->
+    <string name="creating_new_account">Criando nova conta Nostr...</string>
+    <string name="failed_to_create_account">Falha ao criar conta</string>
+    <string name="error_creating_account">Erro ao criar conta: %1$s</string>
+    <string name="please_enter_nsec_key">Por favor, digite a chave NSEC</string>
+    <string name="logging_in">Fazendo login...</string>
+    <string name="login_failed_invalid_nsec">Falha no login - Chave NSEC inválida</string>
+    <string name="error_logging_in">Erro ao fazer login: %1$s</string>
+    
+    <!-- Language Settings -->
+    <string name="language_settings">Configurações de Idioma</string>
+</resources> 

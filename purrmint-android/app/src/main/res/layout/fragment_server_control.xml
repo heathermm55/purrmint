@@ -39,7 +39,7 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:src="@drawable/ic_settings"
-                        android:tint="@color/primary_color"
+                        app:tint="@color/primary_color"
                         android:layout_marginEnd="8dp" />
 
                     <TextView
@@ -128,7 +128,7 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:src="@drawable/ic_control"
-                        android:tint="@color/primary_color"
+                        app:tint="@color/primary_color"
                         android:layout_marginEnd="8dp" />
 
                     <TextView
@@ -258,7 +258,7 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:src="@drawable/ic_config"
-                        android:tint="@color/primary_color"
+                        app:tint="@color/primary_color"
                         android:layout_marginEnd="8dp" />
 
                     <TextView

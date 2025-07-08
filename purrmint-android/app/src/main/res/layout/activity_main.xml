@@ -24,17 +24,17 @@
             app:background="@color/surface_color">
 
             <ImageButton
-                android:id="@+id/btnAccount"
+                android:id="@+id/btnSettings"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_gravity="end"
                 android:background="@android:color/transparent"
-                android:src="@drawable/ic_account"
-                android:contentDescription="Account"
+                android:src="@drawable/ic_settings"
+                android:contentDescription="Settings"
                 android:focusable="true"
                 android:clickable="true"
                 android:padding="8dp"
-                android:tint="@color/primary_color" />
+                app:tint="@color/primary_color" />
 
         </com.google.android.material.appbar.MaterialToolbar>
 
@@ -95,7 +95,7 @@
                             android:focusable="true"
                             android:clickable="true"
                             android:padding="8dp"
-                            android:tint="@color/primary_color" />
+                            app:tint="@color/primary_color" />
 
                     </LinearLayout>
 
@@ -111,7 +111,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_status_offline"
-                            android:tint="@color/error_color"
+                            app:tint="@color/error_color"
                             android:layout_marginEnd="12dp" />
 
                         <com.google.android.material.chip.Chip
@@ -177,7 +177,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_logs"
-                            android:tint="@color/primary_color"
+                            app:tint="@color/primary_color"
                             android:layout_marginEnd="8dp" />
 
                         <TextView

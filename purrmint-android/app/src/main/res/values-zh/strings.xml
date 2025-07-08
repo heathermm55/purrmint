@@ -1,0 +1,110 @@
+<resources>
+    <string name="app_name">PurrMint</string>
+    <string name="test_ffi">测试FFI</string>
+    <string name="create_account">创建账户</string>
+    <string name="get_info">获取信息</string>
+    <string name="get_status">获取状态</string>
+    
+    <!-- Login Activity -->
+    <string name="welcome_to_purrmint">欢迎使用PurrMint</string>
+    <string name="login_subtitle">创建新的Nostr账户或导入现有账户</string>
+    <string name="create_new_account">创建新账户</string>
+    <string name="create_account_description">生成具有新密钥的新Nostr账户</string>
+    <string name="import_existing_account">导入现有账户</string>
+    <string name="import_account_description">使用您的密钥导入现有Nostr账户</string>
+    <string name="secret_key_hint">输入您的密钥 (nsec...)</string>
+    <string name="import_account">导入账户</string>
+    <string name="or">或</string>
+    
+    <!-- Main Activity -->
+    <string name="dashboard">仪表板</string>
+    <string name="account_info">账户信息</string>
+    <string name="mint_configuration">铸币配置</string>
+    <string name="service_control">服务控制</string>
+    <string name="service_logs">服务日志</string>
+    <string name="logout">退出登录</string>
+    <string name="account_details">账户详情</string>
+    
+    <!-- Service Control -->
+    <string name="start_service">启动服务</string>
+    <string name="stop_service">停止服务</string>
+    <string name="pause_service">暂停服务</string>
+    <string name="service_running">服务运行中</string>
+    <string name="service_stopped">服务已停止</string>
+    <string name="service_paused">服务已暂停</string>
+    
+    <!-- Configuration -->
+    <string name="mint_identifier">铸币标识符</string>
+    <string name="mint_identifier_hint">输入铸币标识符</string>
+    <string name="relay_urls">中继URL</string>
+    <string name="relay_urls_hint">输入中继URL（每行一个）</string>
+    <string name="lightning_backend">闪电网络后端</string>
+    <string name="lightning_backend_hint">选择闪电网络后端</string>
+    <string name="save_configuration">保存配置</string>
+    <string name="configuration_saved">配置保存成功</string>
+    <string name="configuration_error">保存配置时出错</string>
+    
+    <!-- Logs -->
+    <string name="clear_logs">清除日志</string>
+    <string name="export_logs">导出日志</string>
+    <string name="no_logs_available">暂无日志</string>
+    
+    <!-- Common -->
+    <string name="loading">加载中...</string>
+    <string name="error">错误</string>
+    <string name="success">成功</string>
+    <string name="cancel">取消</string>
+    <string name="ok">确定</string>
+    
+    <!-- Additional strings from MainActivity -->
+    <string name="please_stop_mint_service">请先停止Mint服务再修改配置</string>
+    <string name="failed_to_generate_config">生成默认配置失败</string>
+    <string name="please_create_new_mint">请先创建新的铸币</string>
+    <string name="logged_out_successfully">退出登录成功</string>
+    <string name="service_connected_successfully">服务连接成功</string>
+    <string name="service_connected_different_process">服务连接（不同进程）</string>
+    <string name="service_connection_failed">服务连接失败</string>
+    <string name="service_disconnected">服务断开连接</string>
+    <string name="attempting_to_bind_service">尝试绑定服务...</string>
+    <string name="failed_to_bind_service">绑定服务失败</string>
+    <string name="error_binding_service">绑定服务时出错</string>
+    <string name="using_saved_configuration">使用保存的配置</string>
+    <string name="port">端口</string>
+    <string name="mint_name">铸币名称</string>
+    <string name="description">描述</string>
+    <string name="lightning_backend_label">闪电网络后端</string>
+    <string name="lnbits_admin_api_key">LNBits管理员API密钥</string>
+    <string name="lnbits_invoice_api_key">LNBits发票API密钥</string>
+    <string name="lnbits_api_url">LNBits API URL</string>
+    <string name="no_configuration_found">未找到配置</string>
+    <string name="starting_mint_service">启动铸币服务...</string>
+    <string name="starting_mint_service_with_config">使用配置启动铸币服务...</string>
+    <string name="service_not_bound">服务未绑定</string>
+    <string name="waiting_for_binding">等待绑定完成...</string>
+    <string name="service_binding_failed">服务绑定失败，请重启应用</string>
+    <string name="configuration_corrupted">配置损坏，请重新配置</string>
+    
+    <!-- Account Activity -->
+    <string name="npub_not_available">NPUB不可用</string>
+    <string name="nsec_not_available">NSEC不可用</string>
+    <string name="no_account_info_available">账户信息不可用</string>
+    <string name="error_loading_account_info">加载账户信息时出错</string>
+    <string name="copied_to_clipboard">%1$s已复制到剪贴板</string>
+    <string name="failed_to_copy">复制%1$s失败</string>
+    <string name="logout_title">退出登录</string>
+    <string name="logout_message">确定要退出登录吗？这将停止铸币服务并清除您的账户信息。</string>
+    <string name="logout_button">退出登录</string>
+    <string name="error_during_logout">退出登录时出错：%1$s</string>
+    
+    <!-- Login Activity -->
+    <string name="creating_new_account">正在创建新的Nostr账户...</string>
+    <string name="failed_to_create_account">创建账户失败</string>
+    <string name="error_creating_account">创建账户时出错：%1$s</string>
+    <string name="please_enter_nsec_key">请输入NSEC密钥</string>
+    <string name="logging_in">正在登录...</string>
+    <string name="login_failed_invalid_nsec">登录失败 - 无效的NSEC密钥</string>
+    <string name="error_logging_in">登录时出错：%1$s</string>
+    
+    <!-- Language Settings -->
+    <string name="language_settings">语言设置</string>
+</resources> 

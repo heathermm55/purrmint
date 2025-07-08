@@ -55,4 +55,56 @@
     <string name="success">Success</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
+    
+    <!-- Additional strings from MainActivity -->
+    <string name="please_stop_mint_service">Please stop Mint service before modifying configuration</string>
+    <string name="failed_to_generate_config">Failed to generate default configuration</string>
+    <string name="please_create_new_mint">Please create a new mint first</string>
+    <string name="logged_out_successfully">Logged out successfully</string>
+    <string name="service_connected_successfully">Service connected successfully</string>
+    <string name="service_connected_different_process">Service connected (different process)</string>
+    <string name="service_connection_failed">Service connection failed</string>
+    <string name="service_disconnected">Service disconnected</string>
+    <string name="attempting_to_bind_service">Attempting to bind to service...</string>
+    <string name="failed_to_bind_service">Failed to bind to service</string>
+    <string name="error_binding_service">Error binding to service</string>
+    <string name="using_saved_configuration">Using saved configuration</string>
+    <string name="port">Port</string>
+    <string name="mint_name">Mint Name</string>
+    <string name="description">Description</string>
+    <string name="lightning_backend_label">Lightning Backend</string>
+    <string name="lnbits_admin_api_key">LNBits Admin API Key</string>
+    <string name="lnbits_invoice_api_key">LNBits Invoice API Key</string>
+    <string name="lnbits_api_url">LNBits API URL</string>
+    <string name="no_configuration_found">No configuration found</string>
+    <string name="starting_mint_service">Starting mint service...</string>
+    <string name="starting_mint_service_with_config">Starting mint service with configuration...</string>
+    <string name="service_not_bound">Service not bound</string>
+    <string name="waiting_for_binding">Waiting for binding to complete...</string>
+    <string name="service_binding_failed">Service binding failed. Please restart the app.</string>
+    <string name="configuration_corrupted">Configuration corrupted. Please reconfigure.</string>
+    
+    <!-- Account Activity -->
+    <string name="npub_not_available">NPUB not available</string>
+    <string name="nsec_not_available">NSEC not available</string>
+    <string name="no_account_info_available">No account info available</string>
+    <string name="error_loading_account_info">Error loading account info</string>
+    <string name="copied_to_clipboard">%1$s copied to clipboard</string>
+    <string name="failed_to_copy">Failed to copy %1$s</string>
+    <string name="logout_title">Logout</string>
+    <string name="logout_message">Are you sure you want to logout? This will stop the mint service and clear your account information.</string>
+    <string name="logout_button">Logout</string>
+    <string name="error_during_logout">Error during logout: %1$s</string>
+    
+    <!-- Login Activity -->
+    <string name="creating_new_account">Creating new Nostr account...</string>
+    <string name="failed_to_create_account">Failed to create account</string>
+    <string name="error_creating_account">Error creating account: %1$s</string>
+    <string name="please_enter_nsec_key">Please enter NSEC key</string>
+    <string name="logging_in">Logging in...</string>
+    <string name="login_failed_invalid_nsec">Login failed - Invalid NSEC key</string>
+    <string name="error_logging_in">Error logging in: %1$s</string>
+    
+    <!-- Language Settings -->
+    <string name="language_settings">Language Settings</string>
 </resources> 

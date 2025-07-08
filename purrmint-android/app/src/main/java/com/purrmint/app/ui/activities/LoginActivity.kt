@@ -124,7 +124,7 @@ class LoginActivity : AppCompatActivity() {
 
     private fun createAccount() {
         try {
-            showStatus("Creating new Nostr account...")
+            showStatus(getString(R.string.creating_new_account))
             
             // Use LoginManager to create account
             val success = loginManager.createNewAccount()
@@ -136,12 +136,12 @@ class LoginActivity : AppCompatActivity() {
                 // Go to main activity
                 goToMainActivity()
             } else {
-                showStatus("Failed to create account")
-                Toast.makeText(this, "Failed to create account", Toast.LENGTH_SHORT).show()
+                showStatus(getString(R.string.failed_to_create_account))
+                Toast.makeText(this, getString(R.string.failed_to_create_account), Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
             showStatus("Error: ${e.message}")
-            Toast.makeText(this, "Error creating account: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.error_creating_account, e.message), Toast.LENGTH_SHORT).show()
             Log.e(TAG, "Error creating account", e)
         }
     }
@@ -151,11 +151,11 @@ class LoginActivity : AppCompatActivity() {
             val nsecKey = nsecInput.text.toString().trim()
             
             if (nsecKey.isEmpty()) {
-                Toast.makeText(this, "Please enter NSEC key", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.please_enter_nsec_key), Toast.LENGTH_SHORT).show()
                 return
             }
             
-            showStatus("Logging in...")
+            showStatus(getString(R.string.logging_in))
             
             // Use LoginManager to login with NSEC
             val success = loginManager.loginWithNsec(nsecKey)
@@ -167,12 +167,12 @@ class LoginActivity : AppCompatActivity() {
                 // Go to main activity
                 goToMainActivity()
             } else {
-                showStatus("Login failed - Invalid NSEC key")
-                Toast.makeText(this, "Login failed - Invalid NSEC key", Toast.LENGTH_SHORT).show()
+                showStatus(getString(R.string.login_failed_invalid_nsec))
+                Toast.makeText(this, getString(R.string.login_failed_invalid_nsec), Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
             showStatus("Error: ${e.message}")
-            Toast.makeText(this, "Error logging in: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.error_logging_in, e.message), Toast.LENGTH_SHORT).show()
             Log.e(TAG, "Error logging in", e)
         }
     }

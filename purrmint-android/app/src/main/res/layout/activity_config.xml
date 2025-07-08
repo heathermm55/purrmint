@@ -67,7 +67,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_mint"
-                            android:tint="@color/primary_color"
+                            app:tint="@color/primary_color"
                             android:layout_marginEnd="8dp" />
 
                         <TextView
@@ -177,7 +177,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_lightning"
-                            android:tint="@color/primary_color"
+                            app:tint="@color/primary_color"
                             android:layout_marginEnd="8dp" />
 
                         <TextView
