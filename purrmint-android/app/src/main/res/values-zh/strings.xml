@@ -122,4 +122,23 @@
     <string name="start_mint_service">启动铸币服务</string>
     <string name="service_unavailable">服务不可用</string>
     <string name="welcome_message">欢迎使用Purrmint！\n请先登录开始使用。</string>
+    
+    <!-- Configuration strings -->
+    <string name="lightning_configuration">闪电网络配置</string>
+    <string name="rpc_path">RPC路径</string>
+    <string name="fee_percent">手续费百分比</string>
+    <string name="reserve_fee_min">最小保留费用</string>
+    <string name="default_mint_name">我的铸币</string>
+    <string name="default_mint_description">一个简单的铸币服务</string>
+    <string name="default_port">3338</string>
+    <string name="default_cln_fee_percent">0.04</string>
+    <string name="default_fake_wallet_fee_percent">0.02</string>
+    <string name="default_reserve_fee_min">1</string>
+    
+    <!-- Account strings -->
+    <string name="account_information">账户信息</string>
+    <string name="npub_public_key">NPUB（公钥）</string>
+    <string name="nsec_private_key">NSEC（私钥）</string>
+    <string name="copy_npub">复制NPUB</string>
+    <string name="copy_nsec">复制NSEC</string>
 </resources> 

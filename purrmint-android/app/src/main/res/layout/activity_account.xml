@@ -18,7 +18,7 @@
             android:id="@+id/topAppBar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Account Details"
+            app:title="@string/account_details"
             app:titleTextColor="@color/on_surface_color"
             app:titleTextAppearance="@style/TextAppearance.Material3.HeadlineSmall"
             app:background="@color/surface_color"
@@ -74,7 +74,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Account Information"
+                            android:text="@string/account_information"
                             android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                             android:textColor="@color/on_surface_color" />
 
@@ -85,7 +85,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="NPUB (Public Key)"
+                        android:hint="@string/npub_public_key"
                         app:boxCornerRadiusTopStart="8dp"
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusBottomStart="8dp"
@@ -100,7 +100,7 @@
                             android:minLines="2"
                             android:maxLines="3"
                             android:enabled="false"
-                            android:text="Loading..." />
+                            android:text="@string/loading" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -109,7 +109,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="NSEC (Private Key)"
+                        android:hint="@string/nsec_private_key"
                         app:boxCornerRadiusTopStart="8dp"
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusBottomStart="8dp"
@@ -122,7 +122,7 @@
                             android:layout_height="wrap_content"
                             android:inputType="textPassword"
                             android:enabled="false"
-                            android:text="Loading..." />
+                            android:text="@string/loading" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -139,7 +139,7 @@
                             android:layout_height="48dp"
                             android:layout_weight="1"
                             android:layout_marginEnd="8dp"
-                            android:text="Copy NPUB"
+                            android:text="@string/copy_npub"
                             android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
                             android:singleLine="true"
                             android:maxLines="1"
@@ -155,7 +155,7 @@
                             android:layout_height="48dp"
                             android:layout_weight="1"
                             android:layout_marginStart="8dp"
-                            android:text="Copy NSEC"
+                            android:text="@string/copy_nsec"
                             android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
                             android:singleLine="true"
                             android:maxLines="1"
@@ -176,7 +176,7 @@
                 android:id="@+id/btnLogout"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:text="Logout"
+                android:text="@string/logout"
                 android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
                 app:icon="@drawable/ic_logout"
                 app:iconGravity="textStart"

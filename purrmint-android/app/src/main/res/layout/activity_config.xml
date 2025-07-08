@@ -18,7 +18,7 @@
             android:id="@+id/topAppBar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Mint Configuration"
+            app:title="@string/mint_configuration"
             app:titleTextColor="@color/on_surface_color"
             app:titleTextAppearance="@style/TextAppearance.Material3.HeadlineSmall"
             app:background="@color/surface_color"
@@ -74,7 +74,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Mint Configuration"
+                            android:text="@string/mint_configuration"
                             android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                             android:textColor="@color/on_surface_color" />
 
@@ -85,7 +85,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="Mint Name"
+                        android:hint="@string/mint_name"
                         app:boxCornerRadiusTopStart="8dp"
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusBottomStart="8dp"
@@ -97,7 +97,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="text"
-                            android:text="My Mint" />
+                            android:text="@string/default_mint_name" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -106,7 +106,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="Description"
+                        android:hint="@string/description"
                         app:boxCornerRadiusTopStart="8dp"
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusBottomStart="8dp"
@@ -120,7 +120,7 @@
                             android:inputType="textMultiLine"
                             android:minLines="2"
                             android:maxLines="3"
-                            android:text="A simple mint service" />
+                            android:text="@string/default_mint_description" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -129,7 +129,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="Port"
+                        android:hint="@string/port"
                         app:boxCornerRadiusTopStart="8dp"
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusBottomStart="8dp"
@@ -141,7 +141,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="number"
-                            android:text="3338" />
+                            android:text="@string/default_port" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -184,7 +184,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Lightning Configuration"
+                            android:text="@string/lightning_configuration"
                             android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                             android:textColor="@color/on_surface_color" />
 
@@ -195,7 +195,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="Lightning Backend"
+                        android:hint="@string/lightning_backend"
                         app:boxCornerRadiusTopStart="8dp"
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusBottomStart="8dp"
@@ -223,7 +223,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:hint="RPC Path"
+                            android:hint="@string/rpc_path"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
@@ -243,7 +243,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:hint="Fee Percent"
+                            android:hint="@string/fee_percent"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
@@ -255,7 +255,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="numberDecimal"
-                                android:text="0.04" />
+                                android:text="@string/default_cln_fee_percent" />
 
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -273,7 +273,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:hint="Admin API Key"
+                            android:hint="@string/lnbits_admin_api_key"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
@@ -292,7 +292,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:hint="Invoice API Key"
+                            android:hint="@string/lnbits_invoice_api_key"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
@@ -311,7 +311,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:hint="LNBits API URL"
+                            android:hint="@string/lnbits_api_url"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
@@ -340,7 +340,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:hint="Fee Percent"
+                            android:hint="@string/fee_percent"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
@@ -352,7 +352,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="numberDecimal"
-                                android:text="0.02" />
+                                android:text="@string/default_fake_wallet_fee_percent" />
 
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -360,7 +360,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:hint="Reserve Fee Min"
+                            android:hint="@string/reserve_fee_min"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
@@ -372,7 +372,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="number"
-                                android:text="1" />
+                                android:text="@string/default_reserve_fee_min" />
 
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -395,7 +395,7 @@
                     android:layout_height="56dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    android:text="Cancel"
+                    android:text="@string/cancel"
                     android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
                     app:icon="@drawable/ic_close"
                     app:iconGravity="textStart"
@@ -408,7 +408,7 @@
                     android:layout_height="56dp"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
-                    android:text="Start Service"
+                    android:text="@string/start_service"
                     android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
                     app:icon="@drawable/ic_play"
                     app:iconGravity="textStart"

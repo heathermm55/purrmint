@@ -123,6 +123,25 @@
     <string name="service_unavailable">Service Unavailable</string>
     <string name="welcome_message">Welcome to Purrmint!\nPlease login to start.</string>
     
+    <!-- Configuration strings -->
+    <string name="lightning_configuration">Lightning Configuration</string>
+    <string name="rpc_path">RPC Path</string>
+    <string name="fee_percent">Fee Percent</string>
+    <string name="reserve_fee_min">Reserve Fee Min</string>
+    <string name="default_mint_name">My Mint</string>
+    <string name="default_mint_description">A simple mint service</string>
+    <string name="default_port">3338</string>
+    <string name="default_cln_fee_percent">0.04</string>
+    <string name="default_fake_wallet_fee_percent">0.02</string>
+    <string name="default_reserve_fee_min">1</string>
+    
+    <!-- Account strings -->
+    <string name="account_information">Account Information</string>
+    <string name="npub_public_key">NPUB (Public Key)</string>
+    <string name="nsec_private_key">NSEC (Private Key)</string>
+    <string name="copy_npub">Copy NPUB</string>
+    <string name="copy_nsec">Copy NSEC</string>
+    
     <!-- New string for current version -->
     <string name="current_version">Version %1$s</string>
 </resources> 
