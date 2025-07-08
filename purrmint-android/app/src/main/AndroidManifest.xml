@@ -53,8 +53,7 @@
             android:name="com.purrmint.app.core.services.PurrmintService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse"
-            android:process=":purrmint" />
+            android:foregroundServiceType="specialUse" />
     </application>
 
 </manifest> 

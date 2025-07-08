@@ -199,33 +199,26 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_updateConfig(
 ) -> jstring {
     let config_str = java_string_to_rust_string(&mut _env, config_json);
     
-    // Start with default config
-    let mut android_config = AndroidConfig::default();
-    
-    // Update with provided JSON
-    if let Err(e) = android_config.update_from_json(&config_str) {
-        error!("Failed to update config from JSON: {:?}", e);
-        // If update fails, try to parse as new config
-        match AndroidConfig::from_json(&config_str) {
-            Ok(new_config) => android_config = new_config,
-            Err(parse_error) => {
-                error!("Failed to parse config JSON: {:?}", parse_error);
-                // If all parsing fails, return original string
-                match _env.new_string(config_str) {
-                    Ok(java_string) => return java_string.into_raw(),
-                    Err(_) => return ptr::null_mut(),
-                }
+    // Parse the provided JSON as new config
+    let android_config = match AndroidConfig::from_json(&config_str) {
+        Ok(config) => config,
+        Err(e) => {
+            error!("Failed to parse config JSON: {:?}", e);
+            // If parsing fails, return original string
+            match _env.new_string(config_str) {
+                Ok(java_string) => return java_string.into_raw(),
+                Err(_) => return ptr::null_mut(),
             }
         }
-    }
+    };
     
-    // Return updated config as JSON
+    // Return parsed config as JSON
     match android_config.to_json() {
         Ok(json_str) => {
             match _env.new_string(json_str) {
                 Ok(java_string) => java_string.into_raw(),
                 Err(e) => {
-                    error!("Failed to create Java string for updated config: {:?}", e);
+                    error!("Failed to create Java string for config: {:?}", e);
                     // Fallback to original string
                     match _env.new_string(config_str) {
                         Ok(fallback) => fallback.into_raw(),
@@ -235,7 +228,7 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_updateConfig(
             }
         },
         Err(e) => {
-            error!("Failed to serialize updated config: {:?}", e);
+            error!("Failed to serialize config: {:?}", e);
             // Fallback to original string
             match _env.new_string(config_str) {
                 Ok(fallback) => fallback.into_raw(),

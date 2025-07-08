@@ -200,14 +200,15 @@ class ConfigManager(private val context: Context) {
             val json = JSONObject()
             json.put("host", config.host)
             json.put("port", config.port)
-            json.put("mint_name", config.mintName)
+            json.put("mintName", config.mintName)
             json.put("description", config.description)
-            json.put("lightning_backend", config.lightningBackend)
-            json.put("database_path", config.databasePath)
-            json.put("logs_path", config.logsPath)
-            json.put("lnbits_admin_api_key", config.lnbitsAdminApiKey)
-            json.put("lnbits_invoice_api_key", config.lnbitsInvoiceApiKey)
-            json.put("lnbits_api_url", config.lnbitsApiUrl)
+            json.put("lightningBackend", config.lightningBackend)
+            json.put("mode", "mintd_only")
+            json.put("databasePath", config.databasePath)
+            json.put("logsPath", config.logsPath)
+            json.put("lnbitsAdminApiKey", config.lnbitsAdminApiKey)
+            json.put("lnbitsInvoiceApiKey", config.lnbitsInvoiceApiKey)
+            json.put("lnbitsApiUrl", config.lnbitsApiUrl)
             json.toString()
         } catch (e: JSONException) {
             Log.e(TAG, "Error converting config to JSON", e)
@@ -224,14 +225,14 @@ class ConfigManager(private val context: Context) {
             AndroidConfig(
                 host = jsonObject.optString("host", DEFAULT_HOST),
                 port = jsonObject.optInt("port", DEFAULT_PORT),
-                mintName = jsonObject.optString("mint_name", DEFAULT_MINT_NAME),
+                mintName = jsonObject.optString("mintName", DEFAULT_MINT_NAME),
                 description = jsonObject.optString("description", DEFAULT_DESCRIPTION),
-                lightningBackend = jsonObject.optString("lightning_backend", DEFAULT_LIGHTNING_BACKEND),
-                databasePath = jsonObject.optString("database_path", "${context.filesDir.absolutePath}/database"),
-                logsPath = jsonObject.optString("logs_path", "${context.filesDir.absolutePath}/logs"),
-                lnbitsAdminApiKey = jsonObject.optString("lnbits_admin_api_key", null),
-                lnbitsInvoiceApiKey = jsonObject.optString("lnbits_invoice_api_key", null),
-                lnbitsApiUrl = jsonObject.optString("lnbits_api_url", null)
+                lightningBackend = jsonObject.optString("lightningBackend", DEFAULT_LIGHTNING_BACKEND),
+                databasePath = jsonObject.optString("databasePath", "${context.filesDir.absolutePath}/database"),
+                logsPath = jsonObject.optString("logsPath", "${context.filesDir.absolutePath}/logs"),
+                lnbitsAdminApiKey = jsonObject.optString("lnbitsAdminApiKey", null),
+                lnbitsInvoiceApiKey = jsonObject.optString("lnbitsInvoiceApiKey", null),
+                lnbitsApiUrl = jsonObject.optString("lnbitsApiUrl", null)
             )
         } catch (e: JSONException) {
             Log.e(TAG, "Error parsing JSON to config", e)

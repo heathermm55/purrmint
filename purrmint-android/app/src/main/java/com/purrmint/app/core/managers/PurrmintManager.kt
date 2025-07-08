@@ -88,12 +88,12 @@ class PurrmintManager(private val context: Context) {
             val defaultConfig = mapOf(
                 "port" to 3338,
                 "host" to "0.0.0.0",
-                "mint_name" to "PurrMint",
+                "mintName" to "PurrMint",
                 "description" to "Mobile Cashu Mint",
-                "lightning_backend" to "fakewallet",
+                "lightningBackend" to "fakewallet",
                 "mode" to "mintd_only",
-                "database_path" to "$dataDir/mint.db",
-                "logs_path" to "$dataDir/logs"
+                "databasePath" to "$dataDir/mint.db",
+                "logsPath" to "$dataDir/logs"
             )
             
             // Convert to JSON string

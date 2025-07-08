@@ -183,6 +183,7 @@ pub struct Settings {
 
 /// Android-specific configuration (simplified JSON format for JNI)
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct AndroidConfig {
     pub port: u16,
     pub host: String,
@@ -339,83 +340,16 @@ impl AndroidConfig {
         settings
     }
 
-    /// Create AndroidConfig from JSON string
-    pub fn from_json(json_str: &str) -> Result<Self> {
-        serde_json::from_str(json_str)
-            .map_err(|e| anyhow!("Failed to parse Android config JSON: {}", e))
-    }
-
     /// Convert AndroidConfig to JSON string
     pub fn to_json(&self) -> Result<String> {
         serde_json::to_string_pretty(self)
             .map_err(|e| anyhow!("Failed to serialize Android config: {}", e))
     }
 
-    /// Update configuration with validation
-    pub fn update_from_json(&mut self, json_str: &str) -> Result<()> {
-        let update: serde_json::Value = serde_json::from_str(json_str)
-            .map_err(|e| anyhow!("Invalid JSON format: {}", e))?;
-        
-        // Validate and update fields
-        if let Some(port) = update.get("port").and_then(|p| p.as_u64()) {
-            if port > 0 && port < 65536 {
-                self.port = port as u16;
-            }
-        }
-        
-        if let Some(host) = update.get("host").and_then(|h| h.as_str()) {
-            if !host.is_empty() {
-                self.host = host.to_string();
-            }
-        }
-        
-        if let Some(mint_name) = update.get("mintName").and_then(|n| n.as_str()) {
-            if !mint_name.is_empty() {
-                self.mint_name = mint_name.to_string();
-            }
-        }
-        
-        if let Some(description) = update.get("description").and_then(|d| d.as_str()) {
-            self.description = description.to_string();
-        }
-        
-        if let Some(lightning_backend) = update.get("lightningBackend").and_then(|l| l.as_str()) {
-            self.lightning_backend = lightning_backend.to_string();
-        }
-        
-        if let Some(mode) = update.get("mode").and_then(|m| m.as_str()) {
-            self.mode = mode.to_string();
-        }
-        
-        if let Some(database_path) = update.get("databasePath").and_then(|d| d.as_str()) {
-            self.database_path = database_path.to_string();
-        }
-        
-        if let Some(logs_path) = update.get("logsPath").and_then(|l| l.as_str()) {
-            self.logs_path = logs_path.to_string();
-        }
-        
-        if let Some(lnbits_admin_api_key) = update.get("lnbitsAdminApiKey").and_then(|k| k.as_str()) {
-            self.lnbits_admin_api_key = Some(lnbits_admin_api_key.to_string());
-        }
-        
-        if let Some(lnbits_invoice_api_key) = update.get("lnbitsInvoiceApiKey").and_then(|k| k.as_str()) {
-            self.lnbits_invoice_api_key = Some(lnbits_invoice_api_key.to_string());
-        }
-        
-        if let Some(lnbits_api_url) = update.get("lnbitsApiUrl").and_then(|u| u.as_str()) {
-            self.lnbits_api_url = Some(lnbits_api_url.to_string());
-        }
-        
-        if let Some(cln_rpc_path) = update.get("clnRpcPath").and_then(|p| p.as_str()) {
-            self.cln_rpc_path = Some(cln_rpc_path.to_string());
-        }
-        
-        if let Some(cln_bolt12) = update.get("clnBolt12").and_then(|b| b.as_bool()) {
-            self.cln_bolt12 = Some(cln_bolt12);
-        }
-        
-        Ok(())
+    /// Create AndroidConfig from JSON string
+    pub fn from_json(json_str: &str) -> Result<Self> {
+        serde_json::from_str(json_str)
+            .map_err(|e| anyhow!("Failed to parse Android config JSON: {}", e))
     }
 }
 
@@ -450,5 +384,39 @@ mod tests {
         assert_eq!(lnbits_config.admin_api_key, "admin_key_123");
         assert_eq!(lnbits_config.invoice_api_key, "invoice_key_456");
         assert_eq!(lnbits_config.lnbits_api, "https://lnbits.example.com");
+    }
+
+    #[test]
+    fn test_android_json_parsing() {
+        let json_str = r#"{
+            "port": 3338,
+            "host": "0.0.0.0",
+            "mintName": "Test Mint",
+            "description": "Test Description",
+            "lightningBackend": "lnbits",
+            "mode": "mintd_only",
+            "databasePath": "/tmp/db",
+            "logsPath": "/tmp/logs",
+            "lnbitsAdminApiKey": "admin_key_123",
+            "lnbitsInvoiceApiKey": "invoice_key_456",
+            "lnbitsApiUrl": "https://lnbits.example.com"
+        }"#;
+
+        let config = AndroidConfig::from_json(json_str).expect("Failed to parse JSON");
+        
+        assert_eq!(config.port, 3338);
+        assert_eq!(config.host, "0.0.0.0");
+        assert_eq!(config.mint_name, "Test Mint");
+        assert_eq!(config.description, "Test Description");
+        assert_eq!(config.lightning_backend, "lnbits");
+        assert_eq!(config.lnbits_admin_api_key, Some("admin_key_123".to_string()));
+        assert_eq!(config.lnbits_invoice_api_key, Some("invoice_key_456".to_string()));
+        assert_eq!(config.lnbits_api_url, Some("https://lnbits.example.com".to_string()));
+
+        // Test conversion to Settings
+        let settings = config.to_settings(None);
+        assert_eq!(settings.ln.ln_backend, LnBackend::LNbits);
+        assert!(settings.lnbits.is_some());
+        assert!(settings.fake_wallet.is_none()); // Should be cleared when using LNBits
     }
 } 

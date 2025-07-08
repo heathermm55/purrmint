@@ -26,6 +26,8 @@ import com.purrmint.app.R
 import com.purrmint.app.core.managers.LoginManager
 import com.purrmint.app.core.managers.ConfigManager
 import com.purrmint.app.core.services.PurrmintService
+import android.os.Handler
+import android.os.Looper
 
 class MainActivity : AppCompatActivity() {
     
@@ -287,10 +289,20 @@ class MainActivity : AppCompatActivity() {
                     isServiceBound = true
                     Log.i(TAG, "PurrmintService connected (same process)")
                     appendLog("✅ Service connected successfully")
+                    
+                    // Enable start button after service is bound
+                    runOnUiThread {
+                        enableStartButton()
+                    }
                 } else {
                     isServiceBound = true
                     Log.i(TAG, "PurrmintService connected (different process)")
                     appendLog("✅ Service connected (different process)")
+                    
+                    // Enable start button after service is bound
+                    runOnUiThread {
+                        enableStartButton()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error connecting to service", e)
@@ -304,6 +316,11 @@ class MainActivity : AppCompatActivity() {
             isServiceBound = false
             Log.i(TAG, "PurrmintService disconnected")
             appendLog("⚠️ Service disconnected")
+            
+            // Disable start button when service is disconnected
+            runOnUiThread {
+                disableStartButton()
+            }
         }
     }
 
@@ -382,80 +399,133 @@ class MainActivity : AppCompatActivity() {
             updateStatus("Starting mint service...", false)
             appendLog("Starting mint service with configuration...")
 
-            if (isServiceBound && purrmintService != null) {
-                val purrmintManager = purrmintService!!.getPurrmintManager()
+            // Check if service is bound, if not, try to bind and retry
+            if (!isServiceBound || purrmintService == null) {
+                appendLog("⚠️ Service not bound, attempting to bind...")
+                bindPurrmintService()
                 
-                // Get current account's nsec for service
-                val nsec = loginManager.getNsecKey()
-                
-                // Validate that we have an nsec
-                if (nsec == null || nsec.isEmpty()) {
-                    appendLog("❌ No nsec key found - please login first")
-                    updateStatus("No nsec key found", false)
+                // Wait longer for binding to complete (5 seconds)
+                Handler(Looper.getMainLooper()).postDelayed({
+                    if (isServiceBound && purrmintService != null) {
+                        appendLog("✅ Service bound successfully, retrying start...")
+                        startServiceWithConfig(host, port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
+                    } else {
+                        appendLog("❌ Service binding failed after 5 seconds")
+                        appendLog("💡 Trying to restart service binding...")
+                        
+                        // Try one more time with a fresh bind
+                        bindPurrmintService()
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            if (isServiceBound && purrmintService != null) {
+                                appendLog("✅ Service bound successfully on retry, starting...")
+                                startServiceWithConfig(host, port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
+                            } else {
+                                appendLog("❌ Service binding failed completely")
+                                updateStatus("Service binding failed", false)
+                                Toast.makeText(this, "Service binding failed. Please restart the app.", Toast.LENGTH_LONG).show()
+                            }
+                        }, 3000) // Wait 3 more seconds
+                    }
+                }, 5000) // Wait 5 seconds
+                return
+            }
+
+            val purrmintManager = purrmintService!!.getPurrmintManager()
+            
+            // Get current account's nsec for service
+            val nsec = loginManager.getNsecKey()
+            
+            // Validate that we have an nsec
+            if (nsec == null || nsec.isEmpty()) {
+                appendLog("❌ No nsec key found - please login first")
+                updateStatus("No nsec key found", false)
+                return
+            }
+            
+            // Auto-generate config if not exists
+            if (!purrmintManager.configExists()) {
+                appendLog("Generating default config...")
+                val success = configManager.generateAndSaveDefaultConfig()
+                if (!success) {
+                    appendLog("❌ Failed to generate default config")
+                    updateStatus("Failed to generate config", false)
                     return
                 }
-                
-                // Auto-generate config if not exists
-                if (!purrmintManager.configExists()) {
-                    appendLog("Generating default config...")
-                    val success = configManager.generateAndSaveDefaultConfig()
-                    if (!success) {
-                        appendLog("❌ Failed to generate default config")
-                        updateStatus("Failed to generate config", false)
-                        return
-                    }
+            }
+            
+            // Auto-generate Nostr account if not exists
+            if (!purrmintManager.accountExists()) {
+                appendLog("Creating Nostr account...")
+                val account = purrmintManager.createNostrAccount()
+                if (account == null) {
+                    appendLog("❌ Failed to create Nostr account")
+                    updateStatus("Failed to create account", false)
+                    return
                 }
-                
-                // Auto-generate Nostr account if not exists
-                if (!purrmintManager.accountExists()) {
-                    appendLog("Creating Nostr account...")
-                    val account = purrmintManager.createNostrAccount()
-                    if (account == null) {
-                        appendLog("❌ Failed to create Nostr account")
-                        updateStatus("Failed to create account", false)
-                        return
-                    }
-                }
+            }
 
-                // Create configuration JSON with lightning backend settings
-                val configJson = buildString {
-                    append("""
-                        {
-                            "port": $port,
-                            "host": "$host",
-                            "mintName": "$mintName",
-                            "description": "$description",
-                            "lightningBackend": "$lightningBackend"
+            // Create configuration JSON with lightning backend settings
+            val configJson = buildString {
+                append("""
+                    {
+                        "port": $port,
+                        "host": "$host",
+                        "mintName": "$mintName",
+                        "description": "$description",
+                        "lightningBackend": "$lightningBackend",
+                        "mode": "mintd_only",
+                        "databasePath": "${filesDir.absolutePath}/database",
+                        "logsPath": "${filesDir.absolutePath}/logs"
+                """.trimIndent())
+                
+                if (lightningBackend == "lnbits" && lnbitsAdminApiKey != null && lnbitsInvoiceApiKey != null && lnbitsApiUrl != null) {
+                    append(""",
+                        "lnbitsAdminApiKey": "$lnbitsAdminApiKey",
+                        "lnbitsInvoiceApiKey": "$lnbitsInvoiceApiKey",
+                        "lnbitsApiUrl": "$lnbitsApiUrl"
                     """.trimIndent())
-                    
-                    if (lightningBackend == "lnbits" && lnbitsAdminApiKey != null && lnbitsInvoiceApiKey != null && lnbitsApiUrl != null) {
-                        append(""",
-                            "lnbitsAdminApiKey": "$lnbitsAdminApiKey",
-                            "lnbitsInvoiceApiKey": "$lnbitsInvoiceApiKey",
-                            "lnbitsApiUrl": "$lnbitsApiUrl"
-                        """.trimIndent())
-                    }
-                    
-                    append("}")
                 }
                 
-                appendLog("Using configuration: $configJson")
-
-                val success = purrmintManager.startMintServiceWithConfig(nsec, configJson)
-                if (success) {
-                    updateStatus("Service is running", true)
-                    appendLog("✅ Mint service started successfully!")
-                    appendLog("✅ Service available at http://$host:$port")
-                    updateStartButton("Stop Service", true)
+                append("}")
+            }
+            
+            // Validate JSON format before sending
+            try {
+                org.json.JSONObject(configJson)
+                appendLog("✅ JSON configuration validated successfully")
+            } catch (e: Exception) {
+                appendLog("❌ Invalid JSON configuration: ${e.message}")
+                appendLog("💡 Configuration file appears to be corrupted")
+                appendLog("🧹 Clearing corrupted configuration...")
+                
+                // Clear the corrupted configuration
+                val cleared = configManager.clearConfiguration()
+                if (cleared) {
+                    appendLog("✅ Corrupted configuration cleared")
+                    appendLog("📝 Please reconfigure your mint settings")
+                    updateStatus("Configuration corrupted", false)
+                    updateStartButton("Create New Mint", false)
+                    
+                    // Show toast to user
+                    Toast.makeText(this, "Configuration corrupted. Please reconfigure.", Toast.LENGTH_LONG).show()
                 } else {
-                    updateStatus("Failed to start service", false)
-                    appendLog("❌ Failed to start mint service")
+                    appendLog("❌ Failed to clear corrupted configuration")
+                    updateStatus("Failed to clear config", false)
                 }
-            } else {
-                updateStatus("Service running", true)
-                appendLog("✅ Service is running!")
+                return
+            }
+            
+            appendLog("Using configuration: $configJson")
+
+            val success = purrmintManager.startMintServiceWithConfig(nsec, configJson)
+            if (success) {
+                updateStatus("Service is running", true)
+                appendLog("✅ Mint service started successfully!")
                 appendLog("✅ Service available at http://$host:$port")
                 updateStartButton("Stop Service", true)
+            } else {
+                updateStatus("Failed to start service", false)
+                appendLog("❌ Failed to start mint service")
             }
         } catch (e: Exception) {
             updateStatus("Error: ${e.message}", false)
@@ -522,6 +592,12 @@ class MainActivity : AppCompatActivity() {
         startButton.isEnabled = true
         startButton.text = "Start Mint Service"
         startButton.setIconResource(R.drawable.ic_play)
+    }
+
+    private fun disableStartButton() {
+        startButton.isEnabled = false
+        startButton.text = "Service Unavailable"
+        startButton.setIconResource(R.drawable.ic_status_offline)
     }
 
     private fun updateStartButton(text: String, isRunning: Boolean) {
