@@ -149,6 +149,7 @@ impl MintdService {
             cln: None,
             database,
             service_mode: crate::config::ServiceMode::MintdOnly,
+            tor: crate::config::TorConfig::default(),
         }
     }
 
@@ -202,6 +203,7 @@ impl MintdService {
             cln: None,
             database,
             service_mode: crate::config::ServiceMode::MintdOnly,
+            tor: crate::config::TorConfig::default(),
         };
 
         // Set backend-specific configuration

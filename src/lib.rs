@@ -7,6 +7,7 @@ pub mod jni;
 pub mod core;
 pub mod nostr;
 pub mod config;
+pub mod tor_service;
 
 // Re-export key types
 pub use service::MintService;

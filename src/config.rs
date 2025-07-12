@@ -4,6 +4,141 @@ use cdk::Amount;
 use serde::{Deserialize, Serialize};
 use anyhow::{Result, anyhow};
 
+// =============================================================================
+// Tor Configuration
+// =============================================================================
+
+/// Tor startup mode
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TorStartupMode {
+    /// Disable Tor completely
+    Disabled,
+    /// Use system Tor (if available)
+    System,
+    /// Use embedded Arti Tor client
+    Embedded,
+    /// Use embedded Arti with custom configuration
+    Custom,
+}
+
+impl Default for TorStartupMode {
+    fn default() -> Self {
+        TorStartupMode::Disabled
+    }
+}
+
+/// Tor configuration options
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TorConfig {
+    /// Tor startup mode
+    pub startup_mode: TorStartupMode,
+    /// Enable hidden services
+    pub enable_hidden_services: bool,
+    /// Number of introduction points for hidden services
+    pub num_intro_points: u32,
+    /// Tor data directory
+    pub data_dir: Option<String>,
+    /// Tor socks port
+    pub socks_port: Option<u16>,
+    /// Tor control port
+    pub control_port: Option<u16>,
+    /// Bridge configuration
+    pub bridges: Vec<String>,
+    /// Enable bridge mode
+    pub use_bridges: bool,
+    /// Connection timeout in seconds
+    pub connection_timeout: u64,
+    /// Enable logging
+    pub enable_logging: bool,
+    /// Log level
+    pub log_level: String,
+}
+
+impl Default for TorConfig {
+    fn default() -> Self {
+        Self {
+            startup_mode: TorStartupMode::Disabled,
+            enable_hidden_services: false,
+            num_intro_points: 3,
+            data_dir: None,
+            socks_port: None,
+            control_port: None,
+            bridges: Vec::new(),
+            use_bridges: false,
+            connection_timeout: 60,
+            enable_logging: true,
+            log_level: "info".to_string(),
+        }
+    }
+}
+
+impl TorConfig {
+    /// Create a new Tor configuration with embedded mode
+    pub fn embedded() -> Self {
+        Self {
+            startup_mode: TorStartupMode::Embedded,
+            enable_hidden_services: true,
+            ..Default::default()
+        }
+    }
+
+    /// Create a new Tor configuration with system mode
+    pub fn system() -> Self {
+        Self {
+            startup_mode: TorStartupMode::System,
+            enable_hidden_services: true,
+            ..Default::default()
+        }
+    }
+
+    /// Create a new Tor configuration with custom settings
+    pub fn custom(
+        data_dir: String,
+        socks_port: u16,
+        enable_hidden_services: bool,
+    ) -> Self {
+        Self {
+            startup_mode: TorStartupMode::Custom,
+            enable_hidden_services,
+            data_dir: Some(data_dir),
+            socks_port: Some(socks_port),
+            ..Default::default()
+        }
+    }
+
+    /// Check if Tor is enabled
+    pub fn is_enabled(&self) -> bool {
+        self.startup_mode != TorStartupMode::Disabled
+    }
+
+    /// Check if hidden services are enabled
+    pub fn hidden_services_enabled(&self) -> bool {
+        self.is_enabled() && self.enable_hidden_services
+    }
+
+    /// Get the data directory path
+    pub fn get_data_dir(&self) -> Option<String> {
+        self.data_dir.clone().or_else(|| {
+            if self.is_enabled() {
+                Some("tor_data".to_string())
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Get the socks port
+    pub fn get_socks_port(&self) -> u16 {
+        self.socks_port.unwrap_or(9050)
+    }
+
+    /// Get the control port
+    pub fn get_control_port(&self) -> Option<u16> {
+        self.control_port
+    }
+}
+
 // Lightning backend configuration removed - not needed for basic Android functionality
 
 // =============================================================================
@@ -175,6 +310,7 @@ pub struct Settings {
     pub cln: Option<Cln>,
     pub database: Database,
     pub service_mode: ServiceMode,
+    pub tor: TorConfig,
 }
 
 // =============================================================================
@@ -198,6 +334,15 @@ pub struct AndroidConfig {
     pub lnbits_api_url: Option<String>,
     pub cln_rpc_path: Option<String>,
     pub cln_bolt12: Option<bool>,
+    // Tor configuration
+    pub tor_enabled: Option<bool>,
+    pub tor_mode: Option<String>,
+    pub tor_data_dir: Option<String>,
+    pub tor_socks_port: Option<u16>,
+    pub tor_enable_hidden_services: Option<bool>,
+    pub tor_num_intro_points: Option<u32>,
+    pub tor_bridges: Option<Vec<String>>,
+    pub tor_use_bridges: Option<bool>,
 }
 
 impl Default for AndroidConfig {
@@ -216,6 +361,15 @@ impl Default for AndroidConfig {
             lnbits_api_url: None,
             cln_rpc_path: None,
             cln_bolt12: None,
+            // Tor defaults
+            tor_enabled: Some(false),
+            tor_mode: Some("disabled".to_string()),
+            tor_data_dir: None,
+            tor_socks_port: None,
+            tor_enable_hidden_services: Some(false),
+            tor_num_intro_points: Some(3),
+            tor_bridges: None,
+            tor_use_bridges: Some(false),
         }
     }
 }
@@ -253,6 +407,7 @@ impl Settings {
         let database = Database {
             engine: DatabaseEngine::Sqlite,
         };
+        let tor = TorConfig::default();
 
         Settings {
             info,
@@ -263,6 +418,7 @@ impl Settings {
             cln: None,
             database,
             service_mode: ServiceMode::default(),
+            tor,
         }
     }
 
@@ -336,8 +492,43 @@ impl AndroidConfig {
             "MintdAndNip74" | "mintd_and_nip74" => ServiceMode::MintdAndNip74,
             _ => ServiceMode::MintdOnly,
         };
+
+        // Set Tor configuration
+        settings.tor = self.to_tor_config();
         
         settings
+    }
+
+    /// Convert AndroidConfig to TorConfig
+    pub fn to_tor_config(&self) -> TorConfig {
+        let startup_mode = if let Some(enabled) = self.tor_enabled {
+            if !enabled {
+                TorStartupMode::Disabled
+            } else {
+                match self.tor_mode.as_deref() {
+                    Some("system") => TorStartupMode::System,
+                    Some("embedded") => TorStartupMode::Embedded,
+                    Some("custom") => TorStartupMode::Custom,
+                    _ => TorStartupMode::Embedded, // Default to embedded if enabled
+                }
+            }
+        } else {
+            TorStartupMode::Disabled
+        };
+
+        TorConfig {
+            startup_mode,
+            enable_hidden_services: self.tor_enable_hidden_services.unwrap_or(false),
+            num_intro_points: self.tor_num_intro_points.unwrap_or(3),
+            data_dir: self.tor_data_dir.clone(),
+            socks_port: self.tor_socks_port,
+            control_port: None, // Not exposed in Android config
+            bridges: self.tor_bridges.clone().unwrap_or_default(),
+            use_bridges: self.tor_use_bridges.unwrap_or(false),
+            connection_timeout: 60,
+            enable_logging: true,
+            log_level: "info".to_string(),
+        }
     }
 
     /// Convert AndroidConfig to JSON string
@@ -419,4 +610,32 @@ mod tests {
         assert!(settings.lnbits.is_some());
         assert!(settings.fake_wallet.is_none()); // Should be cleared when using LNBits
     }
+
+    #[test]
+    fn test_tor_config() {
+        let mut config = AndroidConfig::default();
+        config.tor_enabled = Some(true);
+        config.tor_mode = Some("embedded".to_string());
+        config.tor_enable_hidden_services = Some(true);
+        config.tor_data_dir = Some("/tmp/tor_data".to_string());
+        config.tor_socks_port = Some(9050);
+
+        let tor_config = config.to_tor_config();
+        assert_eq!(tor_config.startup_mode, TorStartupMode::Embedded);
+        assert!(tor_config.enable_hidden_services);
+        assert_eq!(tor_config.data_dir, Some("/tmp/tor_data".to_string()));
+        assert_eq!(tor_config.socks_port, Some(9050));
+    }
+
+    #[test]
+    fn test_tor_disabled() {
+        let mut config = AndroidConfig::default();
+        config.tor_enabled = Some(false);
+
+        let tor_config = config.to_tor_config();
+        assert_eq!(tor_config.startup_mode, TorStartupMode::Disabled);
+        assert!(!tor_config.is_enabled());
+    }
+
+
 } 

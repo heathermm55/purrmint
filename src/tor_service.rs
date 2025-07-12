@@ -6,7 +6,9 @@ use std::collections::HashMap;
 use tokio::sync::Mutex;
 use anyhow::{Result, anyhow};
 use arti_client::{TorClient, TorClientConfig};
+use arti_client::config::{BridgeConfigBuilder, CfgPath, BoolOrAuto};
 use arti_client::config::onion_service::OnionServiceConfigBuilder;
+use arti_client::config::pt::TransportConfigBuilder;
 use tor_rtcompat::PreferredRuntime;
 use tor_hsservice::{
     RunningOnionService, 
@@ -17,34 +19,96 @@ use tor_cell::relaycell::msg::Connected;
 use futures::StreamExt;
 use tracing::{info, warn};
 
+use crate::config::{TorConfig, TorStartupMode};
+
 /// Tor service for managing hidden services and Tor network connections
 pub struct TorService {
     client: Option<Arc<TorClient<PreferredRuntime>>>,
     running_services: Arc<Mutex<HashMap<String, Arc<RunningOnionService>>>>,
     config: TorClientConfig,
+    tor_config: TorConfig,
 }
 
 impl TorService {
-    /// Create a new Tor service instance
+    /// Create a new Tor service instance with default configuration
     pub fn new() -> Result<Self> {
         let config = TorClientConfig::default();
+        let tor_config = TorConfig::default();
         Ok(Self {
             client: None,
             running_services: Arc::new(Mutex::new(HashMap::new())),
             config,
+            tor_config,
+        })
+    }
+
+    /// Create a new Tor service instance with custom configuration
+    pub fn with_config(tor_config: TorConfig) -> Result<Self> {
+        let mut builder = TorClientConfig::builder();
+
+        // Configure data directory
+        if let Some(data_dir) = tor_config.get_data_dir() {
+            builder.storage().state_dir(CfgPath::new(data_dir.clone().into()));
+            builder.storage().cache_dir(CfgPath::new(data_dir.into()));
+        }
+
+        // Configure bridges (supports obfs4 and other pluggable transports)
+        if tor_config.use_bridges && !tor_config.bridges.is_empty() {
+            for bridge_line in &tor_config.bridges {
+                let bridge: BridgeConfigBuilder = bridge_line.parse()
+                    .map_err(|e| anyhow!("Invalid bridge line '{}': {}", bridge_line, e))?;
+                builder.bridges().bridges().push(bridge);
+            }
+            builder.bridges().enabled(BoolOrAuto::Explicit(true));
+            
+            // Configure obfs4 transport with explicit path
+            let mut transport = TransportConfigBuilder::default();
+            transport
+                .protocols(vec!["obfs4".parse().unwrap()])
+                .path(CfgPath::new("/opt/homebrew/bin/obfs4proxy".into()))
+                .run_on_startup(true);
+            builder.bridges().transports().push(transport);
+        }
+
+        // Additional parameters can be configured as needed
+        let config = builder.build()?;
+
+        Ok(Self {
+            client: None,
+            running_services: Arc::new(Mutex::new(HashMap::new())),
+            config,
+            tor_config,
         })
     }
 
     /// Start the Tor client and bootstrap connection to the Tor network
     pub async fn start(&mut self) -> Result<()> {
-        info!("Starting Tor client...");
+        if !self.tor_config.is_enabled() {
+            info!("Tor is disabled in configuration");
+            return Ok(());
+        }
+
+        info!("Starting Tor client with mode: {:?}", self.tor_config.startup_mode);
         
-        // Create and bootstrap the Tor client
-        let client = TorClient::create_bootstrapped(self.config.clone()).await
-            .map_err(|e| anyhow!("Failed to bootstrap Tor client: {}", e))?;
+        match self.tor_config.startup_mode {
+            TorStartupMode::Disabled => {
+                info!("Tor is disabled, skipping startup");
+                return Ok(());
+            }
+            TorStartupMode::System => {
+                info!("Using system Tor (not implemented yet)");
+                return Err(anyhow!("System Tor mode not implemented"));
+            }
+            TorStartupMode::Embedded | TorStartupMode::Custom => {
+                // Create and bootstrap the Tor client
+                let client = TorClient::create_bootstrapped(self.config.clone()).await
+                    .map_err(|e| anyhow!("Failed to bootstrap Tor client: {}", e))?;
+                
+                self.client = Some(Arc::new(client));
+                info!("Tor client started successfully");
+            }
+        }
         
-        self.client = Some(Arc::new(client));
-        info!("Tor client started successfully");
         Ok(())
     }
 
@@ -74,8 +138,22 @@ impl TorService {
         }
     }
 
+    /// Get the Tor configuration
+    pub fn get_config(&self) -> &TorConfig {
+        &self.tor_config
+    }
+
+    /// Check if hidden services are enabled
+    pub fn hidden_services_enabled(&self) -> bool {
+        self.tor_config.hidden_services_enabled()
+    }
+
     /// Create a new hidden service with the given nickname
     pub async fn create_hidden_service(&self, nickname: &str) -> Result<HiddenServiceInfo> {
+        if !self.hidden_services_enabled() {
+            return Err(anyhow!("Hidden services are disabled in configuration"));
+        }
+
         let client = self.client.as_ref()
             .ok_or_else(|| anyhow!("Tor client not started"))?;
 
@@ -84,7 +162,7 @@ impl TorService {
         // Create the hidden service configuration
         let svc_config = OnionServiceConfigBuilder::default()
             .nickname(nickname.parse()?)
-            .num_intro_points(3) // Default number of introduction points
+            .num_intro_points(self.tor_config.num_intro_points.try_into().unwrap_or(3))
             .build()?;
 
         // Launch the hidden service
@@ -208,6 +286,10 @@ impl TorService {
 
     /// Make an HTTP request through the Tor network
     pub async fn make_tor_request(&self, url: &str) -> Result<String> {
+        if !self.tor_config.is_enabled() {
+            return Err(anyhow!("Tor is disabled in configuration"));
+        }
+
         let _client = self.client.as_ref()
             .ok_or_else(|| anyhow!("Tor client not started"))?;
 
@@ -231,6 +313,11 @@ impl TorService {
 
     /// Test the Tor connection
     pub async fn test_connection(&self) -> Result<bool> {
+        if !self.tor_config.is_enabled() {
+            info!("Tor is disabled, connection test skipped");
+            return Ok(false);
+        }
+
         let client = self.client.as_ref()
             .ok_or_else(|| anyhow!("Tor client not started"))?;
 
