@@ -16,8 +16,9 @@ use tor_hsservice::{
 };
 use tor_proto::stream::IncomingStreamRequest;
 use tor_cell::relaycell::msg::Connected;
+use tor_hsrproxy::config::{ProxyConfigBuilder, ProxyRule, ProxyPattern, ProxyAction, TargetAddr, Encapsulation};
 use futures::StreamExt;
-use tracing::{info, warn};
+use tracing::{info, warn, error};
 
 use crate::config::{TorConfig, TorStartupMode};
 
@@ -160,9 +161,20 @@ impl TorService {
             .num_intro_points(self.tor_config.num_intro_points.try_into().unwrap_or(3))
             .build()?;
 
+        // Create proxy configuration to forward port 80 to local mint service
+        let mut proxy_config_builder = ProxyConfigBuilder::default();
+        proxy_config_builder.proxy_ports().push(ProxyRule::new(
+            ProxyPattern::one_port(80)?,
+            ProxyAction::Forward(
+                Encapsulation::Simple,
+                TargetAddr::Inet("127.0.0.1:3338".parse()?)
+            )
+        ));
+        let proxy_config = proxy_config_builder.build()?;
+
         // Launch the hidden service
-        let (service, _request_stream) = client.launch_onion_service(svc_config)?;
-        // service: Arc<RunningOnionService>
+        let (service, request_stream) = client.launch_onion_service(svc_config)?;
+        
         // Get the onion address
         let onion_address = service.onion_address()
             .ok_or_else(|| anyhow!("Failed to get onion address"))?;
@@ -172,6 +184,20 @@ impl TorService {
         services.insert(nickname.to_string(), service);
         
         info!("Hidden service created successfully: {}", onion_address);
+        info!("Port mapping: 80 -> 127.0.0.1:3338");
+        
+        // Create reverse proxy to handle port forwarding
+        let proxy = tor_hsrproxy::OnionServiceReverseProxy::new(proxy_config);
+        
+        // Handle incoming requests with proxy
+        let nickname_clone = nickname.to_string();
+        let runtime = tor_rtcompat::PreferredRuntime::current()?;
+        let nickname_parsed = nickname_clone.parse()?;
+        tokio::spawn(async move {
+            if let Err(e) = proxy.handle_requests(runtime, nickname_parsed, request_stream).await {
+                error!("Error handling hidden service requests: {}", e);
+            }
+        });
         
         Ok(HiddenServiceInfo {
             nickname: nickname.to_string(),
@@ -334,6 +360,14 @@ impl TorService {
     /// Handle incoming requests for a hidden service
     pub async fn handle_hidden_service_requests(
         &self,
+        nickname: &str,
+        request_stream: impl StreamExt<Item = RendRequest> + Send + Sync + 'static,
+    ) -> Result<()> {
+        Self::handle_hidden_service_requests_static(nickname, request_stream).await
+    }
+
+    /// Static method to handle hidden service requests (for use in spawned tasks)
+    async fn handle_hidden_service_requests_static(
         nickname: &str,
         request_stream: impl StreamExt<Item = RendRequest> + Send + Sync + 'static,
     ) -> Result<()> {

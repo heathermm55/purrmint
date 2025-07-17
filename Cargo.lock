@@ -3848,6 +3848,7 @@ dependencies = [
  "tokio",
  "toml 0.9.0",
  "tor-cell",
+ "tor-hsrproxy",
  "tor-hsservice",
  "tor-proto",
  "tor-rtcompat",
@@ -4016,6 +4017,12 @@ dependencies = [
  "rand_core 0.9.3",
  "winapi",
 ]
+
+[[package]]
+name = "rangemap"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f60fcc7d6849342eff22c4350c8b9a989ee8ceabc4b481253e8946b9fe83d684"
 
 [[package]]
 name = "rdrand"
@@ -5783,6 +5790,35 @@ dependencies = [
  "tor-units",
  "void",
  "zeroize",
+]
+
+[[package]]
+name = "tor-hsrproxy"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fea6823821170a8abceb72d3a444ab2d15db2eab878e18b7e67ff700b3038c4"
+dependencies = [
+ "derive-deftly 1.0.1",
+ "derive_builder_fork_arti",
+ "futures",
+ "itertools",
+ "oneshot-fused-workaround",
+ "rangemap",
+ "safelog",
+ "serde",
+ "serde_with",
+ "strum",
+ "thiserror 2.0.12",
+ "tor-async-utils",
+ "tor-cell",
+ "tor-config",
+ "tor-error",
+ "tor-hsservice",
+ "tor-log-ratelim",
+ "tor-proto",
+ "tor-rtcompat",
+ "tracing",
+ "void",
 ]
 
 [[package]]
