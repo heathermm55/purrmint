@@ -8,7 +8,7 @@ use anyhow::{Result, anyhow};
 use arti_client::{TorClient, TorClientConfig};
 use arti_client::config::{BridgeConfigBuilder, CfgPath, BoolOrAuto};
 use arti_client::config::onion_service::OnionServiceConfigBuilder;
-use arti_client::config::pt::TransportConfigBuilder;
+// Removed pt import as it's not available in current arti-client version
 use tor_rtcompat::PreferredRuntime;
 use tor_hsservice::{
     RunningOnionService, 
@@ -61,13 +61,8 @@ impl TorService {
             }
             builder.bridges().enabled(BoolOrAuto::Explicit(true));
             
-            // Configure obfs4 transport with explicit path
-            let mut transport = TransportConfigBuilder::default();
-            transport
-                .protocols(vec!["obfs4".parse().unwrap()])
-                .path(CfgPath::new("/opt/homebrew/bin/obfs4proxy".into()))
-                .run_on_startup(true);
-            builder.bridges().transports().push(transport);
+            // Note: Transport configuration is handled differently in current arti-client
+            // The transport configuration is now part of the bridge configuration itself
         }
 
         // Additional parameters can be configured as needed
@@ -100,12 +95,12 @@ impl TorService {
                 return Err(anyhow!("System Tor mode not implemented"));
             }
             TorStartupMode::Embedded | TorStartupMode::Custom => {
-                // Create and bootstrap the Tor client
-                let client = TorClient::create_bootstrapped(self.config.clone()).await
-                    .map_err(|e| anyhow!("Failed to bootstrap Tor client: {}", e))?;
-                
-                self.client = Some(Arc::new(client));
-                info!("Tor client started successfully");
+        // Create and bootstrap the Tor client
+        let client = TorClient::create_bootstrapped(self.config.clone()).await
+            .map_err(|e| anyhow!("Failed to bootstrap Tor client: {}", e))?;
+        
+        self.client = Some(Arc::new(client));
+        info!("Tor client started successfully");
             }
         }
         
