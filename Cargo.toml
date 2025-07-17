@@ -64,7 +64,7 @@ jni = "0.21"
 libc = "0.2"
 
 # Tor support via Arti
-arti-client = { version = "0.31", features = ["onion-service-service", "onion-service-client", "keymgr"] }
+arti-client = { version = "0.31", features = ["onion-service-service", "onion-service-client", "keymgr", "bridge-client", "pt-client"] }
 tor-hsservice = "0.31"
 tor-proto = "0.31"
 tor-cell = "0.31"
