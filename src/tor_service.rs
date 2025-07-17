@@ -57,7 +57,7 @@ impl TorService {
             for bridge_line in &tor_config.bridges {
                 let bridge: BridgeConfigBuilder = bridge_line.parse()
                     .map_err(|e| anyhow!("Invalid bridge line '{}': {}", bridge_line, e))?;
-                builder.bridges().bridges().push(bridge);
+                builder.bridges().push(bridge);
             }
             builder.bridges().enabled(BoolOrAuto::Explicit(true));
             
