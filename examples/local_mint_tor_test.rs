@@ -148,43 +148,63 @@ async fn main() -> Result<()> {
     // Wait a bit for the service to fully start
     tokio::time::sleep(Duration::from_secs(2)).await;
     
-    // Try to get mint info to see if Tor address is available
-    println!("📡 Testing mint info endpoint...");
-    match tor_service.make_tor_request(&format!("http://127.0.0.1:{}/info", android_config.port)).await {
+    // Create a Tor hidden service for the mint
+    let mint_pubkey = "8157b28f002c90aee5693493c1720918c53d6d0eaa5e9e0c6c5427a137c1efd4"; // Test pubkey
+    println!("   🔑 Using mint pubkey: {}", mint_pubkey);
+    
+    match tor_service.create_hidden_service_for_mint(mint_pubkey).await {
+        Ok(hidden_service_info) => {
+            println!("   ✅ Tor hidden service created successfully!");
+            println!("   🧅 Onion Address: {}", hidden_service_info.onion_address);
+            println!("   📛 Service Nickname: {}", hidden_service_info.nickname);
+            println!("   📊 Status: {:?}", hidden_service_info.status);
+            
+            // Step 4: Test connectivity to Tor address
+            println!("\n🌐 Testing connectivity to Tor address...");
+            let tor_url = format!("http://{}/v1/info", hidden_service_info.onion_address);
+            println!("   📡 Testing URL: {}", tor_url);
+            
+            // Wait a bit for the hidden service to be fully established
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            
+            match tor_service.make_tor_request(&tor_url).await {
+                Ok(tor_response) => {
+                    println!("   ✅ Tor address connectivity successful!");
+                    println!("   📄 Tor Response: {}", tor_response);
+                }
+                Err(e) => {
+                    println!("   ❌ Tor address connectivity failed: {}", e);
+                    println!("   💡 This might be because:");
+                    println!("      - Hidden service is still starting up");
+                    println!("      - Local mint service is not accessible via Tor");
+                    println!("      - Network connectivity issues");
+                }
+            }
+        }
+        Err(e) => {
+            println!("   ❌ Failed to create Tor hidden service: {}", e);
+        }
+    }
+    
+    // Step 4: Test mint info endpoint
+    println!("\n📡 Testing mint info endpoint...");
+    match tor_service.make_tor_request(&format!("http://127.0.0.1:{}/v1/info", android_config.port)).await {
         Ok(response) => {
             println!("   ✅ Mint info request successful");
             println!("   📄 Response: {}", response);
             
-            // Try to parse JSON and extract Tor address
+            // Try to parse JSON and extract useful info
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&response) {
                 if let Some(info) = json.as_object() {
-                    if let Some(tor_address) = info.get("tor_address") {
-                        println!("   🧅 Tor Address found: {}", tor_address);
-                        
-                        // Step 4: Test connectivity to Tor address
-                        println!("\n🌐 Testing connectivity to Tor address...");
-                        let tor_url = format!("http://{}/info", tor_address.as_str().unwrap());
-                        println!("   📡 Testing URL: {}", tor_url);
-                        
-                        match tor_service.make_tor_request(&tor_url).await {
-                            Ok(tor_response) => {
-                                println!("   ✅ Tor address connectivity successful!");
-                                println!("   📄 Tor Response: {}", tor_response);
-                            }
-                            Err(e) => {
-                                println!("   ❌ Tor address connectivity failed: {}", e);
-                            }
-                        }
-                    } else {
-                        println!("   ⚠️  No Tor address found in mint info");
-                    }
-                    
-                    // Check for other useful info
+                    // Check for useful info
                     if let Some(name) = info.get("name") {
                         println!("   📛 Mint Name: {}", name);
                     }
                     if let Some(description) = info.get("description") {
                         println!("   📝 Description: {}", description);
+                    }
+                    if let Some(version) = info.get("version") {
+                        println!("   🔢 Version: {}", version);
                     }
                 }
             }
