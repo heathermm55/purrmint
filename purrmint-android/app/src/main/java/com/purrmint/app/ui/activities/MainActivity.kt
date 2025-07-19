@@ -299,14 +299,30 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         modeChipGroup.setOnCheckedChangeListener { group, checkedId ->
             when (checkedId) {
                 R.id.localModeChip -> {
-                    currentMode = PurrmintManager.ServiceMode.LOCAL
-                    hideOnionAddress()
-                    appendLog("🌐 Selected Local Mode")
+                    if (currentMode != PurrmintManager.ServiceMode.LOCAL) {
+                        currentMode = PurrmintManager.ServiceMode.LOCAL
+                        hideOnionAddress()
+                        appendLog("🌐 Selected Local Mode")
+                        
+                        // If service is running, restart it in new mode
+                        if (isMintRunning) {
+                            appendLog("🔄 Restarting service in local mode...")
+                            restartServiceInNewMode()
+                        }
+                    }
                 }
                 R.id.torModeChip -> {
-                    currentMode = PurrmintManager.ServiceMode.TOR
-                    showOnionAddress()
-                    appendLog("🧅 Selected Tor Mode")
+                    if (currentMode != PurrmintManager.ServiceMode.TOR) {
+                        currentMode = PurrmintManager.ServiceMode.TOR
+                        showOnionAddress()
+                        appendLog("🧅 Selected Tor Mode")
+                        
+                        // If service is running, restart it in new mode
+                        if (isMintRunning) {
+                            appendLog("🔄 Restarting service in Tor mode...")
+                            restartServiceInNewMode()
+                        }
+                    }
                 }
             }
         }
@@ -863,6 +879,27 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
     
+    private fun restartServiceInNewMode() {
+        // This function is called when a mode change is requested while the service is running.
+        // It stops the current service, waits, and then starts it in the new mode.
+        // This ensures a clean transition and prevents potential issues.
+        
+        appendLog("🔄 Restarting service in ${currentMode.name.lowercase()} mode...")
+        
+        // Stop the current service
+        if (isServiceBound && purrmintService != null) {
+            val purrmintManager = purrmintService!!.getPurrmintManager()
+            purrmintManager.stopMintService()
+            appendLog("⏹️ Service stopped")
+        }
+        
+        // Wait longer for Tor service to fully stop, then restart
+        Handler(Looper.getMainLooper()).postDelayed({
+            appendLog("🚀 Starting service in ${currentMode.name.lowercase()} mode...")
+            startMintServiceWithCurrentMode()
+        }, 5000) // Wait 5 seconds for Tor service to fully stop
+    }
+    
     private fun showOnionAddress() {
         onionAddressLayout.visibility = android.view.View.VISIBLE
         onionAddressText.text = getString(R.string.onion_address_loading)
@@ -874,9 +911,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     
     private fun startOnionAddressPolling() {
-        // Poll for onion address every 2 seconds for up to 30 seconds
+        // Poll for onion address every 5 seconds for up to 5 minutes (60 attempts)
         var attempts = 0
-        val maxAttempts = 15
+        val maxAttempts = 60  // 5 minutes total
         
         val handler = Handler(Looper.getMainLooper())
         val runnable = object : Runnable {
@@ -884,24 +921,42 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 attempts++
                 
                 if (attempts > maxAttempts) {
-                    appendLog("⚠️ Onion address not available after ${maxAttempts * 2} seconds")
+                    appendLog("⚠️ Onion address not available after ${maxAttempts * 5} seconds")
+                    appendLog("💡 Tor service may still be starting up. Please wait a few more minutes.")
                     onionAddressText.text = getString(R.string.onion_address_not_available)
                     return
+                }
+                
+                // Show progress every 30 seconds
+                if (attempts % 6 == 0) {
+                    val elapsedSeconds = attempts * 5
+                    appendLog("⏳ Still waiting for onion address... (${elapsedSeconds}s elapsed)")
                 }
                 
                 // Try to get onion address from service status
                 if (isServiceBound && purrmintService != null) {
                     val purrmintManager = purrmintService!!.getPurrmintManager()
+                    
+                    // First try the dedicated getOnionAddress method
+                    val onionAddr = purrmintManager.getOnionAddress()
+                    if (!onionAddr.isNullOrEmpty()) {
+                        onionAddress = onionAddr
+                        onionAddressText.text = onionAddr
+                        appendLog("🧅 Onion address: $onionAddr")
+                        return
+                    }
+                    
+                    // Fallback to service status
                     val status = purrmintManager.getServiceStatus()
                     
                     try {
                         val statusJson = org.json.JSONObject(status)
-                        val onionAddr = statusJson.optString("onion_address", "")
+                        val onionAddrFromStatus = statusJson.optString("onion_address", "")
                         
-                        if (onionAddr.isNotEmpty()) {
-                            onionAddress = onionAddr
-                            onionAddressText.text = onionAddr
-                            appendLog("🧅 Onion address: $onionAddr")
+                        if (onionAddrFromStatus.isNotEmpty()) {
+                            onionAddress = onionAddrFromStatus
+                            onionAddressText.text = onionAddrFromStatus
+                            appendLog("🧅 Onion address: $onionAddrFromStatus")
                             return
                         }
                     } catch (e: Exception) {
@@ -910,7 +965,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
                 
                 // Continue polling
-                handler.postDelayed(this, 2000)
+                handler.postDelayed(this, 5000) // Poll every 5 seconds
             }
         }
         

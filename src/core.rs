@@ -9,9 +9,13 @@ use tracing::{info, error};
 use crate::config::AndroidConfig;
 use crate::nostr::{nsec_to_npub as nostr_nsec_to_npub};
 use crate::mintd_service::MintdService;
+use crate::tor_service::TorService;
 
 /// Global state for the mint service
 static mut MINT_SERVICE: Option<Arc<Mutex<Option<MintdService>>>> = None;
+
+/// Global state for the Tor service
+static mut TOR_SERVICE: Option<Arc<Mutex<Option<TorService>>>> = None;
 
 /// Global runtime for service management
 static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
@@ -21,6 +25,9 @@ fn init_globals() {
     unsafe {
         if MINT_SERVICE.is_none() {
             MINT_SERVICE = Some(Arc::new(Mutex::new(None)));
+        }
+        if TOR_SERVICE.is_none() {
+            TOR_SERVICE = Some(Arc::new(Mutex::new(None)));
         }
     }
     
@@ -162,7 +169,72 @@ pub fn start_android_service(config: &AndroidConfig, nsec: &str) -> Result<(), S
         }
     }
     
-    // Create and start service using global runtime
+    // Start Tor service if enabled
+    if config.tor_enabled.unwrap_or(false) {
+        info!("Starting Tor service...");
+        let tor_config = config.to_tor_config();
+        let mut tor_service = TorService::with_config(tor_config)
+            .map_err(|e| format!("Failed to create Tor service: {}", e))?;
+        
+        let rt = RUNTIME.get().unwrap();
+        rt.block_on(async {
+            match tor_service.start().await {
+                Ok(()) => {
+                    info!("Tor service started successfully");
+                    
+                    // Store Tor service in global state
+                    unsafe {
+                        if let Some(tor_service_guard) = TOR_SERVICE.as_ref() {
+                            if let Ok(mut guard) = tor_service_guard.lock() {
+                                *guard = Some(tor_service);
+                            }
+                        }
+                    }
+                    Ok(())
+                }
+                Err(e) => {
+                    error!("Failed to start Tor service: {}", e);
+                    Err(format!("Failed to start Tor service: {}", e))
+                }
+            }
+        })?;
+        
+        // Create hidden service if enabled
+        if config.tor_enable_hidden_services.unwrap_or(false) {
+            info!("Creating Tor hidden service...");
+            let rt = RUNTIME.get().unwrap();
+            rt.block_on(async {
+                unsafe {
+                    if let Some(tor_service_guard) = TOR_SERVICE.as_ref() {
+                        if let Ok(guard) = tor_service_guard.lock() {
+                            if let Some(tor_service) = guard.as_ref() {
+                                // Use nsec as nickname for the hidden service
+                                let nickname = format!("mint_{}", &nsec[..8]);
+                                match tor_service.create_hidden_service(&nickname).await {
+                                    Ok(info) => {
+                                        info!("Hidden service created: {}", info.onion_address);
+                                        Ok(())
+                                    }
+                                    Err(e) => {
+                                        error!("Failed to create hidden service: {}", e);
+                                        Err(format!("Failed to create hidden service: {}", e))
+                                    }
+                                }
+                            } else {
+                                Err("Tor service not available".to_string())
+                            }
+                        } else {
+                            Err("Failed to lock Tor service".to_string())
+                        }
+                    } else {
+                        Err("Tor service not initialized".to_string())
+                    }
+                }
+            })?;
+        }
+    }
+    
+    // Create and start mint service using global runtime
     let mut mint_service = MintdService::new_with_android_config(config_path, config, nsec.to_string());
     
     let rt = RUNTIME.get().unwrap();
@@ -231,6 +303,37 @@ pub fn get_service_status() -> String {
         "running": false,
         "details": "Service not initialized"
     }).to_string()
+}
+
+/// Get onion address if available
+pub fn get_onion_address() -> Option<String> {
+    init_globals();
+    
+    unsafe {
+        if let Some(tor_service_guard) = TOR_SERVICE.as_ref() {
+            if let Ok(guard) = tor_service_guard.lock() {
+                if let Some(tor_service) = guard.as_ref() {
+                    // Get the first hidden service's onion address
+                    let rt = RUNTIME.get().unwrap();
+                    return rt.block_on(async {
+                        let services = tor_service.list_hidden_services().await;
+                        match services {
+                            Ok(services) => {
+                                if let Some(first_service) = services.first() {
+                                    Some(first_service.onion_address.clone())
+                                } else {
+                                    None
+                                }
+                            }
+                            Err(_) => None
+                        }
+                    });
+                }
+            }
+        }
+    }
+    
+    None
 }
 
 /// Free string memory

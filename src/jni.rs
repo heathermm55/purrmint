@@ -384,4 +384,27 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startTorMint(
             1
         }
     }
+}
+
+/// Get onion address if available
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getOnionAddress(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jstring {
+    match crate::core::get_onion_address() {
+        Some(address) => {
+            match _env.new_string(address) {
+                Ok(java_string) => java_string.into_raw(),
+                Err(e) => {
+                    error!("Failed to create Java string for onion address: {:?}", e);
+                    ptr::null_mut()
+                }
+            }
+        },
+        None => {
+            // Return null if no onion address is available
+            ptr::null_mut()
+        }
+    }
 } 

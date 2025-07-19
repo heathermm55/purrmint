@@ -577,6 +577,8 @@ impl MintdService {
             return Ok(());
         }
 
+        info!("Stopping MintdService...");
+
         self.shutdown.notify_waiters();
 
         if let Some(http_server) = self.http_server.take() {
@@ -593,11 +595,13 @@ impl MintdService {
     }
 
     pub fn get_status(&self) -> Value {
-        serde_json::json!({
+        let mut status = serde_json::json!({
             "running": self.is_running,
             "server_url": format!("http://{}:{}", self.config.info.listen_host, self.config.info.listen_port),
             "work_dir": self.work_dir.to_string_lossy(),
-        })
+        });
+
+        status
     }
 
     // Mint operations

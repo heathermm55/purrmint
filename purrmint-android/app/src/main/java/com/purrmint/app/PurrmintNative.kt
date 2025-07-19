@@ -68,4 +68,7 @@ class PurrmintNative {
     
     // Get mint status - matches Java_com_purrmint_app_PurrmintNative_getMintStatus
     external fun getMintStatus(): String?
+    
+    // Get onion address - matches Java_com_purrmint_app_PurrmintNative_getOnionAddress
+    external fun getOnionAddress(): String?
 } 

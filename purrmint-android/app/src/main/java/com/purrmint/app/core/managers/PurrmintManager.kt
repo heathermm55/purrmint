@@ -517,4 +517,53 @@ class PurrmintManager(private val context: Context) {
     fun isServiceRunning(): Boolean {
         return isRunning
     }
+
+    /**
+     * Get onion address if available
+     * @return Onion address string or null if not available
+     */
+    fun getOnionAddress(): String? {
+        return try {
+            val address = native.getOnionAddress()
+            if (address != null) {
+                Log.i(TAG, "Onion address retrieved: $address")
+            } else {
+                Log.d(TAG, "No onion address available yet")
+            }
+            address
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting onion address", e)
+            null
+        }
+    }
+
+    /**
+     * Get service status with detailed information
+     * @return JSON string containing detailed service status
+     */
+    fun getDetailedServiceStatus(): String {
+        return try {
+            val status = getServiceStatus()
+            val statusJson = JSONObject(status)
+            
+            // Add mode information
+            statusJson.put("mode", currentMode.name.lowercase())
+            statusJson.put("isRunning", isRunning)
+            
+            // Add onion address if in Tor mode
+            if (currentMode == ServiceMode.TOR) {
+                val onionAddress = getOnionAddress()
+                if (onionAddress != null) {
+                    statusJson.put("onionAddress", onionAddress)
+                } else {
+                    statusJson.put("onionAddress", "loading...")
+                }
+            }
+            
+            statusJson.toString()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting detailed service status", e)
+            "{\"status\":\"error\",\"message\":\"${e.message}\"}"
+        }
+    }
 } 
