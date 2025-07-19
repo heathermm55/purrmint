@@ -142,4 +142,16 @@
     <string name="nsec_private_key">NSEC（私钥）</string>
     <string name="copy_npub">复制NPUB</string>
     <string name="copy_nsec">复制NSEC</string>
+    
+    <!-- Service Mode strings -->
+    <string name="service_mode">服务模式</string>
+    <string name="local_mode">本地模式</string>
+    <string name="tor_mode">Tor模式</string>
+    <string name="onion_address">洋葱地址</string>
+    <string name="onion_address_loading">正在加载洋葱地址...</string>
+    <string name="onion_address_not_available">洋葱地址不可用</string>
+    <string name="copy_onion_address">复制洋葱地址</string>
+    <string name="onion_address_copied">洋葱地址已复制到剪贴板</string>
+    <string name="local_address">本地地址</string>
+    <string name="local_address_available">http://127.0.0.1:3338</string>
 </resources> 

@@ -303,3 +303,85 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getMintStatus(
         }
     }
 } 
+
+/// Start mint service in local mode
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startLocalMint(
+    mut _env: JNIEnv,
+    _class: JClass,
+    config_json: JString,
+    nsec: JString,
+) -> jint {
+    let config_str = java_string_to_rust_string(&mut _env, config_json);
+    let nsec_str = java_string_to_rust_string(&mut _env, nsec);
+    
+    // Parse Android configuration and set to local mode
+    let mut android_config = match AndroidConfig::from_json(&config_str) {
+        Ok(config) => config,
+        Err(e) => {
+            error!("Failed to parse Android config JSON: {:?}", e);
+            return 1;
+        }
+    };
+    
+    // Force local mode (disable Tor)
+    android_config.tor_enabled = Some(false);
+    android_config.tor_enable_hidden_services = Some(false);
+    
+    // Start the service
+    match crate::core::start_android_service(&android_config, &nsec_str) {
+        Ok(()) => 0,
+        Err(e) => {
+            error!("Failed to start local mint service: {}", e);
+            1
+        }
+    }
+}
+
+/// Start mint service in Tor mode
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_startTorMint(
+    mut _env: JNIEnv,
+    _class: JClass,
+    config_json: JString,
+    nsec: JString,
+) -> jint {
+    let config_str = java_string_to_rust_string(&mut _env, config_json);
+    let nsec_str = java_string_to_rust_string(&mut _env, nsec);
+    
+    // Parse Android configuration and set to Tor mode
+    let mut android_config = match AndroidConfig::from_json(&config_str) {
+        Ok(config) => config,
+        Err(e) => {
+            error!("Failed to parse Android config JSON: {:?}", e);
+            return 1;
+        }
+    };
+    
+    // Force Tor mode and enable hidden services
+    android_config.tor_enabled = Some(true);
+    android_config.tor_mode = Some("embedded".to_string());
+    android_config.tor_enable_hidden_services = Some(true);
+    
+    // Set Tor data directory to be in the same directory as database
+    // Extract directory from database_path and create tor_data subdirectory
+    if let Some(db_path) = android_config.database_path.split('/').collect::<Vec<_>>().split_last() {
+        let db_dir = db_path.1.join("/");
+        let tor_data_dir = format!("{}/tor_data", db_dir);
+        android_config.tor_data_dir = Some(tor_data_dir);
+    } else {
+        // Fallback to default tor_data directory
+        android_config.tor_data_dir = Some("tor_data".to_string());
+    }
+    
+    android_config.tor_socks_port = Some(9050);
+    
+    // Start the service
+    match crate::core::start_android_service(&android_config, &nsec_str) {
+        Ok(()) => 0,
+        Err(e) => {
+            error!("Failed to start Tor mint service: {}", e);
+            1
+        }
+    }
+} 

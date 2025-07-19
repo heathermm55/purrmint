@@ -50,7 +50,7 @@ anyhow = "1"
 sha2 = "0.10"
 hex = "0.4"
 base32 = "0.5.1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "rustls-tls-native-roots"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls-vendored"] }
 
 # Logging
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

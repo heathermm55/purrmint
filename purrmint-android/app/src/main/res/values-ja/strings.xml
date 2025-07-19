@@ -142,4 +142,16 @@
     <string name="nsec_private_key">NSEC（秘密鍵）</string>
     <string name="copy_npub">NPUBをコピー</string>
     <string name="copy_nsec">NSECをコピー</string>
+    
+    <!-- Service Mode strings -->
+    <string name="service_mode">サービスモード</string>
+    <string name="local_mode">ローカルモード</string>
+    <string name="tor_mode">Torモード</string>
+    <string name="onion_address">オニオンアドレス</string>
+    <string name="onion_address_loading">オニオンアドレスを読み込み中...</string>
+    <string name="onion_address_not_available">オニオンアドレスが利用できません</string>
+    <string name="copy_onion_address">オニオンアドレスをコピー</string>
+    <string name="onion_address_copied">オニオンアドレスがクリップボードにコピーされました</string>
+    <string name="local_address">ローカルアドレス</string>
+    <string name="local_address_available">http://127.0.0.1:3338</string>
 </resources> 

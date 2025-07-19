@@ -57,6 +57,12 @@ class PurrmintNative {
     // Service management - matches Java_com_purrmint_app_PurrmintNative_startMintWithConfig
     external fun startMintWithConfig(configJson: String, nsec: String): Int
     
+    // Start mint in local mode - matches Java_com_purrmint_app_PurrmintNative_startLocalMint
+    external fun startLocalMint(configJson: String, nsec: String): Int
+    
+    // Start mint in Tor mode - matches Java_com_purrmint_app_PurrmintNative_startTorMint
+    external fun startTorMint(configJson: String, nsec: String): Int
+    
     // Stop mint - matches Java_com_purrmint_app_PurrmintNative_stopMint
     external fun stopMint(): Int
     

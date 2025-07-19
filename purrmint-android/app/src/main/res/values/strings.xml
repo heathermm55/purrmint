@@ -145,4 +145,16 @@
     
     <!-- New string for current version -->
     <string name="current_version">Version %1$s</string>
+    
+    <!-- Service Mode strings -->
+    <string name="service_mode">Service Mode</string>
+    <string name="local_mode">Local Mode</string>
+    <string name="tor_mode">Tor Mode</string>
+    <string name="onion_address">Onion Address</string>
+    <string name="onion_address_loading">Loading onion address...</string>
+    <string name="onion_address_not_available">Onion address not available</string>
+    <string name="copy_onion_address">Copy Onion Address</string>
+    <string name="onion_address_copied">Onion address copied to clipboard</string>
+    <string name="local_address">Local Address</string>
+    <string name="local_address_available">http://127.0.0.1:3338</string>
 </resources> 

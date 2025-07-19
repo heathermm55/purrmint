@@ -127,6 +127,116 @@
                             android:textColor="@color/on_surface_variant_color"
                             android:layout_marginBottom="16dp" />
 
+                        <!-- Service Mode Selection -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="16dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/service_mode"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                                android:textColor="@color/on_surface_color"
+                                android:layout_marginBottom="8dp" />
+
+                            <com.google.android.material.chip.ChipGroup
+                                android:id="@+id/modeChipGroup"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:singleSelection="true"
+                                app:selectionRequired="true">
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/localModeChip"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/local_mode"
+                                    android:checkable="true"
+                                    android:checked="true"
+                                    app:chipBackgroundColor="@color/primary_container_color"
+                                    android:textColor="@color/on_primary_container_color"
+                                    app:chipStrokeWidth="0dp" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/torModeChip"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/tor_mode"
+                                    android:checkable="true"
+                                    android:checked="false"
+                                    app:chipBackgroundColor="@color/secondary_container_color"
+                                    android:textColor="@color/on_secondary_container_color"
+                                    app:chipStrokeWidth="0dp" />
+
+                            </com.google.android.material.chip.ChipGroup>
+
+                        </LinearLayout>
+
+                        <!-- Onion Address Display (for Tor mode) -->
+                        <LinearLayout
+                            android:id="@+id/onionAddressLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="16dp"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/onion_address"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                                android:textColor="@color/on_surface_color"
+                                android:layout_marginBottom="8dp" />
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:cardElevation="1dp"
+                                app:cardCornerRadius="8dp"
+                                app:cardBackgroundColor="@color/surface_variant_color"
+                                app:strokeColor="@color/outline_color"
+                                app:strokeWidth="1dp">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:padding="12dp"
+                                    android:gravity="center_vertical">
+
+                                    <TextView
+                                        android:id="@+id/onionAddressText"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:text="@string/onion_address_loading"
+                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                        android:textColor="@color/on_surface_color"
+                                        android:fontFamily="monospace"
+                                        android:textIsSelectable="true" />
+
+                                    <ImageButton
+                                        android:id="@+id/copyOnionButton"
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
+                                        android:background="@android:color/transparent"
+                                        android:src="@drawable/ic_copy"
+                                        android:contentDescription="Copy Onion Address"
+                                        android:focusable="true"
+                                        android:clickable="true"
+                                        android:padding="4dp"
+                                        app:tint="@color/primary_color" />
+
+                                </LinearLayout>
+
+                            </com.google.android.material.card.MaterialCardView>
+
+                        </LinearLayout>
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/startButton"
                             android:layout_width="match_parent"

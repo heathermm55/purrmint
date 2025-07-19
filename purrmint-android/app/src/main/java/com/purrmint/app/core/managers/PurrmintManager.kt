@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import java.io.File
 import com.purrmint.app.PurrmintNative
+import org.json.JSONObject
 
 /**
  * PurrMint service manager
@@ -218,11 +219,11 @@ class PurrmintManager(private val context: Context) {
             val result = native.startMintWithConfig(config, nsec)
             val success = result == 0  // 0 = success in Rust
             
-                    if (success) {
-                        Log.i(TAG, "Mint service started successfully")
-                    } else {
+            if (success) {
+                Log.i(TAG, "Mint service started successfully")
+            } else {
                 Log.e(TAG, "Failed to start mint service - result code: $result")
-                }
+            }
             
             success
         } catch (e: Exception) {
@@ -411,5 +412,109 @@ class PurrmintManager(private val context: Context) {
             Log.e(TAG, "HTTP connection test failed", e)
             false
         }
+    }
+
+    // =============================================================================
+    // New mode-specific methods
+    // =============================================================================
+
+    private var currentMode: ServiceMode = ServiceMode.LOCAL
+    private var isRunning = false
+
+    enum class ServiceMode {
+        LOCAL,
+        TOR
+    }
+
+    /**
+     * Start mint service in local mode
+     */
+    fun startLocalMint(nsec: String): Boolean {
+        Log.i(TAG, "Starting local mint service")
+        
+        try {
+            createDirectories()
+            initLogging()
+            
+            // Validate nsec
+            if (nsec.isEmpty()) {
+                Log.e(TAG, "Cannot start mint service: nsec is required")
+                return false
+            }
+            
+            // Load or generate configuration
+            val config = loadConfigFromFile() ?: generateDefaultConfig()
+            if (config == null) {
+                Log.e(TAG, "Failed to get configuration for service")
+                return false
+            }
+            
+            val result = native.startLocalMint(config, nsec)
+            if (result == 0) {
+                currentMode = ServiceMode.LOCAL
+                isRunning = true
+                Log.i(TAG, "Local mint service started successfully")
+                return true
+            } else {
+                Log.e(TAG, "Failed to start local mint service")
+                return false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting local mint service", e)
+            return false
+        }
+    }
+
+    /**
+     * Start mint service in Tor mode
+     */
+    fun startTorMint(nsec: String): Boolean {
+        Log.i(TAG, "Starting Tor mint service")
+        
+        try {
+            createDirectories()
+            initLogging()
+            
+            // Validate nsec
+            if (nsec.isEmpty()) {
+                Log.e(TAG, "Cannot start mint service: nsec is required")
+                return false
+            }
+            
+            // Load or generate configuration
+            val config = loadConfigFromFile() ?: generateDefaultConfig()
+            if (config == null) {
+                Log.e(TAG, "Failed to get configuration for service")
+                return false
+            }
+            
+            val result = native.startTorMint(config, nsec)
+            if (result == 0) {
+                currentMode = ServiceMode.TOR
+                isRunning = true
+                Log.i(TAG, "Tor mint service started successfully")
+                return true
+            } else {
+                Log.e(TAG, "Failed to start Tor mint service")
+                return false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting Tor mint service", e)
+            return false
+        }
+    }
+
+    /**
+     * Get current service mode
+     */
+    fun getCurrentMode(): ServiceMode {
+        return currentMode
+    }
+
+    /**
+     * Check if service is running
+     */
+    fun isServiceRunning(): Boolean {
+        return isRunning
     }
 } 
