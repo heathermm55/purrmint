@@ -12,10 +12,9 @@ PurrMint is a mobile Cashu mint service that transforms your Android device into
 
 ## Core Features
 
-### **Multi-Mode Operation**
-- **Mintd HTTP Mode**: Start a local HTTP service for private mint operations
-- **NIP-74 Mode**: Run as a public mint using Nostr protocol for decentralized communication (coming soon)
-- **Onion Mode**: Generate onion addresses for your mint (coming soon)
+### **Mode Support**
+- **Local Mint Mode**: Run a local mint service accessible only from your device for maximum privacy
+- **Tor Mint Mode**: Generate onion addresses allowing external access through the Tor network for public mint operations
 
 ### **Lightning Configuration Support**
 - **Fake Wallet**: Perfect for testing and development
@@ -55,25 +54,22 @@ cd purrmint
 ## Roadmap
 
 ### Coming Soon
-- **Tor Integration**: Native Tor support for automatic onion address generation
-- **Enhanced NIP-74**: Better compatibility with more Cashu wallets
-- **Advanced UI**: Improved user experience and configuration options
+- **Enhanced Tor Integration**: Improved onion address generation and management
+- **Advanced UI**: Better user experience and configuration options
+- **Multi-mint Management**: Run multiple mints from one device
 
 ### Future Plans
-- **Multi-mint Management**: Run multiple mints from one device
 - **Advanced Analytics**: Mint usage statistics and insights
 - **Plugin System**: Extensible architecture for custom features
+- **Cross-platform Support**: iOS and desktop versions
 
 ## Documentation
 
-- [NIP-74 Specification](https://github.com/heathermm55/nips/blob/master/74.md) - The protocol that powers public mints
 - [Cashu Protocol](https://github.com/cashubtc/cashu) - Understanding Cashu
 - [CDK Documentation](https://github.com/cashubtc/cdk) - Cashu Development Kit
+- [Arti](https://gitlab.torproject.org/tpo/core/arti) - Tor implementation in Rust
+
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-**Transform your Android device into a Cashu mint with PurrMint! 🔨⚡**
