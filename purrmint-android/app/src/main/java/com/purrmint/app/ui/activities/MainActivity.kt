@@ -840,33 +840,56 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if (isServiceBound && purrmintService != null) {
                 val purrmintManager = purrmintService!!.getPurrmintManager()
                 
-                val success = when (currentMode) {
-                    PurrmintManager.ServiceMode.LOCAL -> {
-                        appendLog("🌐 Starting local mint service...")
-                        purrmintManager.startLocalMint(nsec)
-                    }
-                    PurrmintManager.ServiceMode.TOR -> {
-                        appendLog("🧅 Starting Tor mint service...")
-                        purrmintManager.startTorMint(nsec)
-                    }
-                }
-                
-                if (success) {
-                    updateStatus("Service is running (${currentMode.name.lowercase()})", true)
-                    appendLog("✅ Mint service started successfully in ${currentMode.name.lowercase()} mode!")
+                // For Tor mode, start service in background thread to prevent ANR
+                if (currentMode == PurrmintManager.ServiceMode.TOR) {
+                    appendLog("🧅 Starting Tor mint service in background...")
                     
-                    if (currentMode == PurrmintManager.ServiceMode.LOCAL) {
-                        appendLog("🌐 Local service available at http://127.0.0.1:3338")
-                    } else if (currentMode == PurrmintManager.ServiceMode.TOR) {
-                        appendLog("🧅 Tor service starting - onion address will appear shortly...")
-                        // Start polling for onion address
-                        startOnionAddressPolling()
-                    }
+                    // Show loading state
+                    updateStatus("Starting Tor service...", false)
+                    updateStartButton("Starting...", false)
                     
-                    updateStartButton("Stop Service", true)
+                    // Start Tor service in background thread
+                    Thread {
+                        try {
+                            val success = purrmintManager.startTorMint(nsec)
+                            
+                            // Update UI on main thread
+                            runOnUiThread {
+                                if (success) {
+                                    updateStatus("Service is running (tor)", true)
+                                    appendLog("✅ Tor mint service started successfully!")
+                                    appendLog("🧅 Tor service starting - onion address will appear shortly...")
+                                    startOnionAddressPolling()
+                                    updateStartButton("Stop Service", true)
+                                } else {
+                                    updateStatus("Failed to start Tor service", false)
+                                    appendLog("❌ Failed to start Tor mint service")
+                                    updateStartButton("Start Service", true)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread {
+                                updateStatus("Error: ${e.message}", false)
+                                appendLog("❌ Error starting Tor service: ${e.message}")
+                                Log.e(TAG, "Error starting Tor service", e)
+                                updateStartButton("Start Service", true)
+                            }
+                        }
+                    }.start()
                 } else {
-                    updateStatus("Failed to start service", false)
-                    appendLog("❌ Failed to start mint service in ${currentMode.name.lowercase()} mode")
+                    // Local mode - can run on main thread since it's fast
+                    appendLog("🌐 Starting local mint service...")
+                    val success = purrmintManager.startLocalMint(nsec)
+                    
+                    if (success) {
+                        updateStatus("Service is running (local)", true)
+                        appendLog("✅ Local mint service started successfully!")
+                        appendLog("🌐 Local service available at http://127.0.0.1:3338")
+                        updateStartButton("Stop Service", true)
+                    } else {
+                        updateStatus("Failed to start service", false)
+                        appendLog("❌ Failed to start local mint service")
+                    }
                 }
             } else {
                 appendLog("❌ Service not bound - cannot start mint service")
