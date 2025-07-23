@@ -282,9 +282,13 @@
     <string name="manage_lightning_channels">Manage Lightning channels</string>
     <string name="view_payment_records">View payment records</string>
 
-    <!-- Channel item strings -->
-    <string name="channel_id_format">Channel ID: %1$s</string>
-
     <!-- Payment item strings -->
     <string name="payment_description">Payment Description</string>
+
+    <!-- Content description strings -->
+    <string name="back_button">Back</string>
+    <string name="settings_button">Settings</string>
+
+    <!-- Channel strings -->
+    <string name="channel_id_format">Channel ID: %s</string>
 </resources> 

@@ -2,7 +2,7 @@ package com.purrmint.app.mint
 
 import android.content.Context
 import android.util.Log
-import com.purrmint.app.wallet.MockLightningWalletManager
+import com.purrmint.app.wallet.RustLightningWalletManager
 import com.purrmint.app.wallet.WalletStatus
 import com.purrmint.app.wallet.WalletBalance
 import com.purrmint.app.wallet.ChannelInfo
@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
  */
 class MintService(private val context: Context) {
     
-    private val walletManager = MockLightningWalletManager(context)
+    private val walletManager = RustLightningWalletManager(context)
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     companion object {
@@ -31,7 +31,7 @@ class MintService(private val context: Context) {
     fun initialize() {
         scope.launch {
             walletManager.initialize().onSuccess {
-                Log.d(TAG, "Mint service initialized with Lightning Wallet")
+                Log.d(TAG, "Mint service initialized with Rust Lightning wallet")
             }.onFailure { error ->
                 Log.e(TAG, "Failed to initialize Mint service", error)
             }

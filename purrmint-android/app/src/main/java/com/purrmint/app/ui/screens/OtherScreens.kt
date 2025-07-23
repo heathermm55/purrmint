@@ -22,7 +22,7 @@ fun MintScreen(navController: NavController, mintService: MintService) {
                 title = { Text("Cashu Mint") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_button))
                     }
                 }
             )
@@ -48,7 +48,7 @@ fun WalletScreen(navController: NavController, mintService: MintService) {
                 title = { Text(stringResource(R.string.lightning_wallet)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_button))
                     }
                 }
             )
@@ -74,7 +74,7 @@ fun ChannelsScreen(navController: NavController, mintService: MintService) {
                 title = { Text(stringResource(R.string.channel_management)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_button))
                     }
                 }
             )
@@ -100,7 +100,7 @@ fun PaymentsScreen(navController: NavController, mintService: MintService) {
                 title = { Text(stringResource(R.string.payment_history)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_button))
                     }
                 }
             )
@@ -126,7 +126,7 @@ fun CreateInvoiceScreen(navController: NavController, mintService: MintService) 
                 title = { Text(stringResource(R.string.create_invoice_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_button))
                     }
                 }
             )
@@ -152,7 +152,7 @@ fun PayInvoiceScreen(navController: NavController, mintService: MintService) {
                 title = { Text(stringResource(R.string.pay_invoice_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_button))
                     }
                 }
             )
@@ -178,7 +178,7 @@ fun OpenChannelScreen(navController: NavController, mintService: MintService) {
                 title = { Text(stringResource(R.string.open_channel_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_button))
                     }
                 }
             )

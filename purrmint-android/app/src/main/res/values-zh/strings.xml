@@ -230,8 +230,12 @@
     <string name="view_payment_records">查看支付记录</string>
 
     <!-- Channel item strings -->
-    <string name="channel_id_format">通道 ID: %1$s</string>
+    <string name="channel_id_format">通道 ID: %s</string>
 
     <!-- Payment item strings -->
     <string name="payment_description">支付描述</string>
+
+    <!-- Content description strings -->
+    <string name="back_button">返回</string>
+    <string name="settings_button">设置</string>
 </resources> 

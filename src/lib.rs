@@ -8,12 +8,15 @@ pub mod core;
 pub mod nostr;
 pub mod config;
 pub mod tor_service;
+pub mod lightning_wallet;
+pub mod jni_lightning;
 
 // Re-export key types
 pub use service::MintService;
 pub use core::*;
 pub use config::*;
 pub use nip74_service::*;
+pub use lightning_wallet::*;
 
 /// Initialize logging for the library
 pub fn init_logging() {

@@ -159,7 +159,7 @@ class ChannelsActivity : AppCompatActivity() {
                     else -> channel.status
                 }
                 
-                channelIdText.text = "通道 ID: ${channel.channelId.take(16)}..."
+                channelIdText.text = getString(R.string.channel_id_format, channel.channelId.take(16) + "...")
             }
         }
     }
