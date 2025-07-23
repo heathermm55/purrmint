@@ -7,7 +7,6 @@
     
     <!-- Login Activity -->
     <string name="welcome_to_purrmint">Bem-vindo ao PurrMint</string>
-    <string name="login_subtitle">Crie uma nova conta Nostr ou importe uma existente</string>
     <string name="create_new_account">Criar Nova Conta</string>
     <string name="create_account_description">Gerar uma nova conta Nostr com chaves frescas</string>
     <string name="import_existing_account">Importar Conta Existente</string>

@@ -7,7 +7,6 @@
     
     <!-- Login Activity -->
     <string name="welcome_to_purrmint">PurrMintへようこそ</string>
-    <string name="login_subtitle">新しいNostrアカウントを作成するか、既存のアカウントをインポート</string>
     <string name="create_new_account">新しいアカウントを作成</string>
     <string name="create_account_description">新しいキーで新しいNostrアカウントを生成</string>
     <string name="import_existing_account">既存のアカウントをインポート</string>

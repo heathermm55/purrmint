@@ -1,90 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PurrMint</string>
-    <string name="test_ffi">Test FFI</string>
-    <string name="create_account">Create Account</string>
-    <string name="get_info">Get Info</string>
-    <string name="get_status">Get Status</string>
-    
-    <!-- Login Activity -->
-    <string name="welcome_to_purrmint">Welcome to PurrMint</string>
-    <string name="login_subtitle">Create a new Nostr account or import an existing one</string>
-    <string name="create_new_account">Create New Account</string>
-    <string name="create_account_description">Generate a new Nostr account with fresh keys</string>
-    <string name="import_existing_account">Import Existing Account</string>
-    <string name="import_account_description">Import your existing Nostr account using your secret key</string>
-    <string name="secret_key_hint">Enter your secret key (nsec...)</string>
-    <string name="import_account">Import Account</string>
-    <string name="or">OR</string>
-    
-    <!-- Main Activity -->
-    <string name="dashboard">PurrMint</string>
-    <string name="account_info">Account Info</string>
-    <string name="mint_configuration">Mint Configuration</string>
-    <string name="service_control">Service Control</string>
-    <string name="service_logs">Service Logs</string>
-    <string name="logout">Logout</string>
-    <string name="account_details">Account Details</string>
-    
-    <!-- Service Control -->
-    <string name="start_service">Start Service</string>
-    <string name="stop_service">Stop Service</string>
-    <string name="pause_service">Pause Service</string>
-    <string name="service_running">Service Running</string>
-    <string name="service_stopped">Service Stopped</string>
-    <string name="service_paused">Service Paused</string>
-    
-    <!-- Configuration -->
-    <string name="mint_identifier">Mint Identifier</string>
-    <string name="mint_identifier_hint">Enter mint identifier</string>
-    <string name="relay_urls">Relay URLs</string>
-    <string name="relay_urls_hint">Enter relay URLs (one per line)</string>
-    <string name="lightning_backend">Lightning Backend</string>
-    <string name="lightning_backend_hint">Select lightning backend</string>
-    <string name="save_configuration">Save Configuration</string>
-    <string name="configuration_saved">Configuration saved successfully</string>
-    <string name="configuration_error">Error saving configuration</string>
-    
-    <!-- Logs -->
-    <string name="clear_logs">Clear Logs</string>
-    <string name="export_logs">Export Logs</string>
-    <string name="no_logs_available">No logs available</string>
-    
-    <!-- Common -->
-    <string name="loading">Loading...</string>
+
+    <!-- Main Activity UI strings -->
+    <string name="mint_status">Mint Status</string>
+    <string name="online">Online</string>
+    <string name="offline">Offline</string>
+    <string name="status_offline">Offline</string>
+    <string name="please_login_first">Please login first</string>
+    <string name="mint_not_running">Mint service is not running</string>
+    <string name="start_mint_service">Start Mint Service</string>
+    <string name="service_unavailable">Service Unavailable</string>
+    <string name="welcome_message">Welcome to Purrmint!\nPlease login to start.</string>
+
+    <!-- Lightning Wallet strings -->
+    <string name="lightning_wallet">Lightning Wallet</string>
+    <string name="wallet_status">Wallet Status</string>
+    <string name="wallet_balance">Wallet Balance</string>
+    <string name="lightning_balance">Lightning Balance</string>
+    <string name="manage_wallet">Manage Wallet</string>
+    <string name="channel_management">Channel Management</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="balance_format">Balance: %1$d sats</string>
+    <string name="node_id_format">Node ID: %1$s</string>
+    <string name="node_id_not_connected">Node ID: Not Connected</string>
+
+    <!-- Wallet Activity strings -->
+    <string name="quick_actions">Quick Actions</string>
+    <string name="create_invoice">Create Invoice</string>
+    <string name="pay_invoice">Pay Invoice</string>
+    <string name="recent_payments">Recent Payments</string>
+    <string name="payment_history">Payment History</string>
+
+    <!-- Channels Activity strings -->
+    <string name="channels_overview">Channels Overview</string>
+    <string name="total_channels">Total Channels</string>
+    <string name="total_capacity">Total Capacity</string>
+    <string name="open_new_channel">Open New Channel</string>
+    <string name="channels_list">Channels List</string>
+
+    <!-- Dialog strings -->
+    <string name="create_invoice_title">Create Invoice</string>
+    <string name="pay_invoice_title">Pay Invoice</string>
+    <string name="open_channel_title">Open New Channel</string>
+    <string name="amount_hint">Amount (sats)</string>
+    <string name="description_hint">Description (optional)</string>
+    <string name="invoice_hint">Lightning Invoice</string>
+    <string name="node_id_hint">Node ID</string>
+    <string name="address_hint">Address (IP:Port)</string>
+    <string name="channel_amount_hint">Channel Amount (sats)</string>
+    <string name="address_example">e.g. 192.168.1.100:9735</string>
+    <string name="cancel">Cancel</string>
+    <string name="create">Create</string>
+    <string name="pay">Pay</string>
+    <string name="open">Open</string>
+    <string name="creating">Creating...</string>
+    <string name="paying">Paying...</string>
+    <string name="opening">Opening...</string>
+
+    <!-- Validation messages -->
+    <string name="error_enter_amount">Please enter amount</string>
+    <string name="error_invalid_amount">Please enter a valid amount</string>
+    <string name="error_enter_invoice">Please enter invoice</string>
+    <string name="error_invalid_invoice">Please enter a valid Lightning invoice</string>
+    <string name="error_enter_node_id">Please enter node ID</string>
+    <string name="error_enter_address">Please enter address</string>
+    <string name="error_enter_channel_amount">Please enter channel amount</string>
+    <string name="error_min_channel_amount">Channel amount must be at least 10,000 sats</string>
+
+    <!-- Success messages -->
+    <string name="invoice_created_success">Invoice created successfully!</string>
+    <string name="invoice_copied_clipboard">Invoice copied to clipboard</string>
+    <string name="payment_sent_success">Payment sent successfully! Payment ID: %1$s</string>
+    <string name="channel_opened_success">Channel opened successfully! Channel ID: %1$s</string>
+
+    <!-- Error messages -->
+    <string name="create_invoice_failed">Failed to create invoice: %1$s</string>
+    <string name="payment_failed">Payment failed: %1$s</string>
+    <string name="open_channel_failed">Failed to open channel: %1$s</string>
+    <string name="error_wallet_not_initialized">Wallet not initialized</string>
+    <string name="error_invalid_invoice_format">Invalid Lightning invoice format</string>
+
+    <!-- Payment descriptions -->
+    <string name="payment_description_test">Test Payment</string>
+    <string name="payment_description_coffee">Coffee Payment</string>
+    <string name="payment_description_lunch">Lunch Payment</string>
+
+    <!-- Payment status -->
+    <string name="payment_status_succeeded">Succeeded</string>
+    <string name="payment_status_pending">Pending</string>
+    <string name="payment_status_failed">Failed</string>
+    <string name="no_description">No description</string>
+
+    <!-- Channel status -->
+    <string name="channel_status_open">OPEN</string>
+    <string name="channel_status_pending">PENDING</string>
+    <string name="channel_status_closing">CLOSING</string>
+
+    <!-- Common strings -->
+    <string name="ok">OK</string>
     <string name="error">Error</string>
     <string name="success">Success</string>
-    <string name="cancel">Cancel</string>
-    <string name="ok">OK</string>
-    
-    <!-- Additional strings from MainActivity -->
-    <string name="please_stop_mint_service">Please stop Mint service before modifying configuration</string>
-    <string name="failed_to_generate_config">Failed to generate default configuration</string>
-    <string name="please_create_new_mint">Please create a new mint first</string>
-    <string name="logged_out_successfully">Logged out successfully</string>
-    <string name="service_connected_successfully">Service connected successfully</string>
-    <string name="service_connected_different_process">Service connected (different process)</string>
-    <string name="service_connection_failed">Service connection failed</string>
-    <string name="service_disconnected">Service disconnected</string>
-    <string name="attempting_to_bind_service">Attempting to bind to service...</string>
-    <string name="failed_to_bind_service">Failed to bind to service</string>
-    <string name="error_binding_service">Error binding to service</string>
-    <string name="using_saved_configuration">Using saved configuration</string>
-    <string name="port">Port</string>
+    <string name="loading">Loading...</string>
+    <string name="retry">Retry</string>
+    <string name="back">Back</string>
+    <string name="next">Next</string>
+    <string name="done">Done</string>
+
+    <!-- Account Activity strings -->
+    <string name="account_details">Account Details</string>
+    <string name="account_information">Account Information</string>
+    <string name="npub_public_key">NPUB (Public Key)</string>
+    <string name="nsec_private_key">NSEC (Private Key)</string>
+    <string name="copy_npub">Copy NPUB</string>
+    <string name="copy_nsec">Copy NSEC</string>
+    <string name="logout">Logout</string>
+
+    <!-- Configuration strings -->
+    <string name="mint_configuration">Mint Configuration</string>
     <string name="mint_name">Mint Name</string>
     <string name="description">Description</string>
-    <string name="lightning_backend_label">Lightning Backend</string>
+    <string name="port">Port</string>
+    <string name="lightning_configuration">Lightning Configuration</string>
+    <string name="lightning_backend">Lightning Backend</string>
+    <string name="rpc_path">RPC Path</string>
+    <string name="fee_percent">Fee Percent</string>
+
+    <!-- Default values -->
+    <string name="default_mint_name">My Mint</string>
+    <string name="default_mint_description">A simple mint service</string>
+    <string name="default_port">3338</string>
+
+    <!-- Channel operations -->
+    <string name="channel_operations">Channel Operations</string>
+
+    <!-- Additional configuration strings -->
+    <string name="default_cln_fee_percent">0.04</string>
     <string name="lnbits_admin_api_key">LNBits Admin API Key</string>
     <string name="lnbits_invoice_api_key">LNBits Invoice API Key</string>
     <string name="lnbits_api_url">LNBits API URL</string>
-    <string name="no_configuration_found">No configuration found</string>
-    <string name="starting_mint_service">Starting mint service...</string>
-    <string name="starting_mint_service_with_config">Starting mint service with configuration...</string>
-    <string name="service_not_bound">Service not bound</string>
-    <string name="waiting_for_binding">Waiting for binding to complete...</string>
-    <string name="service_binding_failed">Service binding failed. Please restart the app.</string>
-    <string name="configuration_corrupted">Configuration corrupted. Please reconfigure.</string>
-    
-    <!-- Account Activity -->
+    <string name="default_fake_wallet_fee_percent">0.02</string>
+    <string name="reserve_fee_min">Reserve Fee Min</string>
+    <string name="default_reserve_fee_min">1</string>
+    <string name="start_service">Start Service</string>
+
+    <!-- Language settings -->
+    <string name="language_settings">Language Settings</string>
+
+    <!-- Service mode strings -->
+    <string name="service_mode">Service Mode</string>
+    <string name="local_mode">Local Mode</string>
+    <string name="tor_mode">Tor Mode</string>
+    <string name="onion_address">Onion Address</string>
+    <string name="onion_address_loading">Loading onion address...</string>
+    <string name="service_logs">Service Logs</string>
+    <string name="clear_logs">Clear Logs</string>
+
+    <!-- Navigation and menu strings -->
+    <string name="app_version">v0.0.2</string>
+    <string name="dashboard">PurrMint</string>
+
+    <!-- Additional common strings -->
+    <string name="about">About</string>
+    <string name="version">Version</string>
+    <string name="settings">Settings</string>
+    <string name="language">Language</string>
+    <string name="theme">Theme</string>
+    <string name="user">User</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="login_failed">Login failed</string>
+    <string name="login_success">Login successful</string>
+
+    <!-- Account Activity strings -->
     <string name="npub_not_available">NPUB not available</string>
     <string name="nsec_not_available">NSEC not available</string>
     <string name="no_account_info_available">No account info available</string>
@@ -94,67 +184,107 @@
     <string name="logout_title">Logout</string>
     <string name="logout_message">Are you sure you want to logout? This will stop the mint service and clear your account information.</string>
     <string name="logout_button">Logout</string>
+    <string name="logged_out_successfully">Logged out successfully</string>
     <string name="error_during_logout">Error during logout: %1$s</string>
-    
-    <!-- Login Activity -->
-    <string name="creating_new_account">Creating new Nostr account...</string>
+
+    <!-- Login Activity strings -->
+    <string name="creating_new_account">Creating new account...</string>
     <string name="failed_to_create_account">Failed to create account</string>
     <string name="error_creating_account">Error creating account: %1$s</string>
     <string name="please_enter_nsec_key">Please enter NSEC key</string>
     <string name="logging_in">Logging in...</string>
     <string name="login_failed_invalid_nsec">Login failed - Invalid NSEC key</string>
     <string name="error_logging_in">Error logging in: %1$s</string>
-    
-    <!-- Language Settings -->
-    <string name="language_settings">Language Settings</string>
-    <string name="language_changed_successfully">Language changed successfully</string>
-    
-    <!-- Navigation Drawer -->
-    <string name="user">User</string>
-    <string name="about">About</string>
-    <string name="version">Version</string>
-    <string name="app_version">v0.0.2</string>
-    
-    <!-- Main Activity UI strings -->
-    <string name="mint_status">Mint Status</string>
-    <string name="online">Online</string>
-    <string name="offline">Offline</string>
-    <string name="please_login_first">Please login first</string>
-    <string name="start_mint_service">Start Mint Service</string>
-    <string name="service_unavailable">Service Unavailable</string>
-    <string name="welcome_message">Welcome to Purrmint!\nPlease login to start.</string>
-    
-    <!-- Configuration strings -->
-    <string name="lightning_configuration">Lightning Configuration</string>
-    <string name="rpc_path">RPC Path</string>
-    <string name="fee_percent">Fee Percent</string>
-    <string name="reserve_fee_min">Reserve Fee Min</string>
-    <string name="default_mint_name">My Mint</string>
-    <string name="default_mint_description">A simple mint service</string>
-    <string name="default_port">3338</string>
-    <string name="default_cln_fee_percent">0.04</string>
-    <string name="default_fake_wallet_fee_percent">0.02</string>
-    <string name="default_reserve_fee_min">1</string>
-    
-    <!-- Account strings -->
-    <string name="account_information">Account Information</string>
-    <string name="npub_public_key">NPUB (Public Key)</string>
-    <string name="nsec_private_key">NSEC (Private Key)</string>
-    <string name="copy_npub">Copy NPUB</string>
-    <string name="copy_nsec">Copy NSEC</string>
-    
-    <!-- New string for current version -->
-    <string name="current_version">Version %1$s</string>
-    
-    <!-- Service Mode strings -->
-    <string name="service_mode">Service Mode</string>
-    <string name="local_mode">Local Mode</string>
-    <string name="tor_mode">Tor Mode</string>
-    <string name="onion_address">Onion Address</string>
-    <string name="onion_address_loading">Loading onion address...</string>
+
+    <!-- Main Activity strings -->
+    <string name="stop_service">Stop Service</string>
+    <string name="please_stop_mint_service">Please stop Mint service before modifying configuration</string>
+    <string name="failed_to_generate_config">Failed to generate default configuration</string>
+    <string name="please_create_new_mint">Please create a new mint first</string>
+    <string name="service_binding_failed">Service binding failed</string>
     <string name="onion_address_not_available">Onion address not available</string>
+    <string name="onion_address_copied">Onion address copied</string>
+
+    <!-- Language Settings strings -->
+    <string name="language_changed_successfully">Language changed successfully</string>
+
+    <!-- Channel status -->
+    <string name="channel_status_closed">CLOSED</string>
+
+    <!-- Additional strings -->
+    <string name="account_info">Account Info</string>
+    <string name="attempting_to_bind_service">Attempting to bind service...</string>
+    <string name="configuration_corrupted">Configuration corrupted</string>
+    <string name="configuration_error">Configuration error</string>
+    <string name="configuration_saved">Configuration saved</string>
     <string name="copy_onion_address">Copy Onion Address</string>
-    <string name="onion_address_copied">Onion address copied to clipboard</string>
+    <string name="create_account">Create Account</string>
+    <string name="create_account_description">Create a new account</string>
+    <string name="create_new_account">Create New Account</string>
+    <string name="error_binding_service">Error binding service</string>
+    <string name="export_logs">Export Logs</string>
+    <string name="failed_to_bind_service">Failed to bind service</string>
+    <string name="get_info">Get Info</string>
+    <string name="get_status">Get Status</string>
+    <string name="import_account">Import Account</string>
+    <string name="import_account_description">Import an existing account</string>
+    <string name="import_existing_account">Import Existing Account</string>
+    <string name="lightning_backend_hint">Select Lightning backend</string>
+    <string name="lightning_backend_label">Lightning Backend</string>
     <string name="local_address">Local Address</string>
     <string name="local_address_available">http://127.0.0.1:3338</string>
+    <string name="mint_identifier">Mint Identifier</string>
+    <string name="mint_identifier_hint">Enter mint identifier</string>
+    <string name="no_configuration_found">No configuration found</string>
+    <string name="no_logs_available">No logs available</string>
+    <string name="or">OR</string>
+    <string name="pause_service">Pause Service</string>
+    <string name="relay_urls">Relay URLs</string>
+    <string name="relay_urls_hint">Enter relay URLs (one per line)</string>
+    <string name="save_configuration">Save Configuration</string>
+    <string name="secret_key_hint">Enter your secret key (nsec...)</string>
+    <string name="service_connected_different_process">Service connected (different process)</string>
+    <string name="service_connected_successfully">Service connected successfully</string>
+    <string name="service_connection_failed">Service connection failed</string>
+    <string name="service_control">Service Control</string>
+    <string name="service_disconnected">Service disconnected</string>
+    <string name="service_not_bound">Service not bound</string>
+    <string name="service_paused">Service Paused</string>
+    <string name="service_running">Service Running</string>
+    <string name="service_stopped">Service Stopped</string>
+    <string name="starting_mint_service">Starting mint service...</string>
+    <string name="starting_mint_service_with_config">Starting mint service with configuration...</string>
+    <string name="test_ffi">Test FFI</string>
+    <string name="using_saved_configuration">Using saved configuration</string>
+    <string name="waiting_for_binding">Waiting for binding to complete...</string>
+    <string name="welcome_to_purrmint">Welcome to PurrMint</string>
+
+    <!-- Additional UI strings -->
+    <string name="node_format">Node: %1$s</string>
+    <string name="capacity_format">Capacity: %1$d sats</string>
+    <string name="balance_format_sats">Balance: %1$d sats</string>
+    <string name="lightning_network_balance">Lightning Network Balance</string>
+    <string name="under_development">Under Development</string>
+    <string name="wallet_interface_under_development">Wallet Interface - Under Development</string>
+    <string name="channel_management_interface_under_development">Channel Management Interface - Under Development</string>
+    <string name="payment_history_interface_under_development">Payment History Interface - Under Development</string>
+    <string name="settings_interface_under_development">Settings Interface - Under Development</string>
+    <string name="open_channel_interface_under_development">Open Channel Interface - Under Development</string>
+    <string name="create_invoice_interface_under_development">Create Invoice Interface - Under Development</string>
+    <string name="pay_invoice_interface_under_development">Pay Invoice Interface - Under Development</string>
+    <string name="cashu_mint_interface_under_development">Cashu Mint Interface - Under Development</string>
+    <string name="lightning_wallet_status">Lightning Wallet Status</string>
+
+    <!-- Action card strings -->
+    <string name="cashu_mint">Cashu Mint</string>
+    <string name="create_and_manage_tokens">Create and manage tokens</string>
+    <string name="manage_lightning_network">Manage Lightning Network</string>
+    <string name="manage_lightning_channels">Manage Lightning channels</string>
+    <string name="view_payment_records">View payment records</string>
+
+    <!-- Channel item strings -->
+    <string name="channel_id_format">Channel ID: %1$s</string>
+
+    <!-- Payment item strings -->
+    <string name="payment_description">Payment Description</string>
 </resources> 

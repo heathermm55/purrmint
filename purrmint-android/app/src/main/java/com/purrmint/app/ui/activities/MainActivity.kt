@@ -32,6 +32,7 @@ import com.purrmint.app.core.managers.LoginManager
 import com.purrmint.app.core.managers.ConfigManager
 import com.purrmint.app.core.managers.PurrmintManager
 import com.purrmint.app.core.services.PurrmintService
+import com.purrmint.app.mint.MintService
 import android.os.Handler
 import android.os.Looper
 
@@ -57,6 +58,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var onionAddressText: TextView
     private lateinit var copyOnionButton: ImageButton
     
+    // Lightning wallet components
+    private lateinit var walletStatusIcon: ImageView
+    private lateinit var walletStatusChip: Chip
+    private lateinit var walletBalanceText: TextView
+    private lateinit var walletButton: MaterialButton
+    private lateinit var channelsButton: MaterialButton
+    
     // Service
     private var purrmintService: PurrmintService? = null
     private var isServiceBound = false
@@ -76,6 +84,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     // Language Manager
     private lateinit var languageManager: LanguageManager
     
+    // Lightning Wallet Manager
+    private lateinit var mintService: MintService
+    
     companion object {
         private const val TAG = "MainActivity"
         private const val REQUEST_CONFIG = 1001
@@ -92,6 +103,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         configManager = ConfigManager(this)
         languageManager = LanguageManager(this)
         
+        // Initialize Lightning wallet service
+        mintService = MintService(this)
+        
         // Apply current language
         languageManager.updateConfiguration(resources)
         
@@ -107,6 +121,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         // Initialize UI components
         initializeViews()
+        
+        // Initialize Lightning wallet
+        initializeLightningWallet()
         
         // Start foreground service (only after login)
         val intent = Intent(this, PurrmintService::class.java)
@@ -255,6 +272,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         onionAddressText = findViewById(R.id.onionAddressText)
         copyOnionButton = findViewById(R.id.copyOnionButton)
         
+        // Initialize Lightning wallet components
+        walletStatusIcon = findViewById(R.id.walletStatusIcon)
+        walletStatusChip = findViewById(R.id.walletStatusChip)
+        walletBalanceText = findViewById(R.id.walletBalanceText)
+        walletButton = findViewById(R.id.walletButton)
+        channelsButton = findViewById(R.id.channelsButton)
+        
         // Setup toolbar and navigation drawer
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -293,6 +317,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     }
                 }
             }
+        }
+        
+        // Setup Lightning wallet buttons
+        walletButton.setOnClickListener {
+            val intent = Intent(this, WalletActivity::class.java)
+            startActivity(intent)
+        }
+        
+        channelsButton.setOnClickListener {
+            val intent = Intent(this, ChannelsActivity::class.java)
+            startActivity(intent)
         }
         
         // Setup mode selection listeners
@@ -1009,6 +1044,51 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             appendLog("📋 Onion address copied to clipboard")
         } else {
             Toast.makeText(this, "No onion address available", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun initializeLightningWallet() {
+        // Initialize Lightning wallet service
+        mintService.initialize()
+        
+        // Start periodic wallet status updates
+        startWalletStatusUpdates()
+    }
+    
+    private fun startWalletStatusUpdates() {
+        val handler = Handler(Looper.getMainLooper())
+        val updateRunnable = object : Runnable {
+            override fun run() {
+                updateWalletStatus()
+                handler.postDelayed(this, 5000) // Update every 5 seconds
+            }
+        }
+        handler.post(updateRunnable)
+    }
+    
+    private fun updateWalletStatus() {
+        val walletStatus = mintService.getWalletStatus()
+        val walletBalance = mintService.getWalletBalance()
+        
+        runOnUiThread {
+                    // Update wallet status icon and chip
+                    if (walletStatus.isRunning) {
+                        walletStatusIcon.setImageResource(R.drawable.ic_status_online)
+                        walletStatusIcon.setColorFilter(resources.getColor(R.color.success_color, null))
+                        walletStatusChip.text = getString(R.string.connected)
+                        walletStatusChip.setChipBackgroundColorResource(R.color.success_container_color)
+                        walletStatusChip.setTextColor(resources.getColor(R.color.success_color, null))
+                    } else {
+                        walletStatusIcon.setImageResource(R.drawable.ic_status_offline)
+                        walletStatusIcon.setColorFilter(resources.getColor(R.color.error_color, null))
+                        walletStatusChip.text = getString(R.string.disconnected)
+                        walletStatusChip.setChipBackgroundColorResource(R.color.error_container_color)
+                        walletStatusChip.setTextColor(resources.getColor(R.color.error_color, null))
+                    }
+
+                    // Update wallet balance
+                    val balanceSats = walletBalance?.lightningBalanceMsat?.div(1000) ?: 0
+                    walletBalanceText.text = getString(R.string.balance_format, balanceSats)
         }
     }
 } 

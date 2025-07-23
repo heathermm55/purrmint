@@ -1,157 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PurrMint</string>
-    <string name="test_ffi">测试FFI</string>
-    <string name="create_account">创建账户</string>
-    <string name="get_info">获取信息</string>
-    <string name="get_status">获取状态</string>
-    
-    <!-- Login Activity -->
-    <string name="welcome_to_purrmint">欢迎使用PurrMint</string>
-    <string name="login_subtitle">创建新的Nostr账户或导入现有账户</string>
-    <string name="create_new_account">创建新账户</string>
-    <string name="create_account_description">生成具有新密钥的新Nostr账户</string>
-    <string name="import_existing_account">导入现有账户</string>
-    <string name="import_account_description">使用您的密钥导入现有Nostr账户</string>
-    <string name="secret_key_hint">输入您的密钥 (nsec...)</string>
-    <string name="import_account">导入账户</string>
-    <string name="or">或</string>
-    
-    <!-- Main Activity -->
-    <string name="dashboard">PurrMint</string>
-    <string name="account_info">账户信息</string>
-    <string name="mint_configuration">铸币配置</string>
-    <string name="service_control">服务控制</string>
-    <string name="service_logs">服务日志</string>
-    <string name="logout">退出登录</string>
-    <string name="account_details">账户详情</string>
-    
-    <!-- Service Control -->
-    <string name="start_service">启动服务</string>
-    <string name="stop_service">停止服务</string>
-    <string name="pause_service">暂停服务</string>
-    <string name="service_running">服务运行中</string>
-    <string name="service_stopped">服务已停止</string>
-    <string name="service_paused">服务已暂停</string>
-    
-    <!-- Configuration -->
-    <string name="mint_identifier">铸币标识符</string>
-    <string name="mint_identifier_hint">输入铸币标识符</string>
-    <string name="relay_urls">中继URL</string>
-    <string name="relay_urls_hint">输入中继URL（每行一个）</string>
-    <string name="lightning_backend">闪电网络后端</string>
-    <string name="lightning_backend_hint">选择闪电网络后端</string>
-    <string name="save_configuration">保存配置</string>
-    <string name="configuration_saved">配置保存成功</string>
-    <string name="configuration_error">保存配置时出错</string>
-    
-    <!-- Logs -->
-    <string name="clear_logs">清除日志</string>
-    <string name="export_logs">导出日志</string>
-    <string name="no_logs_available">暂无日志</string>
-    
-    <!-- Common -->
-    <string name="loading">加载中...</string>
-    <string name="error">错误</string>
-    <string name="success">成功</string>
+
+    <!-- Main Activity UI strings -->
+    <string name="mint_status">Mint 状态</string>
+    <string name="online">在线</string>
+    <string name="offline">离线</string>
+    <string name="status_offline">离线</string>
+    <string name="please_login_first">请先登录</string>
+    <string name="mint_not_running">Mint 服务未运行</string>
+    <string name="start_mint_service">启动 Mint 服务</string>
+    <string name="service_unavailable">服务不可用</string>
+    <string name="welcome_message">欢迎使用 Purrmint！\n请登录开始使用。</string>
+
+    <!-- Lightning Wallet strings -->
+    <string name="lightning_wallet">闪电钱包</string>
+    <string name="wallet_status">钱包状态</string>
+    <string name="wallet_balance">钱包余额</string>
+    <string name="lightning_balance">闪电网络余额</string>
+    <string name="manage_wallet">管理钱包</string>
+    <string name="channel_management">通道管理</string>
+    <string name="connected">已连接</string>
+    <string name="disconnected">未连接</string>
+    <string name="balance_format">余额: %1$d sats</string>
+    <string name="node_id_format">节点 ID: %1$s</string>
+    <string name="node_id_not_connected">节点 ID: 未连接</string>
+
+    <!-- Wallet Activity strings -->
+    <string name="quick_actions">快速操作</string>
+    <string name="create_invoice">创建发票</string>
+    <string name="pay_invoice">支付发票</string>
+    <string name="recent_payments">最近支付</string>
+    <string name="payment_history">支付历史</string>
+
+    <!-- Channels Activity strings -->
+    <string name="channels_overview">通道概览</string>
+    <string name="total_channels">总通道数</string>
+    <string name="total_capacity">总容量</string>
+    <string name="open_new_channel">开通新通道</string>
+    <string name="channels_list">通道列表</string>
+
+    <!-- Dialog strings -->
+    <string name="create_invoice_title">创建发票</string>
+    <string name="pay_invoice_title">支付发票</string>
+    <string name="open_channel_title">开通新通道</string>
+    <string name="amount_hint">金额 (sats)</string>
+    <string name="description_hint">描述 (可选)</string>
+    <string name="invoice_hint">闪电网络发票</string>
+    <string name="node_id_hint">节点ID</string>
+    <string name="address_hint">地址 (IP:端口)</string>
+    <string name="channel_amount_hint">通道金额 (sats)</string>
+    <string name="address_example">例如: 192.168.1.100:9735</string>
     <string name="cancel">取消</string>
-    <string name="ok">确定</string>
-    
-    <!-- Additional strings from MainActivity -->
-    <string name="please_stop_mint_service">请先停止Mint服务再修改配置</string>
-    <string name="failed_to_generate_config">生成默认配置失败</string>
-    <string name="please_create_new_mint">请先创建新的铸币</string>
-    <string name="logged_out_successfully">退出登录成功</string>
-    <string name="service_connected_successfully">服务连接成功</string>
-    <string name="service_connected_different_process">服务连接（不同进程）</string>
-    <string name="service_connection_failed">服务连接失败</string>
-    <string name="service_disconnected">服务断开连接</string>
-    <string name="attempting_to_bind_service">尝试绑定服务...</string>
-    <string name="failed_to_bind_service">绑定服务失败</string>
-    <string name="error_binding_service">绑定服务时出错</string>
-    <string name="using_saved_configuration">使用保存的配置</string>
-    <string name="port">端口</string>
-    <string name="mint_name">铸币名称</string>
-    <string name="description">描述</string>
-    <string name="lightning_backend_label">闪电网络后端</string>
-    <string name="lnbits_admin_api_key">LNBits管理员API密钥</string>
-    <string name="lnbits_invoice_api_key">LNBits发票API密钥</string>
-    <string name="lnbits_api_url">LNBits API URL</string>
-    <string name="no_configuration_found">未找到配置</string>
-    <string name="starting_mint_service">启动铸币服务...</string>
-    <string name="starting_mint_service_with_config">使用配置启动铸币服务...</string>
-    <string name="service_not_bound">服务未绑定</string>
-    <string name="waiting_for_binding">等待绑定完成...</string>
-    <string name="service_binding_failed">服务绑定失败，请重启应用</string>
-    <string name="configuration_corrupted">配置损坏，请重新配置</string>
-    
-    <!-- Account Activity -->
-    <string name="npub_not_available">NPUB不可用</string>
-    <string name="nsec_not_available">NSEC不可用</string>
+    <string name="create">创建</string>
+    <string name="pay">支付</string>
+    <string name="open">开通</string>
+    <string name="creating">创建中...</string>
+    <string name="paying">支付中...</string>
+    <string name="opening">开通中...</string>
+
+    <!-- Validation messages -->
+    <string name="error_enter_amount">请输入金额</string>
+    <string name="error_invalid_amount">请输入有效的金额</string>
+    <string name="error_enter_invoice">请输入发票</string>
+    <string name="error_invalid_invoice">请输入有效的闪电网络发票</string>
+    <string name="error_enter_node_id">请输入节点ID</string>
+    <string name="error_enter_address">请输入地址</string>
+    <string name="error_enter_channel_amount">请输入通道金额</string>
+    <string name="error_min_channel_amount">通道金额至少需要 10,000 sats</string>
+
+    <!-- Success messages -->
+    <string name="invoice_created_success">发票创建成功！</string>
+    <string name="invoice_copied_clipboard">发票已复制到剪贴板</string>
+    <string name="payment_sent_success">支付发送成功！支付ID: %1$s</string>
+    <string name="channel_opened_success">通道开通成功！通道ID: %1$s</string>
+
+    <!-- Error messages -->
+    <string name="create_invoice_failed">创建发票失败: %1$s</string>
+    <string name="payment_failed">支付失败: %1$s</string>
+    <string name="open_channel_failed">开通通道失败: %1$s</string>
+    <string name="error_wallet_not_initialized">钱包未初始化</string>
+    <string name="error_invalid_invoice_format">无效的闪电网络发票格式</string>
+
+    <!-- Payment descriptions -->
+    <string name="payment_description_test">测试支付</string>
+    <string name="payment_description_coffee">咖啡支付</string>
+    <string name="payment_description_lunch">午餐支付</string>
+
+    <!-- Payment status -->
+    <string name="payment_status_succeeded">成功</string>
+    <string name="payment_status_pending">处理中</string>
+    <string name="payment_status_failed">失败</string>
+    <string name="no_description">无描述</string>
+
+    <!-- Channel status -->
+    <string name="channel_status_open">开启</string>
+    <string name="channel_status_pending">待处理</string>
+    <string name="channel_status_closing">关闭中</string>
+    <string name="channel_status_closed">已关闭</string>
+
+    <!-- Login Activity strings -->
+    <string name="login">登录</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="login_failed">登录失败</string>
+    <string name="login_success">登录成功</string>
+
+    <!-- Account Activity strings -->
+    <string name="npub_not_available">NPUB 不可用</string>
+    <string name="nsec_not_available">NSEC 不可用</string>
     <string name="no_account_info_available">账户信息不可用</string>
     <string name="error_loading_account_info">加载账户信息时出错</string>
-    <string name="copied_to_clipboard">%1$s已复制到剪贴板</string>
-    <string name="failed_to_copy">复制%1$s失败</string>
+    <string name="copied_to_clipboard">%1$s 已复制到剪贴板</string>
+    <string name="failed_to_copy">复制 %1$s 失败</string>
     <string name="logout_title">退出登录</string>
     <string name="logout_message">确定要退出登录吗？这将停止铸币服务并清除您的账户信息。</string>
     <string name="logout_button">退出登录</string>
-    <string name="error_during_logout">退出登录时出错：%1$s</string>
-    
-    <!-- Login Activity -->
-    <string name="creating_new_account">正在创建新的Nostr账户...</string>
+    <string name="logged_out_successfully">已成功退出登录</string>
+    <string name="error_during_logout">退出登录时出错: %1$s</string>
+
+    <!-- Login Activity strings -->
+    <string name="creating_new_account">正在创建新账户...</string>
     <string name="failed_to_create_account">创建账户失败</string>
-    <string name="error_creating_account">创建账户时出错：%1$s</string>
-    <string name="please_enter_nsec_key">请输入NSEC密钥</string>
+    <string name="error_creating_account">创建账户时出错: %1$s</string>
+    <string name="please_enter_nsec_key">请输入 NSEC 密钥</string>
     <string name="logging_in">正在登录...</string>
-    <string name="login_failed_invalid_nsec">登录失败 - 无效的NSEC密钥</string>
-    <string name="error_logging_in">登录时出错：%1$s</string>
-    
-    <!-- Language Settings -->
-    <string name="language_settings">语言设置</string>
-    <string name="language_changed_successfully">语言切换成功</string>
-    
-    <!-- Navigation Drawer -->
-    <string name="user">用户</string>
+    <string name="login_failed_invalid_nsec">登录失败 - 无效的 NSEC 密钥</string>
+    <string name="error_logging_in">登录时出错: %1$s</string>
+
+    <!-- Main Activity strings -->
+    <string name="stop_service">停止服务</string>
+    <string name="please_stop_mint_service">修改配置前请先停止铸币服务</string>
+    <string name="failed_to_generate_config">生成默认配置失败</string>
+    <string name="please_create_new_mint">请先创建新的铸币</string>
+    <string name="service_binding_failed">服务绑定失败</string>
+    <string name="onion_address_not_available">洋葱地址不可用</string>
+    <string name="onion_address_copied">洋葱地址已复制</string>
+
+    <!-- Language Settings strings -->
+    <string name="language_changed_successfully">语言更改成功</string>
+
+    <!-- Settings Activity strings -->
+    <string name="settings">设置</string>
+    <string name="language">语言</string>
+    <string name="theme">主题</string>
     <string name="about">关于</string>
     <string name="version">版本</string>
-    <string name="app_version">v0.0.2</string>
-    
-    <!-- Main Activity UI strings -->
-    <string name="mint_status">铸币状态</string>
-    <string name="online">在线</string>
-    <string name="offline">离线</string>
-    <string name="please_login_first">请先登录</string>
-    <string name="start_mint_service">启动铸币服务</string>
-    <string name="service_unavailable">服务不可用</string>
-    <string name="welcome_message">欢迎使用Purrmint！\n请先登录开始使用。</string>
-    
-    <!-- Configuration strings -->
-    <string name="lightning_configuration">闪电网络配置</string>
-    <string name="rpc_path">RPC路径</string>
-    <string name="fee_percent">手续费百分比</string>
-    <string name="reserve_fee_min">最小保留费用</string>
-    <string name="default_mint_name">我的铸币</string>
-    <string name="default_mint_description">一个简单的铸币服务</string>
-    <string name="default_port">3338</string>
-    <string name="default_cln_fee_percent">0.04</string>
-    <string name="default_fake_wallet_fee_percent">0.02</string>
-    <string name="default_reserve_fee_min">1</string>
-    
-    <!-- Account strings -->
-    <string name="account_information">账户信息</string>
-    <string name="npub_public_key">NPUB（公钥）</string>
-    <string name="nsec_private_key">NSEC（私钥）</string>
-    <string name="copy_npub">复制NPUB</string>
-    <string name="copy_nsec">复制NSEC</string>
-    
-    <!-- Service Mode strings -->
-    <string name="service_mode">服务模式</string>
-    <string name="local_mode">本地模式</string>
-    <string name="tor_mode">Tor模式</string>
-    <string name="onion_address">洋葱地址</string>
-    <string name="onion_address_loading">正在加载洋葱地址...</string>
-    <string name="onion_address_not_available">洋葱地址不可用</string>
+    <string name="logout">退出登录</string>
+
+    <!-- Common strings -->
+    <string name="ok">确定</string>
+    <string name="error">错误</string>
+    <string name="success">成功</string>
+    <string name="loading">加载中...</string>
+    <string name="retry">重试</string>
+    <string name="back">返回</string>
+    <string name="next">下一步</string>
+    <string name="done">完成</string>
+
+    <!-- Additional strings -->
+    <string name="account_info">账户信息</string>
+    <string name="attempting_to_bind_service">正在尝试绑定服务...</string>
+    <string name="configuration_corrupted">配置已损坏</string>
+    <string name="configuration_error">配置错误</string>
+    <string name="configuration_saved">配置已保存</string>
     <string name="copy_onion_address">复制洋葱地址</string>
-    <string name="onion_address_copied">洋葱地址已复制到剪贴板</string>
+    <string name="create_account">创建账户</string>
+    <string name="create_account_description">创建新账户</string>
+    <string name="create_new_account">创建新账户</string>
+    <string name="error_binding_service">绑定服务时出错</string>
+    <string name="export_logs">导出日志</string>
+    <string name="failed_to_bind_service">绑定服务失败</string>
+    <string name="get_info">获取信息</string>
+    <string name="get_status">获取状态</string>
+    <string name="import_account">导入账户</string>
+    <string name="import_account_description">导入现有账户</string>
+    <string name="import_existing_account">导入现有账户</string>
+    <string name="lightning_backend_hint">选择闪电网络后端</string>
+    <string name="lightning_backend_label">闪电网络后端</string>
     <string name="local_address">本地地址</string>
     <string name="local_address_available">http://127.0.0.1:3338</string>
+    <string name="mint_identifier">铸币标识符</string>
+    <string name="mint_identifier_hint">输入铸币标识符</string>
+    <string name="no_configuration_found">未找到配置</string>
+    <string name="no_logs_available">无可用日志</string>
+    <string name="or">或</string>
+    <string name="pause_service">暂停服务</string>
+    <string name="relay_urls">中继 URL</string>
+    <string name="relay_urls_hint">输入中继 URL（每行一个）</string>
+    <string name="save_configuration">保存配置</string>
+    <string name="secret_key_hint">输入您的密钥（nsec...）</string>
+    <string name="service_connected_different_process">服务已连接（不同进程）</string>
+    <string name="service_connected_successfully">服务连接成功</string>
+    <string name="service_connection_failed">服务连接失败</string>
+    <string name="service_control">服务控制</string>
+    <string name="service_disconnected">服务已断开</string>
+    <string name="service_not_bound">服务未绑定</string>
+    <string name="service_paused">服务已暂停</string>
+    <string name="service_running">服务运行中</string>
+    <string name="service_stopped">服务已停止</string>
+    <string name="starting_mint_service">正在启动铸币服务...</string>
+    <string name="starting_mint_service_with_config">正在使用配置启动铸币服务...</string>
+    <string name="test_ffi">测试 FFI</string>
+    <string name="using_saved_configuration">使用保存的配置</string>
+    <string name="waiting_for_binding">等待绑定完成...</string>
+    <string name="welcome_to_purrmint">欢迎使用 PurrMint</string>
+
+    <!-- Additional UI strings -->
+    <string name="node_format">节点: %1$s</string>
+    <string name="capacity_format">容量: %1$d sats</string>
+    <string name="balance_format_sats">余额: %1$d sats</string>
+    <string name="lightning_network_balance">闪电网络余额</string>
+    <string name="under_development">开发中</string>
+    <string name="wallet_interface_under_development">钱包界面 - 开发中</string>
+    <string name="channel_management_interface_under_development">通道管理界面 - 开发中</string>
+    <string name="payment_history_interface_under_development">支付历史界面 - 开发中</string>
+    <string name="settings_interface_under_development">设置界面 - 开发中</string>
+    <string name="open_channel_interface_under_development">开通通道界面 - 开发中</string>
+    <string name="create_invoice_interface_under_development">创建发票界面 - 开发中</string>
+    <string name="pay_invoice_interface_under_development">支付发票界面 - 开发中</string>
+    <string name="cashu_mint_interface_under_development">Cashu Mint 界面 - 开发中</string>
+    <string name="lightning_wallet_status">闪电钱包状态</string>
+
+    <!-- Action card strings -->
+    <string name="cashu_mint">Cashu Mint</string>
+    <string name="create_and_manage_tokens">创建和管理代币</string>
+    <string name="manage_lightning_network">管理闪电网络</string>
+    <string name="manage_lightning_channels">管理闪电通道</string>
+    <string name="view_payment_records">查看支付记录</string>
+
+    <!-- Channel item strings -->
+    <string name="channel_id_format">通道 ID: %1$s</string>
+
+    <!-- Payment item strings -->
+    <string name="payment_description">支付描述</string>
 </resources> 

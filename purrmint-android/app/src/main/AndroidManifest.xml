@@ -54,6 +54,16 @@
             android:exported="false"
             android:theme="@style/Theme.PurrMint" />
         
+        <activity
+            android:name="com.purrmint.app.ui.activities.WalletActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PurrMint" />
+        
+        <activity
+            android:name="com.purrmint.app.ui.activities.ChannelsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PurrMint" />
+        
         <service
             android:name="com.purrmint.app.core.services.PurrmintService"
             android:enabled="true"
