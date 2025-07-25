@@ -74,6 +74,9 @@ http = "1.3.0"
 futures = "0.3"
 url = "2.5"
 
+# LDK Node for Lightning Network support
+ldk-node = { path = "../ldk-node" }
+
 [features]
 default = ["jni-support", "tor"]
 jni-support = []
