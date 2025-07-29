@@ -157,4 +157,8 @@
     <string name="onion_address_copied">Onion address copied to clipboard</string>
     <string name="local_address">Local Address</string>
     <string name="local_address_available">http://127.0.0.1:3338</string>
+    
+    <!-- NWC (Nostr Wallet Connect) strings -->
+    <string name="nwc_connection_uri">NWC Connection URI</string>
+    <string name="nwc_connection_uri_hint">nostr+walletconnect://...</string>
 </resources> 

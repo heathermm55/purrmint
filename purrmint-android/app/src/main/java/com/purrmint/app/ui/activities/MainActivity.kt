@@ -175,6 +175,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     val lnbitsAdminApiKey = data.getStringExtra(ConfigActivity.EXTRA_LNBITS_ADMIN_API_KEY)
                     val lnbitsInvoiceApiKey = data.getStringExtra(ConfigActivity.EXTRA_LNBITS_INVOICE_API_KEY)
                     val lnbitsApiUrl = data.getStringExtra(ConfigActivity.EXTRA_LNBITS_API_URL)
+                    val nwcConnectionUri = data.getStringExtra(ConfigActivity.EXTRA_NWC_CONNECTION_URI)
                     
                     appendLog("Configuration received:")
                     appendLog("  Port: $port")
@@ -186,6 +187,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         appendLog("  LNBits Admin API Key: ${lnbitsAdminApiKey?.take(8)}...")
                         appendLog("  LNBits Invoice API Key: ${lnbitsInvoiceApiKey?.take(8)}...")
                         appendLog("  LNBits API URL: $lnbitsApiUrl")
+                    } else if (lightningBackend == "nwc") {
+                        appendLog("  NWC Connection URI: ${nwcConnectionUri?.take(20)}...")
                     }
                     
                     // Save configuration for future use
@@ -196,11 +199,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         lightningBackend = lightningBackend,
                         lnbitsAdminApiKey = lnbitsAdminApiKey,
                         lnbitsInvoiceApiKey = lnbitsInvoiceApiKey,
-                        lnbitsApiUrl = lnbitsApiUrl
+                        lnbitsApiUrl = lnbitsApiUrl,
+                        nwcConnectionUri = nwcConnectionUri
                     )
                     
                     // Start the service with configuration
-                    startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
+                    startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl, nwcConnectionUri)
                 }
             }
             REQUEST_ACCOUNT -> {
@@ -490,7 +494,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
     
-    private fun startServiceWithConfig(port: Int, mintName: String, description: String, lightningBackend: String, lnbitsAdminApiKey: String? = null, lnbitsInvoiceApiKey: String? = null, lnbitsApiUrl: String? = null) {
+    private fun startServiceWithConfig(port: Int, mintName: String, description: String, lightningBackend: String, lnbitsAdminApiKey: String? = null, lnbitsInvoiceApiKey: String? = null, lnbitsApiUrl: String? = null, nwcConnectionUri: String? = null) {
         try {
             updateStatus("Starting mint service...", false)
             appendLog("Starting mint service with configuration...")
@@ -504,7 +508,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 Handler(Looper.getMainLooper()).postDelayed({
                     if (isServiceBound && purrmintService != null) {
                         appendLog("✅ Service bound successfully, retrying start...")
-                        startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
+                        startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl, nwcConnectionUri)
                     } else {
                         appendLog("❌ Service binding failed after 5 seconds")
                         appendLog("💡 Trying to restart service binding...")
@@ -514,7 +518,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         Handler(Looper.getMainLooper()).postDelayed({
             if (isServiceBound && purrmintService != null) {
                                 appendLog("✅ Service bound successfully on retry, starting...")
-                                startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl)
+                                startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl, nwcConnectionUri)
                             } else {
                                 appendLog("❌ Service binding failed completely")
                                 updateStatus("Service binding failed", false)
@@ -591,6 +595,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         "lnbitsAdminApiKey": "$lnbitsAdminApiKey",
                         "lnbitsInvoiceApiKey": "$lnbitsInvoiceApiKey",
                         "lnbitsApiUrl": "$lnbitsApiUrl"
+                    """.trimIndent())
+                } else if (lightningBackend == "nwc" && nwcConnectionUri != null) {
+                    append(""",
+                        "nwcConnectionUri": "$nwcConnectionUri"
                     """.trimIndent())
                 }
                 

@@ -15,7 +15,8 @@ data class AndroidConfig(
     val logsPath: String,
     val lnbitsAdminApiKey: String? = null,
     val lnbitsInvoiceApiKey: String? = null,
-    val lnbitsApiUrl: String? = null
+    val lnbitsApiUrl: String? = null,
+    val nwcConnectionUri: String? = null
 )
 
 class ConfigManager(private val context: Context) {
@@ -47,7 +48,8 @@ class ConfigManager(private val context: Context) {
             logsPath = "$dataDir/logs",
             lnbitsAdminApiKey = null,
             lnbitsInvoiceApiKey = null,
-            lnbitsApiUrl = null
+            lnbitsApiUrl = null,
+            nwcConnectionUri = null
         )
     }
     
@@ -86,7 +88,8 @@ class ConfigManager(private val context: Context) {
         lightningBackend: String = DEFAULT_LIGHTNING_BACKEND,
         lnbitsAdminApiKey: String? = null,
         lnbitsInvoiceApiKey: String? = null,
-        lnbitsApiUrl: String? = null
+        lnbitsApiUrl: String? = null,
+        nwcConnectionUri: String? = null
     ): Boolean {
         val dataDir = context.filesDir.absolutePath
         val config = AndroidConfig(
@@ -99,7 +102,8 @@ class ConfigManager(private val context: Context) {
             logsPath = "$dataDir/logs",
             lnbitsAdminApiKey = lnbitsAdminApiKey,
             lnbitsInvoiceApiKey = lnbitsInvoiceApiKey,
-            lnbitsApiUrl = lnbitsApiUrl
+            lnbitsApiUrl = lnbitsApiUrl,
+            nwcConnectionUri = nwcConnectionUri
         )
         return saveConfiguration(config)
     }
@@ -209,6 +213,7 @@ class ConfigManager(private val context: Context) {
             json.put("lnbitsAdminApiKey", config.lnbitsAdminApiKey)
             json.put("lnbitsInvoiceApiKey", config.lnbitsInvoiceApiKey)
             json.put("lnbitsApiUrl", config.lnbitsApiUrl)
+            json.put("nwcConnectionUri", config.nwcConnectionUri)
             json.toString()
         } catch (e: JSONException) {
             Log.e(TAG, "Error converting config to JSON", e)
@@ -232,7 +237,8 @@ class ConfigManager(private val context: Context) {
                 logsPath = jsonObject.optString("logsPath", "${context.filesDir.absolutePath}/logs"),
                 lnbitsAdminApiKey = jsonObject.optString("lnbitsAdminApiKey", null),
                 lnbitsInvoiceApiKey = jsonObject.optString("lnbitsInvoiceApiKey", null),
-                lnbitsApiUrl = jsonObject.optString("lnbitsApiUrl", null)
+                lnbitsApiUrl = jsonObject.optString("lnbitsApiUrl", null),
+                nwcConnectionUri = jsonObject.optString("nwcConnectionUri", null)
             )
         } catch (e: JSONException) {
             Log.e(TAG, "Error parsing JSON to config", e)

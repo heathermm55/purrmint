@@ -27,6 +27,7 @@ class ConfigActivity : AppCompatActivity() {
     private lateinit var clnConfigLayout: View
     private lateinit var lnbitsConfigLayout: View
     private lateinit var fakeWalletConfigLayout: View
+    private lateinit var nwcConfigLayout: View
     
     // CLN inputs
     private lateinit var clnRpcPathInput: TextInputEditText
@@ -41,6 +42,9 @@ class ConfigActivity : AppCompatActivity() {
     private lateinit var fakeWalletFeePercentInput: TextInputEditText
     private lateinit var fakeWalletReserveFeeMinInput: TextInputEditText
     
+    // NWC inputs
+    private lateinit var nwcConnectionUriInput: TextInputEditText
+    
     companion object {
         private const val TAG = "ConfigActivity"
         const val EXTRA_PORT = "port"
@@ -54,6 +58,7 @@ class ConfigActivity : AppCompatActivity() {
         const val EXTRA_LNBITS_API_URL = "lnbits_api_url"
         const val EXTRA_FAKE_WALLET_FEE_PERCENT = "fake_wallet_fee_percent"
         const val EXTRA_FAKE_WALLET_RESERVE_FEE_MIN = "fake_wallet_reserve_fee_min"
+        const val EXTRA_NWC_CONNECTION_URI = "nwc_connection_uri"
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,6 +89,7 @@ class ConfigActivity : AppCompatActivity() {
         clnConfigLayout = findViewById(R.id.clnConfigLayout)
         lnbitsConfigLayout = findViewById(R.id.lnbitsConfigLayout)
         fakeWalletConfigLayout = findViewById(R.id.fakeWalletConfigLayout)
+        nwcConfigLayout = findViewById(R.id.nwcConfigLayout)
         
         // CLN inputs
         clnRpcPathInput = findViewById(R.id.clnRpcPathInput)
@@ -97,10 +103,13 @@ class ConfigActivity : AppCompatActivity() {
         // Fake Wallet inputs
         fakeWalletFeePercentInput = findViewById(R.id.fakeWalletFeePercentInput)
         fakeWalletReserveFeeMinInput = findViewById(R.id.fakeWalletReserveFeeMinInput)
+        
+        // NWC inputs
+        nwcConnectionUriInput = findViewById(R.id.nwcConnectionUriInput)
     }
     
     private fun setupLightningBackendSpinner() {
-        val backends = arrayOf("fakewallet", "cln", "lnbits")
+        val backends = arrayOf("fakewallet", "cln", "lnbits", "nwc")
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, backends)
         lightningBackendSpinner.setAdapter(adapter)
         
@@ -115,12 +124,14 @@ class ConfigActivity : AppCompatActivity() {
         clnConfigLayout.visibility = View.GONE
         lnbitsConfigLayout.visibility = View.GONE
         fakeWalletConfigLayout.visibility = View.GONE
+        nwcConfigLayout.visibility = View.GONE // Hide NWC config by default
         
         // Show the appropriate config layout
         when (backend) {
             "cln" -> clnConfigLayout.visibility = View.VISIBLE
             "lnbits" -> lnbitsConfigLayout.visibility = View.VISIBLE
             "fakewallet" -> fakeWalletConfigLayout.visibility = View.VISIBLE
+            "nwc" -> nwcConfigLayout.visibility = View.VISIBLE // Show NWC config
         }
     }
     
@@ -150,6 +161,11 @@ class ConfigActivity : AppCompatActivity() {
             descriptionInput.setText(existingConfig.description)
             lightningBackendSpinner.setText(existingConfig.lightningBackend, false)
             updateLightningConfigVisibility(existingConfig.lightningBackend)
+            
+            // Load NWC configuration if available
+            if (existingConfig.lightningBackend == "nwc" && existingConfig.nwcConnectionUri != null) {
+                nwcConnectionUriInput.setText(existingConfig.nwcConnectionUri)
+            }
         } else {
             // Load default values
         portInput.setText("3338")
@@ -176,7 +192,7 @@ class ConfigActivity : AppCompatActivity() {
             }
             
             // Validate lightning backend
-            if (lightningBackend !in listOf("fakewallet", "cln", "lnbits")) {
+            if (lightningBackend !in listOf("fakewallet", "cln", "lnbits", "nwc")) {
                 Log.w(TAG, "Invalid lightning backend: '$lightningBackend'")
                 return
             }
@@ -202,6 +218,9 @@ class ConfigActivity : AppCompatActivity() {
                     "fakewallet" -> {
                         putExtra(EXTRA_FAKE_WALLET_FEE_PERCENT, fakeWalletFeePercentInput.text.toString().trim())
                         putExtra(EXTRA_FAKE_WALLET_RESERVE_FEE_MIN, fakeWalletReserveFeeMinInput.text.toString().trim())
+                    }
+                    "nwc" -> {
+                        putExtra(EXTRA_NWC_CONNECTION_URI, nwcConnectionUriInput.text.toString().trim())
                     }
                 }
             }
