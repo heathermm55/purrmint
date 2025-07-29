@@ -1,224 +1,235 @@
 use anyhow::{anyhow, Result};
-use cdk::nuts::CurrencyUnit;
-use cdk::Amount;
+use async_trait::async_trait;
+use cdk::{Amount, nuts::CurrencyUnit};
+use cdk_common::lightning_invoice::Bolt11Invoice;
+use cdk_common::payment::{MintPayment, CreateIncomingPaymentResponse, MakePaymentResponse, PaymentQuoteResponse};
+use cdk_common::mint::MeltQuote;
+use cdk_common::MeltOptions;
+use futures::Stream;
+use nwc::prelude::*;
+use std::pin::Pin;
 use std::str::FromStr;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::debug;
-use tracing::info;
+use std::sync::{Arc, Mutex};
 
-use crate::nwc_client::NWCClient;
-
-/// NWC Lightning Backend Adapter
-/// Implements Lightning backend interface using NWC protocol
+/// NWC Lightning backend implementation
+#[derive(Debug)]
 pub struct NWCLightningBackend {
-    nwc_client: Arc<RwLock<Option<NWCClient>>>,
+    nwc: Arc<Mutex<Option<NWC>>>,
     connection_uri: String,
 }
 
 impl NWCLightningBackend {
-    /// Create new NWC Lightning backend
-    pub fn new(connection_uri: String) -> Result<Self> {
-        Ok(Self {
-            nwc_client: Arc::new(RwLock::new(None)),
+    /// Create a new NWC Lightning backend
+    pub fn new(connection_uri: String) -> Self {
+        Self {
+            nwc: Arc::new(Mutex::new(None)),
             connection_uri,
-        })
-    }
-
-    /// Start the NWC backend
-    pub async fn start(&self) -> Result<()> {
-        info!("Starting NWC Lightning backend...");
-        
-        // Create and connect NWC client
-        let mut client = NWCClient::from_uri(&self.connection_uri).await?;
-        client.connect().await?;
-        
-        // Store the connected client
-        {
-            let mut client_guard = self.nwc_client.write().await;
-            *client_guard = Some(client);
-        }
-        
-        info!("NWC Lightning backend started successfully");
-        Ok(())
-    }
-
-    /// Stop the NWC backend
-    pub async fn stop(&self) -> Result<()> {
-        info!("Stopping NWC Lightning backend...");
-        
-        // Disconnect the client
-        {
-            let mut client_guard = self.nwc_client.write().await;
-            if let Some(mut client) = client_guard.take() {
-                client.disconnect().await?;
-            }
-        }
-        
-        info!("NWC Lightning backend stopped");
-        Ok(())
-    }
-
-    /// Check if backend is running
-    pub async fn is_running(&self) -> bool {
-        let client_guard = self.nwc_client.read().await;
-        client_guard.as_ref().map(|c| c.is_connected()).unwrap_or(false)
-    }
-
-    /// Get backend status
-    pub async fn get_status(&self) -> serde_json::Value {
-        let is_connected = self.is_running().await;
-        serde_json::json!({
-            "running": is_connected,
-            "connection_uri": self.connection_uri,
-        })
-    }
-
-    /// Get the NWC client
-    async fn get_client(&self) -> Result<NWCClient> {
-        let client_guard = self.nwc_client.read().await;
-        client_guard
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| anyhow!("NWC client not initialized"))
-    }
-
-    /// Create a Lightning invoice
-    pub async fn create_invoice(
-        &self,
-        amount: Amount,
-        unit: CurrencyUnit,
-        description: Option<String>,
-        expiry: Option<u64>,
-    ) -> Result<cdk::Bolt11Invoice> {
-        let amount_msat = match unit {
-            CurrencyUnit::Sat => amount.as_ref() * 1000,
-            CurrencyUnit::Msat => *amount.as_ref(),
-            _ => return Err(anyhow!("Unsupported currency unit for NWC")),
-        };
-
-        let client = self.get_client().await?;
-        let result = client.make_invoice(amount_msat, description, expiry).await?;
-        
-        let invoice_str = result["invoice"]
-            .as_str()
-            .ok_or_else(|| anyhow!("Invalid invoice in NWC response"))?;
-        
-        // Parse the invoice
-        let invoice = cdk::Bolt11Invoice::from_str(invoice_str)
-            .map_err(|e| anyhow!("Failed to parse invoice: {}", e))?;
-        
-        Ok(invoice)
-    }
-
-    /// Pay a Lightning invoice
-    pub async fn pay_invoice(&self, invoice: &cdk::Bolt11Invoice) -> Result<String> {
-        let client = self.get_client().await?;
-        client.pay_invoice(&invoice.to_string()).await
-    }
-
-    /// Get balance
-    pub async fn get_balance(&self) -> Result<Amount> {
-        let client = self.get_client().await?;
-        let balance_msat = client.get_balance().await?;
-        Ok(Amount::from(balance_msat))
-    }
-
-    /// Lookup invoice by payment hash
-    pub async fn lookup_invoice(&self, payment_hash: &str) -> Result<Option<cdk::Bolt11Invoice>> {
-        let client = self.get_client().await?;
-        let result = client.lookup_invoice(payment_hash).await?;
-        
-        match result {
-            Some(invoice_data) => {
-                let invoice_str = invoice_data["invoice"]
-                    .as_str()
-                    .ok_or_else(|| anyhow!("Invalid invoice in NWC response"))?;
-                
-                let invoice = cdk::Bolt11Invoice::from_str(invoice_str)
-                    .map_err(|e| anyhow!("Failed to parse invoice: {}", e))?;
-                
-                Ok(Some(invoice))
-            }
-            None => Ok(None),
         }
     }
 
-    /// Calculate fee for an amount
-    pub fn calculate_fee(&self, amount: Amount) -> Amount {
-        let fee_amount = (*amount.as_ref() as f64 * 0.02 as f64) as u64; // Assuming 2% fee
-        let fee = Amount::from(fee_amount.max(1)); // Assuming minimum 1 satoshi
+    /// Get the NWC client, creating it if necessary
+    fn get_nwc(&self) -> Result<NWC> {
+        let mut nwc_guard = self.nwc.lock().map_err(|_| anyhow!("Failed to acquire lock"))?;
         
-        debug!("Calculated fee for {}: {}", amount, fee);
-        fee
-    }
-
-    /// Get supported currency units
-    pub fn supported_units(&self) -> Vec<CurrencyUnit> {
-        vec![CurrencyUnit::Sat, CurrencyUnit::Msat]
-    }
-
-    /// Get wallet service info
-    pub async fn get_wallet_info(&self) -> Result<serde_json::Value> {
-        let client = self.get_client().await?;
-        client.get_info().await
-    }
-
-    /// List transactions
-    pub async fn list_transactions(&self) -> Result<serde_json::Value> {
-        let client = self.get_client().await?;
-        client.list_transactions().await
+        if nwc_guard.is_none() {
+            let uri = NostrWalletConnectURI::from_str(&self.connection_uri)
+                .map_err(|e| anyhow!("Failed to parse NWC URI: {}", e))?;
+            let nwc = NWC::new(uri);
+            *nwc_guard = Some(nwc);
+        }
+        
+        // Clone the NWC client since we can't return a reference from the mutex
+        let nwc = nwc_guard.as_ref().unwrap().clone();
+        Ok(nwc)
     }
 }
 
-impl std::fmt::Debug for NWCLightningBackend {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("NWCLightningBackend")
-            .field("connection_uri", &self.connection_uri)
-            .finish()
+#[async_trait]
+impl MintPayment for NWCLightningBackend {
+    type Err = cdk_common::payment::Error;
+
+    async fn get_settings(&self) -> Result<serde_json::Value, Self::Err> {
+        Ok(serde_json::json!({
+            "mpp": true,
+            "unit": "msat",
+            "invoice_description": true,
+            "amountless": true,
+        }))
+    }
+
+    async fn create_incoming_payment_request(
+        &self,
+        amount: Amount,
+        unit: &CurrencyUnit,
+        description: String,
+        unix_expiry: Option<u64>,
+    ) -> Result<CreateIncomingPaymentResponse, Self::Err> {
+        let nwc = self.get_nwc()
+            .map_err(|e| Self::Err::Anyhow(anyhow!("Failed to get NWC client: {}", e)))?;
+        
+        let amount_msat = match unit {
+            CurrencyUnit::Sat => *amount.as_ref() * 1000,
+            CurrencyUnit::Msat => *amount.as_ref(),
+            _ => return Err(Self::Err::UnsupportedUnit),
+        };
+        
+        let request = MakeInvoiceRequest {
+            amount: amount_msat,
+            description: Some(description.clone()),
+            description_hash: None,
+            expiry: unix_expiry,
+        };
+        
+        let response = nwc.make_invoice(request).await
+            .map_err(|e| Self::Err::Anyhow(anyhow!("Failed to create invoice: {}", e)))?;
+        
+        let _invoice = Bolt11Invoice::from_str(&response.invoice)
+            .map_err(|e| Self::Err::Parse(e))?;
+        
+        Ok(CreateIncomingPaymentResponse {
+            request_lookup_id: response.payment_hash,
+            request: response.invoice,
+            expiry: unix_expiry,
+        })
+    }
+
+    async fn get_payment_quote(
+        &self,
+        request: &str,
+        unit: &CurrencyUnit,
+        _options: Option<MeltOptions>,
+    ) -> Result<PaymentQuoteResponse, Self::Err> {
+        let _nwc = self.get_nwc()
+            .map_err(|e| Self::Err::Anyhow(anyhow!("Failed to get NWC client: {}", e)))?;
+        
+        let invoice = Bolt11Invoice::from_str(request)
+            .map_err(|e| Self::Err::Parse(e))?;
+        
+        let amount_msat = invoice.amount_milli_satoshis()
+            .ok_or_else(|| Self::Err::Anyhow(anyhow!("Invoice has no amount")))?;
+        
+        let amount = match unit {
+            CurrencyUnit::Sat => Amount::from(amount_msat / 1000),
+            CurrencyUnit::Msat => Amount::from(amount_msat),
+            _ => return Err(Self::Err::UnsupportedUnit),
+        };
+        
+        // Calculate fee (2% with minimum 1 satoshi)
+        let fee_amount = (*amount.as_ref() as f64 * 0.02) as u64;
+        let fee = std::cmp::max(fee_amount, 1);
+        
+        Ok(PaymentQuoteResponse {
+            request_lookup_id: invoice.payment_hash().to_string(),
+            amount,
+            fee: Amount::from(fee),
+            state: cdk_common::MeltQuoteState::Unpaid,
+            unit: unit.clone(),
+        })
+    }
+
+    async fn make_payment(
+        &self,
+        melt_quote: MeltQuote,
+        _partial_amount: Option<Amount>,
+        _max_fee_amount: Option<Amount>,
+    ) -> Result<MakePaymentResponse, Self::Err> {
+        let nwc = self.get_nwc()
+            .map_err(|e| Self::Err::Anyhow(anyhow!("Failed to get NWC client: {}", e)))?;
+        
+        let request = PayInvoiceRequest::new(melt_quote.request.clone());
+        
+        let response = nwc.pay_invoice(request).await
+            .map_err(|e| Self::Err::Anyhow(anyhow!("Failed to pay invoice: {}", e)))?;
+        
+        Ok(MakePaymentResponse {
+            payment_lookup_id: melt_quote.request_lookup_id,
+            payment_proof: Some(response.preimage),
+            status: cdk_common::MeltQuoteState::Paid,
+            total_spent: melt_quote.amount,
+            unit: melt_quote.unit,
+        })
+    }
+
+    async fn wait_any_incoming_payment(
+        &self,
+    ) -> Result<Pin<Box<dyn Stream<Item = String> + Send>>, Self::Err> {
+        // NWC doesn't support waiting for incoming payments in the same way
+        // This would need to be implemented differently for NWC
+        Err(Self::Err::Anyhow(anyhow!("wait_any_incoming_payment not supported for NWC")))
+    }
+
+    fn is_wait_invoice_active(&self) -> bool {
+        false // NWC doesn't support this
+    }
+
+    fn cancel_wait_invoice(&self) {
+        // NWC doesn't support this
+    }
+
+    async fn check_incoming_payment_status(
+        &self,
+        request_lookup_id: &str,
+    ) -> Result<cdk_common::MintQuoteState, Self::Err> {
+        let nwc = self.get_nwc()
+            .map_err(|e| Self::Err::Anyhow(anyhow!("Failed to get NWC client: {}", e)))?;
+        
+        let request = LookupInvoiceRequest {
+            payment_hash: Some(request_lookup_id.to_string()),
+            invoice: None,
+        };
+        
+        let response = nwc.lookup_invoice(request).await
+            .map_err(|e| Self::Err::Anyhow(anyhow!("Failed to lookup invoice: {}", e)))?;
+        
+        // Check if the invoice has been paid
+        if response.settled_at.is_some() {
+            Ok(cdk_common::MintQuoteState::Paid)
+        } else {
+            Ok(cdk_common::MintQuoteState::Unpaid)
+        }
+    }
+
+    async fn check_outgoing_payment(
+        &self,
+        request_lookup_id: &str,
+    ) -> Result<MakePaymentResponse, Self::Err> {
+        let nwc = self.get_nwc()
+            .map_err(|e| Self::Err::Anyhow(anyhow!("Failed to get NWC client: {}", e)))?;
+        
+        let request = LookupInvoiceRequest {
+            payment_hash: Some(request_lookup_id.to_string()),
+            invoice: None,
+        };
+        
+        let response = nwc.lookup_invoice(request).await
+            .map_err(|e| Self::Err::Anyhow(anyhow!("Failed to lookup invoice: {}", e)))?;
+        
+        let status = if response.settled_at.is_some() {
+            cdk_common::MeltQuoteState::Paid
+        } else {
+            cdk_common::MeltQuoteState::Unpaid
+        };
+        
+        Ok(MakePaymentResponse {
+            payment_lookup_id: request_lookup_id.to_string(),
+            payment_proof: Some(response.preimage.unwrap_or_default()),
+            status,
+            total_spent: Amount::from(response.amount),
+            unit: CurrencyUnit::Msat,
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cdk::Amount;
 
-    #[tokio::test]
-    async fn test_nwc_backend_creation() {
-        let connection_uri = "nostr+walletconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4?relay=wss%3A%2F%2Frelay.damus.io&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c";
+    #[test]
+    fn test_nwc_backend_creation() {
+        let uri = "nostr+walletconnect://test?relay=wss://test.com&secret=test";
+        let backend = NWCLightningBackend::new(uri.to_string());
         
-        let backend = NWCLightningBackend::new(
-            connection_uri.to_string(),
-        );
-        assert!(backend.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_fee_calculation() {
-        let connection_uri = "nostr+walletconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4?relay=wss%3A%2F%2Frelay.damus.io&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c";
-        
-        let backend = NWCLightningBackend::new(
-            connection_uri.to_string(),
-        ).unwrap();
-
-        let amount = Amount::from(1000);
-        let fee = backend.calculate_fee(amount);
-        
-        // 2% of 1000 = 20
-        assert_eq!(*fee.as_ref(), 20);
-    }
-
-    #[tokio::test]
-    async fn test_supported_units() {
-        let connection_uri = "nostr+walletconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4?relay=wss%3A%2F%2Frelay.damus.io&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c";
-        
-        let backend = NWCLightningBackend::new(
-            connection_uri.to_string(),
-        ).unwrap();
-
-        let units = backend.supported_units();
-        assert!(units.contains(&CurrencyUnit::Sat));
-        assert!(units.contains(&CurrencyUnit::Msat));
+        assert_eq!(backend.connection_uri, uri);
+        assert!(backend.nwc.lock().unwrap().is_none());
     }
 } 

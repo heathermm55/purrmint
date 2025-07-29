@@ -3123,6 +3123,28 @@ dependencies = [
 
 [[package]]
 name = "nostr"
+version = "0.42.1"
+dependencies = [
+ "aes",
+ "base64 0.22.1",
+ "bech32 0.11.0",
+ "bip39",
+ "bitcoin_hashes 0.14.0",
+ "cbc",
+ "chacha20",
+ "chacha20poly1305",
+ "getrandom 0.2.16",
+ "instant",
+ "scrypt",
+ "secp256k1 0.29.1",
+ "serde",
+ "serde_json",
+ "unicode-normalization",
+ "url",
+]
+
+[[package]]
+name = "nostr"
 version = "0.42.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d193102a62a22b61f9a61b9df54fb19ebab8c1763d088fbb9a6f0f57000fba2d"
@@ -3153,10 +3175,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29bcce69dcfe07f399cba2f304b2b0662764eaf35b8e227049c063b1d2ec37d0"
 dependencies = [
  "async-utility",
- "nostr",
- "nostr-relay-pool",
+ "nostr 0.42.2",
+ "nostr-relay-pool 0.42.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "nostr-database"
+version = "0.42.0"
+dependencies = [
+ "lru",
+ "nostr 0.42.1",
+ "tokio",
 ]
 
 [[package]]
@@ -3166,8 +3197,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6aafe85dc7c039c399796043b76009fa744c3a45ac073a023932f7b7d91b1e7"
 dependencies = [
  "lru",
- "nostr",
+ "nostr 0.42.2",
  "tokio",
+]
+
+[[package]]
+name = "nostr-relay-pool"
+version = "0.42.0"
+dependencies = [
+ "async-utility",
+ "async-wsocket",
+ "atomic-destructor",
+ "lru",
+ "negentropy",
+ "nostr 0.42.1",
+ "nostr-database 0.42.0",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -3181,8 +3227,8 @@ dependencies = [
  "atomic-destructor",
  "lru",
  "negentropy",
- "nostr",
- "nostr-database",
+ "nostr 0.42.2",
+ "nostr-database 0.42.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
  "tracing",
 ]
@@ -3194,9 +3240,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1e928ba9ac2695fbe10b8aefda59f2abfeb23c10a0e86a0b3e0f6a27bb274a2"
 dependencies = [
  "async-utility",
- "nostr",
- "nostr-database",
- "nostr-relay-pool",
+ "nostr 0.42.2",
+ "nostr-database 0.42.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nostr-relay-pool 0.42.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
  "tracing",
 ]
@@ -3328,6 +3374,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.104",
+]
+
+[[package]]
+name = "nwc"
+version = "0.42.0"
+dependencies = [
+ "async-utility",
+ "nostr 0.42.1",
+ "nostr-relay-pool 0.42.0",
+ "tracing",
 ]
 
 [[package]]
@@ -3862,10 +3918,11 @@ dependencies = [
  "jni",
  "libc",
  "log",
- "nostr",
+ "nostr 0.42.2",
  "nostr-connect",
- "nostr-relay-pool",
+ "nostr-relay-pool 0.42.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "nostr-sdk",
+ "nwc",
  "once_cell",
  "rand 0.9.1",
  "reqwest",

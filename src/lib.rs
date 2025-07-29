@@ -8,7 +8,6 @@ pub mod core;
 pub mod nostr;
 pub mod config;
 pub mod tor_service;
-pub mod nwc_client;
 pub mod nwc_adapter;
 
 // Re-export key types
@@ -16,7 +15,6 @@ pub use service::MintService;
 pub use core::*;
 pub use config::*;
 pub use nip74_service::*;
-pub use nwc_client::*;
 pub use nwc_adapter::*;
 
 /// Initialize logging for the library

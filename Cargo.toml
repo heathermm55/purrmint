@@ -29,6 +29,7 @@ nostr-relay-pool = { version = "0.42" }
 bech32 = "0.9"
 urlencoding = "2.1"
 chrono = { version = "0.4", features = ["serde"] }
+nwc = { path = "../nostr/crates/nwc" }
 
 # CDK dependencies
 cdk = { version = "0.11", features = ["mint"] }
