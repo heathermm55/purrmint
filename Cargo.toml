@@ -20,9 +20,14 @@ async-trait = "0.1"
 tracing = { version = "0.1", default-features = false, features = ["attributes", "log"] }
 
 # Nostr dependencies
-nostr = { version = "0.42", features = ["std", "nip44"] }
+nostr = { version = "0.42", features = ["std", "nip44", "nip04"] }
 nostr-sdk = { version = "0.42" }
 nostr-connect = { version = "0.42" }
+
+# NWC (Nostr Wallet Connect) support
+bech32 = "0.9"
+urlencoding = "2.1"
+chrono = { version = "0.4", features = ["serde"] }
 
 # CDK dependencies
 cdk = { version = "0.11", features = ["mint"] }

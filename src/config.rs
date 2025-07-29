@@ -189,6 +189,7 @@ pub enum LnBackend {
     LNbits,
     Cln,
     Lnd,
+    NWC,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -275,6 +276,39 @@ impl Default for Cln {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NWC {
+    pub relay_urls: Vec<String>,
+    pub supported_methods: Vec<String>,
+    pub supported_notifications: Vec<String>,
+    pub lud16: Option<String>,
+    pub fee_percent: f32,
+    pub reserve_fee_min: Amount,
+}
+
+impl Default for NWC {
+    fn default() -> Self {
+        Self {
+            relay_urls: vec!["wss://relay.damus.io".to_string()],
+            supported_methods: vec![
+                "pay_invoice".to_string(),
+                "make_invoice".to_string(),
+                "get_balance".to_string(),
+                "get_info".to_string(),
+                "lookup_invoice".to_string(),
+                "list_transactions".to_string(),
+            ],
+            supported_notifications: vec![
+                "payment_received".to_string(),
+                "payment_sent".to_string(),
+            ],
+            lud16: None,
+            fee_percent: 0.02,
+            reserve_fee_min: 2.into(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum DatabaseEngine {
@@ -308,6 +342,7 @@ pub struct Settings {
     pub fake_wallet: Option<FakeWallet>,
     pub lnbits: Option<LNbits>,
     pub cln: Option<Cln>,
+    pub nwc: Option<NWC>,
     pub database: Database,
     pub service_mode: ServiceMode,
     pub tor: TorConfig,
@@ -416,6 +451,7 @@ impl Settings {
             fake_wallet: Some(FakeWallet::default()),
             lnbits: None,
             cln: None,
+            nwc: None,
             database,
             service_mode: ServiceMode::default(),
             tor,
@@ -441,6 +477,7 @@ impl AndroidConfig {
             "fake" | "fakewallet" => LnBackend::FakeWallet,
             "lnbits" => LnBackend::LNbits,
             "cln" => LnBackend::Cln,
+            "nwc" => LnBackend::NWC,
             _ => LnBackend::None,
         };
         
@@ -479,6 +516,12 @@ impl AndroidConfig {
                     // Clear fake wallet config when using CLN
                     settings.fake_wallet = None;
                 }
+            }
+            "nwc" => {
+                // Set NWC configuration
+                settings.nwc = Some(NWC::default());
+                // Clear fake wallet config when using NWC
+                settings.fake_wallet = None;
             }
             _ => {
                 // Keep default fake wallet config for unrecognized backends
