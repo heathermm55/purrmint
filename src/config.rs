@@ -278,10 +278,7 @@ impl Default for Cln {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NWC {
-    pub relay_urls: Vec<String>,
-    pub supported_methods: Vec<String>,
-    pub supported_notifications: Vec<String>,
-    pub lud16: Option<String>,
+    pub connection_uri: String,
     pub fee_percent: f32,
     pub reserve_fee_min: Amount,
 }
@@ -289,20 +286,7 @@ pub struct NWC {
 impl Default for NWC {
     fn default() -> Self {
         Self {
-            relay_urls: vec!["wss://relay.damus.io".to_string()],
-            supported_methods: vec![
-                "pay_invoice".to_string(),
-                "make_invoice".to_string(),
-                "get_balance".to_string(),
-                "get_info".to_string(),
-                "lookup_invoice".to_string(),
-                "list_transactions".to_string(),
-            ],
-            supported_notifications: vec![
-                "payment_received".to_string(),
-                "payment_sent".to_string(),
-            ],
-            lud16: None,
+            connection_uri: "nostr+walletconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4?relay=wss%3A%2F%2Frelay.damus.io&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c".to_string(),
             fee_percent: 0.02,
             reserve_fee_min: 2.into(),
         }
