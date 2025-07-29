@@ -108,6 +108,7 @@ async fn main() -> Result<()> {
         lnbits_api_url: None,
         cln_rpc_path: None,
         cln_bolt12: None,
+        nwc_connection_uri: None,
         tor_enabled: Some(true),
         tor_mode: Some("custom".to_string()),
         tor_data_dir: Some("/tmp/local_mint_tor_data".to_string()),
@@ -123,7 +124,7 @@ async fn main() -> Result<()> {
         work_dir.clone(),
         &android_config,
         test_nsec.to_string(),
-    );
+    )?;
     
     println!("   - Work directory: {:?}", work_dir);
     println!("   - Service port: {}", android_config.port);

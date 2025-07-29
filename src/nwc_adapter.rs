@@ -32,8 +32,10 @@ impl NWCLightningBackend {
         let mut nwc_guard = self.nwc.lock().map_err(|_| anyhow!("Failed to acquire lock"))?;
         
         if nwc_guard.is_none() {
+            tracing::info!("Attempting to parse NWC URI: {}", self.connection_uri);
             let uri = NostrWalletConnectURI::from_str(&self.connection_uri)
-                .map_err(|e| anyhow!("Failed to parse NWC URI: {}", e))?;
+                .map_err(|e| anyhow!("Failed to parse NWC URI '{}': {}", self.connection_uri, e))?;
+            tracing::info!("Successfully parsed NWC URI");
             let nwc = NWC::new(uri);
             *nwc_guard = Some(nwc);
         }

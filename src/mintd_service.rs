@@ -54,10 +54,10 @@ impl MintdService {
         work_dir: PathBuf,
         android_config: &crate::config::AndroidConfig,
         nsec: String,
-    ) -> Self {
-        let config = Self::create_config_from_android(android_config);
+    ) -> Result<Self> {
+        let config = Self::create_config_from_android(android_config)?;
 
-        Self {
+        Ok(Self {
             mint: None,
             shutdown: Arc::new(Notify::new()),
             work_dir,
@@ -65,7 +65,7 @@ impl MintdService {
             nsec: Some(nsec),
             is_running: false,
             http_server: None,
-        }
+        })
     }
 
     /// Generate 64-byte seed from nsec (Nostr private key)
@@ -154,7 +154,7 @@ impl MintdService {
         }
     }
 
-    fn create_config_from_android(android_config: &AndroidConfig) -> Settings {
+    fn create_config_from_android(android_config: &AndroidConfig) -> Result<Settings> {
         let mut settings = Settings {
             info: Info {
                 url: format!("http://{}:{}/", android_config.host, android_config.port),
@@ -242,8 +242,7 @@ impl MintdService {
                         connection_uri: connection_uri.clone(),
                     });
                 } else {
-                    // Fallback to default if NWC config is incomplete
-                    settings.nwc = Some(NWC::default());
+                    return Err(anyhow!("NWC connection URI is required when using NWC backend"));
                 }
             }
             _ => {
@@ -261,7 +260,7 @@ impl MintdService {
             }
         }
 
-        settings
+        Ok(settings)
     }
 
     pub async fn start(&mut self) -> Result<()> {
