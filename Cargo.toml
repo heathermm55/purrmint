@@ -21,7 +21,7 @@ tracing = { version = "0.1", default-features = false, features = ["attributes",
 
 # Nostr dependencies
 nostr = { version = "0.42", features = ["std", "nip44"] }
-nostr-sdk = { version = "0.42" }
+# nostr-sdk = { version = "0.42" }  # Removed to avoid rustls 0.23.x dependency
 nostr-connect = { version = "0.42" }
 
 # CDK dependencies

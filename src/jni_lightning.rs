@@ -2,9 +2,10 @@ use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 use jni::{
     JNIEnv, objects::{JClass, JString, JObject},
-    sys::{jboolean, jlong, jstring, jobjectArray},
+    sys::{jboolean, jlong, jstring, jobjectArray, jobject},
 };
 use anyhow::Result;
+use log::error;
 
 use crate::lightning_wallet::{LightningWallet, WalletStatus, WalletBalance, ChannelInfo, PaymentInfo};
 
@@ -33,10 +34,10 @@ pub extern "system" fn Java_com_purrmint_app_wallet_LightningWalletManager_nativ
     })();
     
     match result {
-        Ok(_) => true,
+        Ok(_) => 1,
         Err(e) => {
             error!("Failed to initialize Lightning wallet: {}", e);
-            false
+            0
         }
     }
 }
@@ -47,7 +48,7 @@ pub extern "system" fn Java_com_purrmint_app_wallet_LightningWalletManager_nativ
     env: JNIEnv,
     _class: JClass,
 ) -> jobject {
-    let result: Result<jobject> = (|| {
+    let result: Result<JObject> = (|| {
         unsafe {
             if let Some(wallet) = &LIGHTNING_WALLET {
                 let wallet_guard = wallet.lock().unwrap();
@@ -65,7 +66,7 @@ pub extern "system" fn Java_com_purrmint_app_wallet_LightningWalletManager_nativ
                     ]
                 )?;
                 
-                Ok(status_obj.into_inner())
+                Ok(status_obj.into())
             } else {
                 anyhow::bail!("Lightning wallet not initialized")
             }
@@ -73,7 +74,7 @@ pub extern "system" fn Java_com_purrmint_app_wallet_LightningWalletManager_nativ
     })();
     
     match result {
-        Ok(obj) => obj,
+        Ok(obj) => obj.into(),
         Err(e) => {
             error!("Failed to get wallet status: {}", e);
             std::ptr::null_mut()
@@ -98,12 +99,12 @@ pub extern "system" fn Java_com_purrmint_app_wallet_LightningWalletManager_nativ
                         balance_class,
                         "(JJ)V",
                         &[
-                            balance.lightning_balance_msat as jlong,
-                            balance.onchain_balance_sats as jlong,
+                            jni::objects::JValueGen::Long(balance.lightning_balance_msat as jlong),
+                            jni::objects::JValueGen::Long(balance.onchain_balance_sats as jlong),
                         ]
                     )?;
                     
-                    Ok(balance_obj.into_inner())
+                    Ok(balance_obj.into())
                 } else {
                     Ok(std::ptr::null_mut())
                 }
