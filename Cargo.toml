@@ -23,6 +23,7 @@ tracing = { version = "0.1", default-features = false, features = ["attributes",
 nostr = { version = "0.42", features = ["std", "nip44", "nip04"] }
 nostr-sdk = { version = "0.42" }
 nostr-connect = { version = "0.42" }
+nostr-relay-pool = { version = "0.42" }
 
 # NWC (Nostr Wallet Connect) support
 bech32 = "0.9"

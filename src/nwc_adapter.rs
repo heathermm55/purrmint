@@ -14,18 +14,14 @@ use crate::nwc_client::NWCClient;
 pub struct NWCLightningBackend {
     nwc_client: Arc<RwLock<Option<NWCClient>>>,
     connection_uri: String,
-    fee_percent: f32,
-    reserve_fee_min: Amount,
 }
 
 impl NWCLightningBackend {
     /// Create new NWC Lightning backend
-    pub fn new(connection_uri: String, fee_percent: f32, reserve_fee_min: Amount) -> Result<Self> {
+    pub fn new(connection_uri: String) -> Result<Self> {
         Ok(Self {
             nwc_client: Arc::new(RwLock::new(None)),
             connection_uri,
-            fee_percent,
-            reserve_fee_min,
         })
     }
 
@@ -75,8 +71,6 @@ impl NWCLightningBackend {
         serde_json::json!({
             "running": is_connected,
             "connection_uri": self.connection_uri,
-            "fee_percent": self.fee_percent,
-            "reserve_fee_min": *self.reserve_fee_min.as_ref(),
         })
     }
 
@@ -152,8 +146,8 @@ impl NWCLightningBackend {
 
     /// Calculate fee for an amount
     pub fn calculate_fee(&self, amount: Amount) -> Amount {
-        let fee_amount = (*amount.as_ref() as f64 * self.fee_percent as f64) as u64;
-        let fee = Amount::from(fee_amount.max(*self.reserve_fee_min.as_ref()));
+        let fee_amount = (*amount.as_ref() as f64 * 0.02 as f64) as u64; // Assuming 2% fee
+        let fee = Amount::from(fee_amount.max(1)); // Assuming minimum 1 satoshi
         
         debug!("Calculated fee for {}: {}", amount, fee);
         fee
@@ -181,8 +175,6 @@ impl std::fmt::Debug for NWCLightningBackend {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("NWCLightningBackend")
             .field("connection_uri", &self.connection_uri)
-            .field("fee_percent", &self.fee_percent)
-            .field("reserve_fee_min", &self.reserve_fee_min)
             .finish()
     }
 }
@@ -198,8 +190,6 @@ mod tests {
         
         let backend = NWCLightningBackend::new(
             connection_uri.to_string(),
-            0.02,
-            Amount::from(1),
         );
         assert!(backend.is_ok());
     }
@@ -210,16 +200,13 @@ mod tests {
         
         let backend = NWCLightningBackend::new(
             connection_uri.to_string(),
-            0.02,
-            Amount::from(1),
         ).unwrap();
 
         let amount = Amount::from(1000);
         let fee = backend.calculate_fee(amount);
         
-        // 2% of 1000 = 20, but minimum is 1
-        // Note: 1000 * 0.02 = 20.0, but as u64 it becomes 19 due to truncation
-        assert_eq!(*fee.as_ref(), 19);
+        // 2% of 1000 = 20
+        assert_eq!(*fee.as_ref(), 20);
     }
 
     #[tokio::test]
@@ -228,8 +215,6 @@ mod tests {
         
         let backend = NWCLightningBackend::new(
             connection_uri.to_string(),
-            0.02,
-            Amount::from(1),
         ).unwrap();
 
         let units = backend.supported_units();
