@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::config::{
     AndroidConfig, Cln, Database, DatabaseEngine, FakeWallet, Info, LNbits, Ln, LnBackend,
-    MintInfo, Settings,
+    MintInfo, NWC, Settings,
 };
 use cdk::mint::{MintBuilder, MintMeltLimits};
 use cdk::types::QuoteTTL;
@@ -155,55 +155,35 @@ impl MintdService {
     }
 
     fn create_config_from_android(android_config: &AndroidConfig) -> Settings {
-        let info = Info {
-            url: format!("http://{}:{}/", android_config.host, android_config.port),
-            listen_host: android_config.host.clone(),
-            listen_port: android_config.port,
-            mnemonic: None,
-            signatory_url: None,
-            signatory_certs: None,
-            input_fee_ppk: None,
-        };
-
-        let mint_info = MintInfo {
-            name: android_config.mint_name.clone(),
-            pubkey: None,
-            description: android_config.description.clone(),
-            description_long: None,
-            icon_url: None,
-            motd: None,
-            contact_nostr_public_key: None,
-            contact_email: None,
-            tos_url: None,
-        };
-
-        let ln = Ln {
-            ln_backend: match android_config.lightning_backend.as_str() {
-                "fakewallet" | "fake" => LnBackend::FakeWallet,
-                "lnbits" => LnBackend::LNbits,
-                _ => LnBackend::None,
-            },
-            invoice_description: None,
-            min_mint: 1.into(),
-            max_mint: 1000000.into(),
-            min_melt: 1.into(),
-            max_melt: 1000000.into(),
-        };
-
-        let database = Database {
-            engine: DatabaseEngine::Sqlite,
-        };
-
-        // Create settings with appropriate backend configuration
         let mut settings = Settings {
-            info,
-            mint_info,
-            ln,
+            info: Info {
+                url: format!("http://{}:{}/", android_config.host, android_config.port),
+                listen_host: android_config.host.clone(),
+                listen_port: android_config.port,
+                mnemonic: None,
+                signatory_url: None,
+                signatory_certs: None,
+                input_fee_ppk: None,
+            },
+            mint_info: MintInfo {
+                name: android_config.mint_name.clone(),
+                pubkey: None,
+                description: android_config.description.clone(),
+                description_long: None,
+                icon_url: None,
+                motd: None,
+                contact_nostr_public_key: None,
+                contact_email: None,
+                tos_url: None,
+            },
+            ln: Ln::default(),
             fake_wallet: None,
             lnbits: None,
             cln: None,
             nwc: None,
-            database,
+            database: Database {
+                engine: DatabaseEngine::Sqlite,
+            },
             service_mode: crate::config::ServiceMode::MintdOnly,
             tor: crate::config::TorConfig::default(),
         };
@@ -253,6 +233,17 @@ impl MintdService {
                 } else {
                     // Fallback to default if CLN config is incomplete
                     settings.cln = Some(Cln::default());
+                }
+            }
+            "nwc" => {
+                // Use NWC configuration from Android config
+                if let Some(connection_uri) = &android_config.nwc_connection_uri {
+                    settings.nwc = Some(NWC {
+                        connection_uri: connection_uri.clone(),
+                    });
+                } else {
+                    // Fallback to default if NWC config is incomplete
+                    settings.nwc = Some(NWC::default());
                 }
             }
             _ => {
@@ -503,6 +494,29 @@ impl MintdService {
                             self.config.ln.max_mint.into(),
                         ),
                         Arc::new(cln.clone()),
+                    )
+                    .await?;
+            }
+        }
+
+        // Configure NWC backend
+        if let Some(nwc_config) = &self.config.nwc {
+            let nwc_backend = crate::nwc_adapter::NWCLightningBackend::new(
+                nwc_config.connection_uri.clone(),
+            );
+
+            // Add NWC backend for supported units
+            let supported_units = vec![cdk::nuts::CurrencyUnit::Sat, cdk::nuts::CurrencyUnit::Msat];
+            for unit in supported_units {
+                mint_builder = mint_builder
+                    .add_ln_backend(
+                        unit,
+                        cdk::nuts::PaymentMethod::Bolt11,
+                        MintMeltLimits::new(
+                            self.config.ln.min_mint.into(),
+                            self.config.ln.max_mint.into(),
+                        ),
+                        Arc::new(nwc_backend.clone()),
                     )
                     .await?;
             }

@@ -279,16 +279,12 @@ impl Default for Cln {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NWC {
     pub connection_uri: String,
-    pub fee_percent: f32,
-    pub reserve_fee_min: Amount,
 }
 
 impl Default for NWC {
     fn default() -> Self {
         Self {
-            connection_uri: "nostr+walletconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4?relay=wss%3A%2F%2Frelay.damus.io&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c".to_string(),
-            fee_percent: 0.02,
-            reserve_fee_min: 2.into(),
+            connection_uri: String::new(),
         }
     }
 }
@@ -353,6 +349,8 @@ pub struct AndroidConfig {
     pub lnbits_api_url: Option<String>,
     pub cln_rpc_path: Option<String>,
     pub cln_bolt12: Option<bool>,
+    // NWC configuration
+    pub nwc_connection_uri: Option<String>,
     // Tor configuration
     pub tor_enabled: Option<bool>,
     pub tor_mode: Option<String>,
@@ -380,6 +378,7 @@ impl Default for AndroidConfig {
             lnbits_api_url: None,
             cln_rpc_path: None,
             cln_bolt12: None,
+            nwc_connection_uri: None,
             // Tor defaults
             tor_enabled: Some(false),
             tor_mode: Some("disabled".to_string()),
@@ -447,7 +446,7 @@ impl Settings {
 
 impl AndroidConfig {
     /// Convert AndroidConfig to Settings
-    pub fn to_settings(&self, mnemonic: Option<String>) -> Settings {
+    pub fn to_settings(&self, mnemonic: Option<String>) -> Result<Settings> {
         let mut settings = Settings::default_with_mnemonic(mnemonic);
         
         settings.info.listen_port = self.port;
@@ -503,7 +502,13 @@ impl AndroidConfig {
             }
             "nwc" => {
                 // Set NWC configuration
-                settings.nwc = Some(NWC::default());
+                if let Some(connection_uri) = &self.nwc_connection_uri {
+                    settings.nwc = Some(NWC {
+                        connection_uri: connection_uri.clone(),
+                    });
+                } else {
+                    return Err(anyhow!("NWC connection URI is required when using NWC backend"));
+                }
                 // Clear fake wallet config when using NWC
                 settings.fake_wallet = None;
             }
@@ -523,7 +528,7 @@ impl AndroidConfig {
         // Set Tor configuration
         settings.tor = self.to_tor_config();
         
-        settings
+        Ok(settings)
     }
 
     /// Convert AndroidConfig to TorConfig
@@ -594,7 +599,7 @@ mod tests {
         config.lnbits_invoice_api_key = Some("invoice_key_456".to_string());
         config.lnbits_api_url = Some("https://lnbits.example.com".to_string());
 
-        let settings = config.to_settings(None);
+        let settings = config.to_settings(None).expect("Failed to convert to settings");
         assert_eq!(settings.ln.ln_backend, LnBackend::LNbits);
         assert!(settings.lnbits.is_some());
         
@@ -632,7 +637,7 @@ mod tests {
         assert_eq!(config.lnbits_api_url, Some("https://lnbits.example.com".to_string()));
 
         // Test conversion to Settings
-        let settings = config.to_settings(None);
+        let settings = config.to_settings(None).expect("Failed to convert to settings");
         assert_eq!(settings.ln.ln_backend, LnBackend::LNbits);
         assert!(settings.lnbits.is_some());
         assert!(settings.fake_wallet.is_none()); // Should be cleared when using LNBits
@@ -664,5 +669,27 @@ mod tests {
         assert!(!tor_config.is_enabled());
     }
 
+    #[test]
+    fn test_nwc_config_with_uri() {
+        let mut config = AndroidConfig::default();
+        config.lightning_backend = "nwc".to_string();
+        config.nwc_connection_uri = Some("ws://localhost:10009".to_string());
+
+        let settings = config.to_settings(None).expect("Failed to convert to settings");
+        assert_eq!(settings.ln.ln_backend, LnBackend::NWC);
+        assert!(settings.nwc.is_some());
+        assert_eq!(settings.nwc.unwrap().connection_uri, "ws://localhost:10009");
+    }
+
+    #[test]
+    fn test_nwc_config_without_uri() {
+        let mut config = AndroidConfig::default();
+        config.lightning_backend = "nwc".to_string();
+        // config.nwc_connection_uri = Some("ws://localhost:10009".to_string()); // This line is removed
+
+        let result = config.to_settings(None);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "NWC connection URI is required when using NWC backend");
+    }
 
 } 

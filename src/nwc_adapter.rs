@@ -12,7 +12,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 /// NWC Lightning backend implementation
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NWCLightningBackend {
     nwc: Arc<Mutex<Option<NWC>>>,
     connection_uri: String,
