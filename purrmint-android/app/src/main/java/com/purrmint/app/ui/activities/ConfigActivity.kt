@@ -7,6 +7,9 @@ import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.appbar.MaterialToolbar
@@ -64,6 +67,9 @@ class ConfigActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Enable edge-to-edge and handle window insets properly
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        
         // Apply current language
         val languageManager = LanguageManager(this)
         languageManager.updateConfiguration(resources)
@@ -71,6 +77,7 @@ class ConfigActivity : AppCompatActivity() {
         setContentView(R.layout.activity_config)
         
         initializeViews()
+        setupWindowInsets()
         setupLightningBackendSpinner()
         setupClickListeners()
         loadDefaultValues()
@@ -146,6 +153,28 @@ class ConfigActivity : AppCompatActivity() {
         
         btnStart.setOnClickListener {
             startService()
+        }
+    }
+    
+    private fun setupWindowInsets() {
+        // Apply window insets to handle edge-to-edge display properly
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.coordinatorLayout)) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            
+            // Apply padding to the AppBarLayout for status bar
+            val appBarLayout = findViewById<com.google.android.material.appbar.AppBarLayout>(R.id.topAppBar).parent as com.google.android.material.appbar.AppBarLayout
+            appBarLayout.setPadding(0, systemBars.top, 0, 0)
+            
+            // Apply bottom padding to the nested scroll view for navigation bar
+            val nestedScrollView = findViewById<androidx.core.widget.NestedScrollView>(R.id.nestedScrollView)
+            nestedScrollView?.setPadding(
+                nestedScrollView.paddingLeft,
+                nestedScrollView.paddingTop,
+                nestedScrollView.paddingRight,
+                systemBars.bottom
+            )
+            
+            insets
         }
     }
     

@@ -32,8 +32,8 @@
         <item name="colorOutline">@color/outline_color</item>
         <item name="colorOutlineVariant">@color/outline_variant_color</item>
         
-        <!-- Status bar color -->
-        <item name="android:statusBarColor">@color/surface_color</item>
+        <!-- Status bar color - transparent for edge-to-edge -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
         
         <!-- Text colors -->
