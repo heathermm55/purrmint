@@ -113,7 +113,6 @@
     <string name="user">User</string>
     <string name="about">About</string>
     <string name="version">Version</string>
-    <string name="app_version">v0.0.2</string>
     
     <!-- Main Activity UI strings -->
     <string name="mint_status">Mint Status</string>

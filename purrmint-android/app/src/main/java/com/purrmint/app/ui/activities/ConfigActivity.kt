@@ -117,7 +117,7 @@ class ConfigActivity : AppCompatActivity() {
     
     private fun setupLightningBackendSpinner() {
         val backends = arrayOf("fakewallet", "cln", "lnbits", "nwc")
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, backends)
+        val adapter = ArrayAdapter(this, com.google.android.material.R.layout.support_simple_spinner_dropdown_item, backends)
         lightningBackendSpinner.setAdapter(adapter)
         
         lightningBackendSpinner.setOnItemClickListener { _, _, position, _ ->

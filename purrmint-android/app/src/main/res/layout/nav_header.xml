@@ -24,9 +24,9 @@
         android:textColor="@color/on_primary_color" />
 
     <TextView
+        android:id="@+id/navVersionText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/app_version"
         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
         android:textColor="@color/on_primary_color" />
 

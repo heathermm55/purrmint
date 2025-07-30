@@ -274,6 +274,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_menu)
         navigationView.setNavigationItemSelectedListener(this)
         
+        // Set dynamic version in navigation header
+        setupNavigationHeader()
+        
         // Setup config button
         btnConfig.setOnClickListener {
             if (!isMintRunning) {
@@ -851,6 +854,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Close the drawer
         drawerLayout.closeDrawers()
         return true
+    }
+    
+    private fun setupNavigationHeader() {
+        val headerView = navigationView.getHeaderView(0)
+        val versionTextView = headerView.findViewById<TextView>(R.id.navVersionText)
+        
+        try {
+            val versionName = packageManager.getPackageInfo(packageName, 0).versionName
+            versionTextView.text = "v$versionName"
+        } catch (e: Exception) {
+            versionTextView.text = "v0.0.3" // fallback
+        }
     }
     
     private fun showVersionInfo() {
