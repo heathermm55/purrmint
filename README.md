@@ -20,6 +20,7 @@ PurrMint is a mobile Cashu mint service that transforms your Android device into
 - **Fake Wallet**: Perfect for testing and development
 - **LNbits**: Lightning Network bits integration
 - **CLN**: Core Lightning support
+- **NWC (Nostr Wallet Connect)**: Connect to any Lightning wallet that supports NWC protocol
 
 ## 📱 Quick Start
 
@@ -41,6 +42,7 @@ cd purrmint
 3. **Select Lightning backend**:
    - Start with **Fake Wallet** for testing
    - Configure **LNbits/CLN** for real Lightning
+   - Use **NWC** to connect to any compatible Lightning wallet
 
 ### 3. Connect Your Wallet
 
@@ -50,6 +52,30 @@ cd purrmint
    - Receive Lightning payments
    - Send ecash to others
    - Manage your tokens
+
+## Lightning Backend Configuration
+
+### NWC (Nostr Wallet Connect)
+
+NWC allows you to connect PurrMint to any Lightning wallet that supports the Nostr Wallet Connect protocol. This includes popular wallets like:
+
+- **Alby**
+- **Zeus**
+- **Phoenix**
+- **Blixt**
+- **Mutiny**
+- And many others
+
+#### Setting up NWC:
+
+1. **Get your NWC connection URI** from your Lightning wallet
+   - Usually found in wallet settings under "Connect" or "Nostr Wallet Connect"
+   - Format: `nostr+walletconnect://...`
+
+2. **Configure PurrMint**:
+   - Select "NWC" as your Lightning backend
+   - Paste your NWC connection URI
+   - The mint will automatically connect to your wallet
 
 ## Roadmap
 
@@ -68,7 +94,7 @@ cd purrmint
 - [Cashu Protocol](https://github.com/cashubtc/cashu) - Understanding Cashu
 - [CDK Documentation](https://github.com/cashubtc/cdk) - Cashu Development Kit
 - [Arti](https://gitlab.torproject.org/tpo/core/arti) - Tor implementation in Rust
-
+- [NIP-47](https://github.com/nostr-protocol/nips/blob/master/47.md) - Nostr Wallet Connect specification
 
 ## License
 
