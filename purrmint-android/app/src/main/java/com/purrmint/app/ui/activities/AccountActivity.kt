@@ -91,7 +91,7 @@ class AccountActivity : AppCompatActivity() {
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             
             // Apply padding to the AppBarLayout for status bar
-            val appBarLayout = findViewById<com.google.android.material.appbar.AppBarLayout>(R.id.topAppBar).parent as com.google.android.material.appbar.AppBarLayout
+            val appBarLayout = findViewById<com.google.android.material.appbar.AppBarLayout>(R.id.appBarLayout)
             appBarLayout.setPadding(0, systemBars.top, 0, 0)
             
             // Apply bottom padding to the nested scroll view for navigation bar

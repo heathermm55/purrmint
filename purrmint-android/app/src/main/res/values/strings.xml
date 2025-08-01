@@ -159,5 +159,5 @@
     
     <!-- NWC (Nostr Wallet Connect) strings -->
     <string name="nwc_connection_uri">NWC Connection URI</string>
-    <string name="nwc_connection_uri_hint">nostr+walletconnect://...</string>
+    <string name="nwc_connection_uri_hint"></string>
 </resources> 
