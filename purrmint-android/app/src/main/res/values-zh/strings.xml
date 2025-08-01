@@ -113,7 +113,6 @@
     <string name="user">用户</string>
     <string name="about">关于</string>
     <string name="version">版本</string>
-    <string name="app_version">v0.0.2</string>
     
     <!-- Main Activity UI strings -->
     <string name="mint_status">铸币状态</string>
