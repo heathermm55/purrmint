@@ -82,12 +82,10 @@ NWC allows you to connect PurrMint to any Lightning wallet that supports the Nos
 ### Coming Soon
 - **Enhanced Tor Integration**: Improved onion address generation and management
 - **Advanced UI**: Better user experience and configuration options
-- **Multi-mint Management**: Run multiple mints from one device
 
 ### Future Plans
 - **Advanced Analytics**: Mint usage statistics and insights
 - **Plugin System**: Extensible architecture for custom features
-- **Cross-platform Support**: iOS and desktop versions
 
 ## Documentation
 
