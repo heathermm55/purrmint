@@ -86,6 +86,7 @@
 
                     <!-- NPUB -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/npubInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
@@ -94,6 +95,10 @@
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusBottomStart="8dp"
                         app:boxCornerRadiusBottomEnd="8dp"
+                        app:endIconMode="custom"
+                        app:endIconDrawable="@drawable/ic_copy"
+                        app:endIconTint="@color/primary_color"
+                        app:endIconContentDescription="@string/copy_npub"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -110,6 +115,7 @@
 
                     <!-- NSEC -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/nsecInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
@@ -118,6 +124,10 @@
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusBottomStart="8dp"
                         app:boxCornerRadiusBottomEnd="8dp"
+                        app:endIconMode="custom"
+                        app:endIconDrawable="@drawable/ic_copy"
+                        app:endIconTint="@color/primary_color"
+                        app:endIconContentDescription="@string/copy_nsec"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -129,47 +139,6 @@
                             android:text="@string/loading" />
 
                     </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- Copy Buttons -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:weightSum="2">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnCopyNpub"
-                            android:layout_width="0dp"
-                            android:layout_height="48dp"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="8dp"
-                            android:text="@string/copy_npub"
-                            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                            android:singleLine="true"
-                            android:maxLines="1"
-                            android:ellipsize="end"
-                            app:icon="@drawable/ic_copy"
-                            app:iconGravity="textStart"
-                            app:cornerRadius="8dp"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnCopyNsec"
-                            android:layout_width="0dp"
-                            android:layout_height="48dp"
-                            android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            android:text="@string/copy_nsec"
-                            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                            android:singleLine="true"
-                            android:maxLines="1"
-                            android:ellipsize="end"
-                            app:icon="@drawable/ic_copy"
-                            app:iconGravity="textStart"
-                            app:cornerRadius="8dp"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
-
-                    </LinearLayout>
 
                 </LinearLayout>
 

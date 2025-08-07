@@ -26,8 +26,8 @@ class AccountActivity : AppCompatActivity() {
     
     private lateinit var npubInput: TextInputEditText
     private lateinit var nsecInput: TextInputEditText
-    private lateinit var btnCopyNpub: MaterialButton
-    private lateinit var btnCopyNsec: MaterialButton
+    private lateinit var npubInputLayout: com.google.android.material.textfield.TextInputLayout
+    private lateinit var nsecInputLayout: com.google.android.material.textfield.TextInputLayout
     private lateinit var btnLogout: MaterialButton
     private lateinit var toolbar: MaterialToolbar
     
@@ -61,8 +61,8 @@ class AccountActivity : AppCompatActivity() {
     private fun initializeViews() {
         npubInput = findViewById(R.id.npubInput)
         nsecInput = findViewById(R.id.nsecInput)
-        btnCopyNpub = findViewById(R.id.btnCopyNpub)
-        btnCopyNsec = findViewById(R.id.btnCopyNsec)
+        npubInputLayout = findViewById(R.id.npubInputLayout)
+        nsecInputLayout = findViewById(R.id.nsecInputLayout)
         btnLogout = findViewById(R.id.btnLogout)
         toolbar = findViewById(R.id.topAppBar)
     }
@@ -72,11 +72,11 @@ class AccountActivity : AppCompatActivity() {
             finish()
         }
         
-        btnCopyNpub.setOnClickListener {
+        npubInputLayout.setEndIconOnClickListener {
             copyToClipboard("NPUB", npubInput.text.toString())
         }
         
-        btnCopyNsec.setOnClickListener {
+        nsecInputLayout.setEndIconOnClickListener {
             copyToClipboard("NSEC", nsecInput.text.toString())
         }
         
