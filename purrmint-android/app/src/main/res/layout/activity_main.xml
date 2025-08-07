@@ -178,9 +178,9 @@
 
                         </LinearLayout>
 
-                        <!-- Onion Address Display (for Tor mode) -->
+                        <!-- Address Display (for both Local and Tor modes) -->
                         <LinearLayout
-                            android:id="@+id/onionAddressLayout"
+                            android:id="@+id/addressLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
@@ -188,6 +188,7 @@
                             android:visibility="gone">
 
                             <TextView
+                                android:id="@+id/addressTitle"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="@string/onion_address"
@@ -212,7 +213,7 @@
                                     android:gravity="center_vertical">
 
                                     <TextView
-                                        android:id="@+id/onionAddressText"
+                                        android:id="@+id/addressText"
                                         android:layout_width="0dp"
                                         android:layout_height="wrap_content"
                                         android:layout_weight="1"
@@ -223,12 +224,12 @@
                                         android:textIsSelectable="true" />
 
                                     <ImageButton
-                                        android:id="@+id/copyOnionButton"
+                                        android:id="@+id/copyAddressButton"
                                         android:layout_width="32dp"
                                         android:layout_height="32dp"
                                         android:background="@android:color/transparent"
                                         android:src="@drawable/ic_copy"
-                                        android:contentDescription="Copy Onion Address"
+                                        android:contentDescription="Copy Address"
                                         android:focusable="true"
                                         android:clickable="true"
                                         android:padding="4dp"

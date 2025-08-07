@@ -222,6 +222,20 @@ class ConfigManager(private val context: Context) {
     }
     
     /**
+     * Get port from configuration
+     * @return port number or null if not available
+     */
+    fun getPort(): Int? {
+        return try {
+            val config = loadConfiguration()
+            config?.port
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting port from configuration", e)
+            null
+        }
+    }
+    
+    /**
      * Convert JSON string to AndroidConfig
      */
     private fun jsonToConfig(json: String): AndroidConfig {

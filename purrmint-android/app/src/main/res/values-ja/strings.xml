@@ -153,4 +153,6 @@
     <string name="onion_address_copied">オニオンアドレスがクリップボードにコピーされました</string>
     <string name="local_address">ローカルアドレス</string>
     <string name="local_address_available">http://127.0.0.1:3338</string>
+    <string name="copy_local_address">ローカルアドレスをコピー</string>
+    <string name="local_address_copied">ローカルアドレスがクリップボードにコピーされました</string>
 </resources> 

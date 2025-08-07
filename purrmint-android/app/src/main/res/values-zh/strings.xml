@@ -153,4 +153,6 @@
     <string name="onion_address_copied">洋葱地址已复制到剪贴板</string>
     <string name="local_address">本地地址</string>
     <string name="local_address_available">http://127.0.0.1:3338</string>
+    <string name="copy_local_address">复制本地地址</string>
+    <string name="local_address_copied">本地地址已复制到剪贴板</string>
 </resources> 

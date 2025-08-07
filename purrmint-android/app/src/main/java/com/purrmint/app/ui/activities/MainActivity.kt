@@ -56,9 +56,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var modeChipGroup: com.google.android.material.chip.ChipGroup
     private lateinit var localModeChip: com.google.android.material.chip.Chip
     private lateinit var torModeChip: com.google.android.material.chip.Chip
-    private lateinit var onionAddressLayout: LinearLayout
-    private lateinit var onionAddressText: TextView
-    private lateinit var copyOnionButton: ImageButton
+    private lateinit var addressLayout: LinearLayout
+    private lateinit var addressTitle: TextView
+    private lateinit var addressText: TextView
+    private lateinit var copyAddressButton: ImageButton
     
     // Service
     private var purrmintService: PurrmintService? = null
@@ -69,6 +70,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     // Mode state
     private var currentMode: PurrmintManager.ServiceMode = PurrmintManager.ServiceMode.LOCAL
     private var onionAddress: String? = null
+    private var localAddress: String? = null
     
     // Login Manager
     private lateinit var loginManager: LoginManager
@@ -264,9 +266,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         modeChipGroup = findViewById(R.id.modeChipGroup)
         localModeChip = findViewById(R.id.localModeChip)
         torModeChip = findViewById(R.id.torModeChip)
-        onionAddressLayout = findViewById(R.id.onionAddressLayout)
-        onionAddressText = findViewById(R.id.onionAddressText)
-        copyOnionButton = findViewById(R.id.copyOnionButton)
+        addressLayout = findViewById(R.id.addressLayout)
+        addressTitle = findViewById(R.id.addressTitle)
+        addressText = findViewById(R.id.addressText)
+        copyAddressButton = findViewById(R.id.copyAddressButton)
         
         // Setup toolbar and navigation drawer
         setSupportActionBar(toolbar)
@@ -317,7 +320,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 R.id.localModeChip -> {
                     if (currentMode != PurrmintManager.ServiceMode.LOCAL) {
                         currentMode = PurrmintManager.ServiceMode.LOCAL
-                        hideOnionAddress()
+                        showLocalAddress()
                         appendLog("🌐 Selected Local Mode")
                         
                         // If service is running, restart it in new mode
@@ -343,9 +346,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
         
-        // Setup copy onion address button
-        copyOnionButton.setOnClickListener {
-            copyOnionAddressToClipboard()
+        // Setup copy address button
+        copyAddressButton.setOnClickListener {
+            copyAddressToClipboard()
         }
         
         clearLogsButton.setOnClickListener {
@@ -695,6 +698,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if (success) {
                     updateStatus("Service stopped", false)
                     appendLog("✅ Mint service stopped successfully!")
+                    hideAddress()
                     updateStartButton("Start Mint Service", false)
                 } else {
                     updateStatus("Failed to stop service", true)
@@ -703,6 +707,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             } else {
                 updateStatus("Service stopped", false)
                 appendLog("✅ Service stopped!")
+                hideAddress()
                 updateStartButton("Start Mint Service", false)
             }
         } catch (e: Exception) {
@@ -909,13 +914,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             
                             // Update UI on main thread
                             runOnUiThread {
-                                if (success) {
-                                    updateStatus("Service is running (tor)", true)
-                                    appendLog("✅ Tor mint service started successfully!")
-                                    appendLog("🧅 Tor service starting - onion address will appear shortly...")
-                                    startOnionAddressPolling()
-                                    updateStartButton("Stop Service", true)
-                                } else {
+                                                    if (success) {
+                        updateStatus("Service is running (tor)", true)
+                        appendLog("✅ Tor mint service started successfully!")
+                        appendLog("🧅 Tor service starting - onion address will appear shortly...")
+                        showOnionAddress()
+                        updateStartButton("Stop Service", true)
+                    } else {
                                     updateStatus("Failed to start Tor service", false)
                                     appendLog("❌ Failed to start Tor mint service")
                                     updateStartButton("Start Service", true)
@@ -938,7 +943,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     if (success) {
                         updateStatus("Service is running (local)", true)
                         appendLog("✅ Local mint service started successfully!")
-                        appendLog("🌐 Local service available at http://127.0.0.1:3338")
+                        showLocalAddress()
                         updateStartButton("Stop Service", true)
                     } else {
                         updateStatus("Failed to start service", false)
@@ -978,13 +983,26 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     
     private fun showOnionAddress() {
-        onionAddressLayout.visibility = android.view.View.VISIBLE
-        onionAddressText.text = getString(R.string.onion_address_loading)
+        addressLayout.visibility = android.view.View.VISIBLE
+        addressTitle.text = getString(R.string.onion_address)
+        addressText.text = getString(R.string.onion_address_loading)
+        startOnionAddressPolling()
     }
     
-    private fun hideOnionAddress() {
-        onionAddressLayout.visibility = android.view.View.GONE
+    private fun showLocalAddress() {
+        addressLayout.visibility = android.view.View.VISIBLE
+        addressTitle.text = getString(R.string.local_address)
+        // Get port from config or use default
+        val port = configManager.getPort() ?: 3338
+        localAddress = "http://127.0.0.1:$port"
+        addressText.text = localAddress
+        appendLog("🌐 Local address: $localAddress")
+    }
+    
+    private fun hideAddress() {
+        addressLayout.visibility = android.view.View.GONE
         onionAddress = null
+        localAddress = null
     }
     
     private fun startOnionAddressPolling() {
@@ -1000,7 +1018,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if (attempts > maxAttempts) {
                     appendLog("⚠️ Onion address not available after ${maxAttempts * 5} seconds")
                     appendLog("💡 Tor service may still be starting up. Please wait a few more minutes.")
-                    onionAddressText.text = getString(R.string.onion_address_not_available)
+                    addressText.text = getString(R.string.onion_address_not_available)
                     return
                 }
                 
@@ -1018,7 +1036,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     val onionAddr = purrmintManager.getOnionAddress()
                     if (!onionAddr.isNullOrEmpty()) {
                         onionAddress = onionAddr
-                        onionAddressText.text = onionAddr
+                        addressText.text = onionAddr
                         appendLog("🧅 Onion address: $onionAddr")
                         return
                     }
@@ -1032,7 +1050,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         
                         if (onionAddrFromStatus.isNotEmpty()) {
                             onionAddress = onionAddrFromStatus
-                            onionAddressText.text = onionAddrFromStatus
+                            addressText.text = onionAddrFromStatus
                             appendLog("🧅 Onion address: $onionAddrFromStatus")
                             return
                         }
@@ -1049,20 +1067,40 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         handler.post(runnable)
     }
     
-    private fun copyOnionAddressToClipboard() {
-        val address = onionAddress ?: onionAddressText.text.toString()
+    private fun copyAddressToClipboard() {
+        val address = when (currentMode) {
+            PurrmintManager.ServiceMode.LOCAL -> localAddress ?: addressText.text.toString()
+            PurrmintManager.ServiceMode.TOR -> onionAddress ?: addressText.text.toString()
+        }
         
         if (address.isNotEmpty() && address != getString(R.string.onion_address_loading) && 
             address != getString(R.string.onion_address_not_available)) {
             
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            val clip = android.content.ClipData.newPlainText("Onion Address", address)
+            val clipLabel = when (currentMode) {
+                PurrmintManager.ServiceMode.LOCAL -> "Local Address"
+                PurrmintManager.ServiceMode.TOR -> "Onion Address"
+            }
+            val clip = android.content.ClipData.newPlainText(clipLabel, address)
             clipboard.setPrimaryClip(clip)
             
-            Toast.makeText(this, getString(R.string.onion_address_copied), Toast.LENGTH_SHORT).show()
-            appendLog("📋 Onion address copied to clipboard")
+            val toastMessage = when (currentMode) {
+                PurrmintManager.ServiceMode.LOCAL -> getString(R.string.local_address_copied)
+                PurrmintManager.ServiceMode.TOR -> getString(R.string.onion_address_copied)
+            }
+            Toast.makeText(this, toastMessage, Toast.LENGTH_SHORT).show()
+            
+            val logMessage = when (currentMode) {
+                PurrmintManager.ServiceMode.LOCAL -> "📋 Local address copied to clipboard"
+                PurrmintManager.ServiceMode.TOR -> "📋 Onion address copied to clipboard"
+            }
+            appendLog(logMessage)
         } else {
-            Toast.makeText(this, "No onion address available", Toast.LENGTH_SHORT).show()
+            val errorMessage = when (currentMode) {
+                PurrmintManager.ServiceMode.LOCAL -> "No local address available"
+                PurrmintManager.ServiceMode.TOR -> "No onion address available"
+            }
+            Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
         }
     }
 } 

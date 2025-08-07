@@ -14,8 +14,8 @@ use std::sync::{Arc, Mutex};
 /// NWC Lightning backend implementation
 #[derive(Debug, Clone)]
 pub struct NWCLightningBackend {
-    nwc: Arc<Mutex<Option<NWC>>>,
-    connection_uri: String,
+    pub(crate) nwc: Arc<Mutex<Option<NWC>>>,
+    pub(crate) connection_uri: String,
 }
 
 impl NWCLightningBackend {
