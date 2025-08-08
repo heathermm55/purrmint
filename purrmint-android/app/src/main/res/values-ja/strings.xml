@@ -96,6 +96,19 @@
     <string name="logout_button">ログアウト</string>
     <string name="error_during_logout">ログアウト中にエラーが発生しました：%1$s</string>
     
+    <!-- Service Dialog -->
+    <string name="service_running_title">サービス実行中</string>
+    <string name="service_running_message">%1$s 操作を実行するには、まずサービスを停止する必要があります。サービスを停止しますか？</string>
+    <string name="stop_service_button">サービス停止</string>
+    
+    <!-- Operation Names -->
+    <string name="config_settings">設定</string>
+    <string name="config_settings_starting">設定（サービス開始中）</string>
+    <string name="local_mode">ローカルモード</string>
+    <string name="local_mode_starting">ローカルモード（サービス開始中）</string>
+    <string name="tor_mode">Torモード</string>
+    <string name="tor_mode_starting">Torモード（サービス開始中）</string>
+    
     <!-- Login Activity -->
     <string name="creating_new_account">新しいNostrアカウントを作成中...</string>
     <string name="failed_to_create_account">アカウント作成に失敗しました</string>
@@ -144,8 +157,6 @@
     
     <!-- Service Mode strings -->
     <string name="service_mode">サービスモード</string>
-    <string name="local_mode">ローカルモード</string>
-    <string name="tor_mode">Torモード</string>
     <string name="onion_address">オニオンアドレス</string>
     <string name="onion_address_loading">オニオンアドレスを読み込み中...</string>
     <string name="onion_address_not_available">オニオンアドレスが利用できません</string>

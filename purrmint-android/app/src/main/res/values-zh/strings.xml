@@ -96,6 +96,19 @@
     <string name="logout_button">退出登录</string>
     <string name="error_during_logout">退出登录时出错：%1$s</string>
     
+    <!-- Service Dialog -->
+    <string name="service_running_title">服务正在运行</string>
+    <string name="service_running_message">要执行 %1$s 操作，需要先停止服务。是否要停止服务？</string>
+    <string name="stop_service_button">停止服务</string>
+    
+    <!-- Operation Names -->
+    <string name="config_settings">配置设置</string>
+    <string name="config_settings_starting">配置设置（服务启动中）</string>
+    <string name="local_mode">本地模式</string>
+    <string name="local_mode_starting">本地模式（服务启动中）</string>
+    <string name="tor_mode">Tor 模式</string>
+    <string name="tor_mode_starting">Tor 模式（服务启动中）</string>
+    
     <!-- Login Activity -->
     <string name="creating_new_account">正在创建新的Nostr账户...</string>
     <string name="failed_to_create_account">创建账户失败</string>
@@ -144,8 +157,6 @@
     
     <!-- Service Mode strings -->
     <string name="service_mode">服务模式</string>
-    <string name="local_mode">本地模式</string>
-    <string name="tor_mode">Tor模式</string>
     <string name="onion_address">洋葱地址</string>
     <string name="onion_address_loading">正在加载洋葱地址...</string>
     <string name="onion_address_not_available">洋葱地址不可用</string>

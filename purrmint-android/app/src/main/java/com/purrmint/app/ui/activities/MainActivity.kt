@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var isServiceBound = false
     private var isLoggedIn = false
     private var isMintRunning = false
+    private var isServiceStarting = false
     
     // Mode state
     private var currentMode: PurrmintManager.ServiceMode = PurrmintManager.ServiceMode.LOCAL
@@ -275,11 +276,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         
         // Setup config button
         btnConfig.setOnClickListener {
-            if (!isMintRunning) {
+            if (!isMintRunning && !isServiceStarting) {
                 val intent = Intent(this, ConfigActivity::class.java)
                 startActivityForResult(intent, REQUEST_CONFIG)
             } else {
-                Toast.makeText(this, getString(R.string.please_stop_mint_service), Toast.LENGTH_SHORT).show()
+                val actionName = if (isServiceStarting) getString(R.string.config_settings_starting) else getString(R.string.config_settings)
+                showStopServiceDialog(actionName)
             }
         }
         
@@ -312,32 +314,40 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             when (checkedId) {
                 R.id.localModeChip -> {
                     if (currentMode != PurrmintManager.ServiceMode.LOCAL) {
-                        currentMode = PurrmintManager.ServiceMode.LOCAL
-                        
-                        // Show local address with a small delay to ensure UI is ready
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            showLocalAddress()
-                        }, 100)
-                        
-                        appendLog("🌐 Selected Local Mode")
-                        
-                        // If service is running, restart it in new mode
-                        if (isMintRunning) {
-                            appendLog("🔄 Restarting service in local mode...")
-                            restartServiceInNewMode()
+                        if (!isMintRunning && !isServiceStarting) {
+                            currentMode = PurrmintManager.ServiceMode.LOCAL
+                            
+                            // Show local address with a small delay to ensure UI is ready
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                showLocalAddress()
+                            }, 100)
+                            
+                            appendLog("🌐 Selected Local Mode")
+                        } else {
+                            val actionName = if (isServiceStarting) getString(R.string.local_mode_starting) else getString(R.string.local_mode)
+                            showStopServiceDialog(actionName)
+                            // Reset selection to current mode
+                            when (currentMode) {
+                                PurrmintManager.ServiceMode.LOCAL -> localModeChip.isChecked = true
+                                PurrmintManager.ServiceMode.TOR -> torModeChip.isChecked = true
+                            }
                         }
                     }
                 }
                 R.id.torModeChip -> {
                     if (currentMode != PurrmintManager.ServiceMode.TOR) {
-                        currentMode = PurrmintManager.ServiceMode.TOR
-                        showOnionAddress()
-                        appendLog("🧅 Selected Tor Mode")
-                        
-                        // If service is running, restart it in new mode
-                        if (isMintRunning) {
-                            appendLog("🔄 Restarting service in Tor mode...")
-                            restartServiceInNewMode()
+                        if (!isMintRunning && !isServiceStarting) {
+                            currentMode = PurrmintManager.ServiceMode.TOR
+                            showOnionAddress()
+                            appendLog("🧅 Selected Tor Mode")
+                        } else {
+                            val actionName = if (isServiceStarting) getString(R.string.tor_mode_starting) else getString(R.string.tor_mode)
+                            showStopServiceDialog(actionName)
+                            // Reset selection to current mode
+                            when (currentMode) {
+                                PurrmintManager.ServiceMode.LOCAL -> localModeChip.isChecked = true
+                                PurrmintManager.ServiceMode.TOR -> torModeChip.isChecked = true
+                            }
                         }
                     }
                 }
@@ -720,7 +730,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun updateStatus(status: String, isOnline: Boolean) {
         isMintRunning = isOnline
-        btnConfig.isEnabled = !isMintRunning
+        // Keep buttons enabled but handle clicks differently when service is running
+        btnConfig.isEnabled = true
+        localModeChip.isEnabled = true
+        torModeChip.isEnabled = true
         
         statusTextView.text = status
         
@@ -914,7 +927,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 // Always start service in background thread to prevent ANR and ensure thread safety
                 appendLog("🔄 Starting mint service in background thread...")
                 
-                // Show loading state and disable button
+                // Show loading state and set starting flag
+                isServiceStarting = true
                 updateStatus("Starting service...", false)
                 updateStartButton("Starting...", false, false)
                 
@@ -941,6 +955,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         
                         // Update UI on main thread
                         runOnUiThread {
+                            isServiceStarting = false
                             if (success) {
                                 val modeText = when (currentMode) {
                                     PurrmintManager.ServiceMode.TOR -> "Service is running (tor)"
@@ -968,6 +983,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         }
                     } catch (e: Exception) {
                         runOnUiThread {
+                            isServiceStarting = false
                             updateStatus("Error: ${e.message}", false)
                             appendLog("❌ Error starting service: ${e.message}")
                             Log.e(TAG, "Error starting service", e)
@@ -1149,5 +1165,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
         }
+    }
+    
+    /**
+     * Show dialog asking user if they want to stop the service
+     * @param actionName The name of the action that requires stopping the service
+     */
+    private fun showStopServiceDialog(actionName: String) {
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.service_running_title))
+            .setMessage(getString(R.string.service_running_message, actionName))
+            .setPositiveButton(getString(R.string.stop_service_button)) { _, _ ->
+                stopMintService()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .create()
+        
+        dialog.show()
     }
 } 

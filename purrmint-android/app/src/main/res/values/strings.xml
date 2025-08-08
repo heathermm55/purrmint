@@ -96,6 +96,19 @@
     <string name="logout_button">Logout</string>
     <string name="error_during_logout">Error during logout: %1$s</string>
     
+    <!-- Service Dialog -->
+    <string name="service_running_title">Service Running</string>
+    <string name="service_running_message">To perform %1$s operation, the service needs to be stopped first. Do you want to stop the service?</string>
+    <string name="stop_service_button">Stop Service</string>
+    
+    <!-- Operation Names -->
+    <string name="config_settings">Configuration Settings</string>
+    <string name="config_settings_starting">Configuration Settings (Service Starting)</string>
+    <string name="local_mode">Local Mode</string>
+    <string name="local_mode_starting">Local Mode (Service Starting)</string>
+    <string name="tor_mode">Tor Mode</string>
+    <string name="tor_mode_starting">Tor Mode (Service Starting)</string>
+    
     <!-- Login Activity -->
     <string name="creating_new_account">Creating new Nostr account...</string>
     <string name="failed_to_create_account">Failed to create account</string>
@@ -147,8 +160,6 @@
     
     <!-- Service Mode strings -->
     <string name="service_mode">Service Mode</string>
-    <string name="local_mode">Local Mode</string>
-    <string name="tor_mode">Tor Mode</string>
     <string name="onion_address">Onion Address</string>
     <string name="onion_address_loading">Loading onion address...</string>
     <string name="onion_address_not_available">Onion address not available</string>

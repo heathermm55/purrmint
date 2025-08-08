@@ -96,6 +96,19 @@
     <string name="logout_button">Sair</string>
     <string name="error_during_logout">Erro durante o logout: %1$s</string>
     
+    <!-- Service Dialog -->
+    <string name="service_running_title">Serviço em Execução</string>
+    <string name="service_running_message">Para executar a operação %1$s, o serviço precisa ser parado primeiro. Você deseja parar o serviço?</string>
+    <string name="stop_service_button">Parar Serviço</string>
+    
+    <!-- Operation Names -->
+    <string name="config_settings">Configurações</string>
+    <string name="config_settings_starting">Configurações (Serviço Iniciando)</string>
+    <string name="local_mode">Modo Local</string>
+    <string name="local_mode_starting">Modo Local (Serviço Iniciando)</string>
+    <string name="tor_mode">Modo Tor</string>
+    <string name="tor_mode_starting">Modo Tor (Serviço Iniciando)</string>
+    
     <!-- Login Activity -->
     <string name="creating_new_account">Criando nova conta Nostr...</string>
     <string name="failed_to_create_account">Falha ao criar conta</string>
