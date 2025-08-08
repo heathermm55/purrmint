@@ -152,7 +152,7 @@ class ConfigActivity : AppCompatActivity() {
         }
         
         btnStart.setOnClickListener {
-            startService()
+            saveConfiguration()
         }
     }
     
@@ -207,7 +207,7 @@ class ConfigActivity : AppCompatActivity() {
         }
     }
     
-    private fun startService() {
+    private fun saveConfiguration() {
         try {
             val port = portInput.text.toString().trim()
             val mintName = mintNameInput.text.toString().trim()
@@ -226,7 +226,25 @@ class ConfigActivity : AppCompatActivity() {
                 return
             }
             
-            // Create result intent
+            // Save configuration to local storage
+            val configManager = com.purrmint.app.core.managers.ConfigManager(this)
+            val success = configManager.saveConfiguration(
+                port = port.toInt(),
+                mintName = mintName,
+                description = description,
+                lightningBackend = lightningBackend,
+                lnbitsAdminApiKey = if (lightningBackend == "lnbits") lnbitsAdminApiKeyInput.text.toString().trim() else null,
+                lnbitsInvoiceApiKey = if (lightningBackend == "lnbits") lnbitsInvoiceApiKeyInput.text.toString().trim() else null,
+                lnbitsApiUrl = if (lightningBackend == "lnbits") lnbitsApiUrlInput.text.toString().trim() else null,
+                nwcConnectionUri = if (lightningBackend == "nwc") nwcConnectionUriInput.text.toString().trim() else null
+            )
+            
+            if (!success) {
+                Log.e(TAG, "Failed to save configuration to local storage")
+                return
+            }
+            
+            // Create result intent for MainActivity
             val resultIntent = Intent().apply {
                 putExtra(EXTRA_PORT, port)
                 putExtra(EXTRA_MINT_NAME, mintName)
@@ -258,7 +276,7 @@ class ConfigActivity : AppCompatActivity() {
             finish()
             
         } catch (e: Exception) {
-            Log.e(TAG, "Error starting service", e)
+            Log.e(TAG, "Error saving configuration", e)
         }
     }
 } 

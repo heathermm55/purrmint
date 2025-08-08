@@ -444,7 +444,7 @@
                     android:layout_marginStart="8dp"
                     android:text="@string/start_service"
                     android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                    app:icon="@drawable/ic_play"
+                    app:icon="@drawable/ic_check"
                     app:iconGravity="textStart"
                     app:cornerRadius="12dp"
                     style="@style/Widget.Material3.Button" />

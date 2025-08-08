@@ -202,20 +202,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         appendLog("  NWC Connection URI: ${nwcConnectionUri?.take(20)}...")
                     }
                     
-                    // Save configuration for future use
-                    configManager.saveConfiguration(
-                        port = port,
-                        mintName = mintName,
-                        description = description,
-                        lightningBackend = lightningBackend,
-                        lnbitsAdminApiKey = lnbitsAdminApiKey,
-                        lnbitsInvoiceApiKey = lnbitsInvoiceApiKey,
-                        lnbitsApiUrl = lnbitsApiUrl,
-                        nwcConnectionUri = nwcConnectionUri
-                    )
+                    // Configuration is already saved in ConfigActivity, just update UI
+                    appendLog("✅ Configuration saved successfully")
+                    appendLog("💡 You can now start the service manually")
                     
-                    // Start the service with configuration
-                    startServiceWithConfig(port, mintName, description, lightningBackend, lnbitsAdminApiKey, lnbitsInvoiceApiKey, lnbitsApiUrl, nwcConnectionUri)
+                    // Update UI to show configuration is ready
+                    updateStatus("Configuration ready", false)
+                    updateStartButton("Start Mint Service", false, true)
                 }
             }
             REQUEST_ACCOUNT -> {

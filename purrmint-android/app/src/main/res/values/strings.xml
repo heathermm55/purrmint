@@ -26,7 +26,7 @@
     <string name="account_details">Account Details</string>
     
     <!-- Service Control -->
-    <string name="start_service">Start Service</string>
+    <string name="start_service">Save</string>
     <string name="stop_service">Stop Service</string>
     <string name="pause_service">Pause Service</string>
     <string name="service_running">Service Running</string>

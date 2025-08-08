@@ -26,7 +26,7 @@
     <string name="account_details">アカウント詳細</string>
     
     <!-- Service Control -->
-    <string name="start_service">サービス開始</string>
+    <string name="start_service">保存</string>
     <string name="stop_service">サービス停止</string>
     <string name="pause_service">サービス一時停止</string>
     <string name="service_running">サービス実行中</string>
