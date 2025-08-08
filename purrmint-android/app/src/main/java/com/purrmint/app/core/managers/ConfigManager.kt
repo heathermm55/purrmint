@@ -223,15 +223,22 @@ class ConfigManager(private val context: Context) {
     
     /**
      * Get port from configuration
-     * @return port number or null if not available
+     * @return port number or default port if not available
      */
     fun getPort(): Int? {
         return try {
             val config = loadConfiguration()
-            config?.port
+            if (config != null) {
+                Log.i(TAG, "Port loaded from configuration: ${config.port}")
+                config.port
+            } else {
+                Log.w(TAG, "No configuration found, using default port: $DEFAULT_PORT")
+                DEFAULT_PORT
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting port from configuration", e)
-            null
+            Log.w(TAG, "Using default port due to error: $DEFAULT_PORT")
+            DEFAULT_PORT
         }
     }
     

@@ -96,7 +96,7 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_loadAndroidConfigFro
 ) -> jstring {
     let file_path_str = java_string_to_rust_string(&mut _env, file_path);
     
-    match crate::core::load_android_config_from_file(&file_path_str) {
+    match crate::core::load_android_config_from_file_internal(&file_path_str) {
         Ok(config_json) => {
             match _env.new_string(config_json) {
                 Ok(java_string) => java_string.into_raw(),
@@ -124,7 +124,7 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_saveAndroidConfigToF
     let file_path_str = java_string_to_rust_string(&mut _env, file_path);
     let config_json_str = java_string_to_rust_string(&mut _env, config_json);
     
-    match crate::core::save_android_config_to_file(&file_path_str, &config_json_str) {
+    match crate::core::save_android_config_to_file_internal(&file_path_str, &config_json_str) {
         Ok(()) => 0,
         Err(e) => {
             error!("Failed to save Android config to file: {}", e);
@@ -139,7 +139,7 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_generateDefaultAndro
     _env: JNIEnv,
     _class: JClass,
 ) -> jstring {
-    match crate::core::generate_default_android_config() {
+    match crate::core::generate_default_android_config_internal() {
         Ok(config_json) => {
             match _env.new_string(config_json) {
                 Ok(java_string) => java_string.into_raw(),
@@ -392,7 +392,7 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getOnionAddress(
     _env: JNIEnv,
     _class: JClass,
 ) -> jstring {
-    match crate::core::get_onion_address() {
+    match crate::core::get_onion_address_internal() {
         Some(address) => {
             match _env.new_string(address) {
                 Ok(java_string) => java_string.into_raw(),

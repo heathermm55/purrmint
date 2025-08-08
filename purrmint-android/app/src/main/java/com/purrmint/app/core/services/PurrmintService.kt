@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.purrmint.app.R
 import com.purrmint.app.core.managers.PurrmintManager
 import com.purrmint.app.ui.activities.MainActivity
+import java.util.concurrent.atomic.AtomicBoolean
 
 class PurrmintService : Service() {
     companion object {
@@ -20,9 +21,12 @@ class PurrmintService : Service() {
 
     private val binder = LocalBinder()
     private lateinit var purrmintManager: PurrmintManager
+    private val isStarting = AtomicBoolean(false)
+    private val isStopping = AtomicBoolean(false)
 
     inner class LocalBinder : Binder() {
         fun getService(): PurrmintService = this@PurrmintService
+        fun getPurrmintManager(): PurrmintManager = purrmintManager
     }
 
     override fun onCreate() {
@@ -38,15 +42,27 @@ class PurrmintService : Service() {
         // Start foreground service with minimal notification
         startForeground(NOTIFICATION_ID, createMinimalNotification())
         
-        // Start mint service in background thread
-        Thread {
-            try {
-                purrmintManager.startMintServiceWithSavedNsec()
-                Log.i(TAG, "Mint service started successfully")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to start mint service", e)
-            }
-        }.start()
+        // Start mint service in background thread with thread safety
+        if (!isStarting.get() && !isStopping.get()) {
+            isStarting.set(true)
+            Thread {
+                try {
+                    Log.i(TAG, "Starting mint service in background thread...")
+                    val success = purrmintManager.startMintServiceWithSavedNsec()
+                    if (success) {
+                        Log.i(TAG, "Mint service started successfully")
+                    } else {
+                        Log.e(TAG, "Failed to start mint service")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start mint service", e)
+                } finally {
+                    isStarting.set(false)
+                }
+            }.start()
+        } else {
+            Log.w(TAG, "Service operation already in progress, skipping start")
+        }
         
         return START_STICKY // Restart service if killed
     }
@@ -58,52 +74,60 @@ class PurrmintService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.i(TAG, "PurrmintService destroyed")
-        purrmintManager.stopMintService()
+        
+        // Stop mint service with thread safety
+        if (!isStopping.get()) {
+            isStopping.set(true)
+            try {
+                purrmintManager.stopMintService()
+                Log.i(TAG, "Mint service stopped successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to stop mint service", e)
+            } finally {
+                isStopping.set(false)
+            }
+        }
     }
 
-
-
-    fun getPurrmintManager(): PurrmintManager {
-        return purrmintManager
-    }
-    
+    /**
+     * Create notification channel for Android 8.0+
+     */
     private fun createNotificationChannel() {
-        // Only create notification channel for API 26+ (Android 8.0+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "PurrMint Service",
-                NotificationManager.IMPORTANCE_MIN
+                NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Keeps PurrMint service running in background"
+                description = "PurrMint background service"
                 setShowBadge(false)
-                enableLights(false)
-                enableVibration(false)
-                setSound(null, null)
             }
             
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
         }
     }
-    
+
+    /**
+     * Create minimal notification for foreground service
+     */
     private fun createMinimalNotification(): Notification {
-        val intent = Intent(this, MainActivity::class.java)
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
+        
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("PurrMint")
-            .setContentText("Mint service running")
+            .setContentText("Mint service is running")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setSilent(true)
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setVisibility(NotificationCompat.VISIBILITY_SECRET)
             .build()
     }
 } 

@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var copyAddressButton: ImageButton
     
     // Service
-    private var purrmintService: PurrmintService? = null
+    private var purrmintService: PurrmintService.LocalBinder? = null
     private var isServiceBound = false
     private var isLoggedIn = false
     private var isMintRunning = false
@@ -320,7 +320,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 R.id.localModeChip -> {
                     if (currentMode != PurrmintManager.ServiceMode.LOCAL) {
                         currentMode = PurrmintManager.ServiceMode.LOCAL
-                        showLocalAddress()
+                        
+                        // Show local address with a small delay to ensure UI is ready
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            showLocalAddress()
+                        }, 100)
+                        
                         appendLog("🌐 Selected Local Mode")
                         
                         // If service is running, restart it in new mode
@@ -423,7 +428,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             try {
                 if (service is PurrmintService.LocalBinder) {
-                    purrmintService = service.getService()
+                    purrmintService = service
                     isServiceBound = true
                     Log.i(TAG, "PurrmintService connected (same process)")
                     appendLog("✅ Service connected successfully")
@@ -675,7 +680,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     updateStatus("Service is running", true)
                     appendLog("✅ Mint service started successfully!")
                 appendLog("✅ Service available at http://127.0.0.1:$port")
-                    updateStartButton("Stop Service", true)
+                    updateStartButton("Stop Service", true, true)
                 } else {
                     updateStatus("Failed to start service", false)
                     appendLog("❌ Failed to start mint service")
@@ -690,6 +695,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun stopMintService() {
         try {
             updateStatus("Stopping mint service...", false)
+            updateStartButton("Stopping...", false, false)
             appendLog("Stopping mint service...")
             
             if (isServiceBound && purrmintService != null) {
@@ -699,21 +705,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     updateStatus("Service stopped", false)
                     appendLog("✅ Mint service stopped successfully!")
                     hideAddress()
-                    updateStartButton("Start Mint Service", false)
+                    updateStartButton("Start Mint Service", false, true)
                 } else {
                     updateStatus("Failed to stop service", true)
                     appendLog("❌ Failed to stop mint service")
+                    updateStartButton("Stop Service", true, true)
                 }
             } else {
                 updateStatus("Service stopped", false)
                 appendLog("✅ Service stopped!")
                 hideAddress()
-                updateStartButton("Start Mint Service", false)
+                updateStartButton("Start Mint Service", false, true)
             }
         } catch (e: Exception) {
             updateStatus("Error: ${e.message}", true)
             appendLog("❌ Error stopping service: ${e.message}")
             Log.e(TAG, "Error stopping service", e)
+            updateStartButton("Stop Service", true, true)
         }
     }
 
@@ -757,7 +765,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun updateStartButton(text: String, isRunning: Boolean) {
         startButton.text = text
-        startButton.isEnabled = true
+        if (isRunning) {
+            startButton.isEnabled = true
+            startButton.setIconResource(R.drawable.ic_stop)
+        } else {
+            startButton.isEnabled = true
+            startButton.setIconResource(R.drawable.ic_play)
+        }
+    }
+    
+    private fun updateStartButton(text: String, isRunning: Boolean, isEnabled: Boolean) {
+        startButton.text = text
+        startButton.isEnabled = isEnabled
         if (isRunning) {
             startButton.setIconResource(R.drawable.ic_stop)
         } else {
@@ -807,11 +826,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 val purrmintManager = purrmintService!!.getPurrmintManager()
                 val status = purrmintManager.getServiceStatus()
                 try {
-                    val statusJson = org.json.JSONObject(status)
+                    val statusJson = org.json.JSONObject(status.toString())
                     val isRunning = statusJson.optString("status") == "running"
                     if (isRunning) {
                         updateStatus("Service is running", true)
-                        updateStartButton("Stop Service", true)
+                        updateStartButton("Stop Service", true, true)
                         appendLog("✅ Mint service is already running")
                     }
                 } catch (e: Exception) {
@@ -899,57 +918,70 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if (isServiceBound && purrmintService != null) {
                 val purrmintManager = purrmintService!!.getPurrmintManager()
                 
-                // For Tor mode, start service in background thread to prevent ANR
-                if (currentMode == PurrmintManager.ServiceMode.TOR) {
-                    appendLog("🧅 Starting Tor mint service in background...")
-                    
-                    // Show loading state
-                    updateStatus("Starting Tor service...", false)
-                    updateStartButton("Starting...", false)
-                    
-                    // Start Tor service in background thread
-                    Thread {
-                        try {
-                            val success = purrmintManager.startTorMint(nsec)
-                            
-                            // Update UI on main thread
-                            runOnUiThread {
-                                                    if (success) {
-                        updateStatus("Service is running (tor)", true)
-                        appendLog("✅ Tor mint service started successfully!")
-                        appendLog("🧅 Tor service starting - onion address will appear shortly...")
-                        showOnionAddress()
-                        updateStartButton("Stop Service", true)
-                    } else {
-                                    updateStatus("Failed to start Tor service", false)
-                                    appendLog("❌ Failed to start Tor mint service")
-                                    updateStartButton("Start Service", true)
-                                }
+                // Always start service in background thread to prevent ANR and ensure thread safety
+                appendLog("🔄 Starting mint service in background thread...")
+                
+                // Show loading state and disable button
+                updateStatus("Starting service...", false)
+                updateStartButton("Starting...", false, false)
+                
+                // Start service in background thread
+                Thread {
+                    try {
+                        // Stop existing service first to ensure clean state
+                        appendLog("🧹 Ensuring clean service state...")
+                        purrmintManager.stopMintService()
+                        
+                        // Wait for service to fully stop
+                        Thread.sleep(1000)
+                        
+                        val success = when (currentMode) {
+                            PurrmintManager.ServiceMode.TOR -> {
+                                appendLog("🧅 Starting Tor mint service...")
+                                purrmintManager.startTorMint(nsec)
                             }
-                        } catch (e: Exception) {
-                            runOnUiThread {
-                                updateStatus("Error: ${e.message}", false)
-                                appendLog("❌ Error starting Tor service: ${e.message}")
-                                Log.e(TAG, "Error starting Tor service", e)
-                                updateStartButton("Start Service", true)
+                            PurrmintManager.ServiceMode.LOCAL -> {
+                                appendLog("🌐 Starting local mint service...")
+                                purrmintManager.startLocalMint(nsec)
                             }
                         }
-                    }.start()
-                } else {
-                    // Local mode - can run on main thread since it's fast
-                    appendLog("🌐 Starting local mint service...")
-                    val success = purrmintManager.startLocalMint(nsec)
-                    
-                    if (success) {
-                        updateStatus("Service is running (local)", true)
-                        appendLog("✅ Local mint service started successfully!")
-                        showLocalAddress()
-                        updateStartButton("Stop Service", true)
-                    } else {
-                        updateStatus("Failed to start service", false)
-                        appendLog("❌ Failed to start local mint service")
+                        
+                        // Update UI on main thread
+                        runOnUiThread {
+                            if (success) {
+                                val modeText = when (currentMode) {
+                                    PurrmintManager.ServiceMode.TOR -> "Service is running (tor)"
+                                    PurrmintManager.ServiceMode.LOCAL -> "Service is running (local)"
+                                }
+                                updateStatus(modeText, true)
+                                appendLog("✅ Mint service started successfully!")
+                                
+                                if (currentMode == PurrmintManager.ServiceMode.TOR) {
+                                    appendLog("🧅 Tor service starting - onion address will appear shortly...")
+                                    showOnionAddress()
+                                } else {
+                                    // Show local address with a small delay to ensure UI is ready
+                                    Handler(Looper.getMainLooper()).postDelayed({
+                                        showLocalAddress()
+                                    }, 100)
+                                }
+                                
+                                updateStartButton("Stop Service", true, true)
+                            } else {
+                                updateStatus("Failed to start service", false)
+                                appendLog("❌ Failed to start mint service")
+                                updateStartButton("Start Service", false, true)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        runOnUiThread {
+                            updateStatus("Error: ${e.message}", false)
+                            appendLog("❌ Error starting service: ${e.message}")
+                            Log.e(TAG, "Error starting service", e)
+                            updateStartButton("Start Service", false, true)
+                        }
                     }
-                }
+                }.start()
             } else {
                 appendLog("❌ Service not bound - cannot start mint service")
                 Toast.makeText(this, "Service not available", Toast.LENGTH_SHORT).show()
@@ -990,13 +1022,35 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     
     private fun showLocalAddress() {
-        addressLayout.visibility = android.view.View.VISIBLE
-        addressTitle.text = getString(R.string.local_address)
-        // Get port from config or use default
-        val port = configManager.getPort() ?: 3338
-        localAddress = "http://127.0.0.1:$port"
-        addressText.text = localAddress
-        appendLog("🌐 Local address: $localAddress")
+        try {
+            // Ensure we're on the main thread
+            runOnUiThread {
+                try {
+                    addressLayout.visibility = android.view.View.VISIBLE
+                    addressTitle.text = getString(R.string.local_address)
+                    
+                    // Get port from config (now always returns a value)
+                    val port = configManager.getPort() ?: 3338
+                    localAddress = "http://127.0.0.1:$port"
+                    addressText.text = localAddress
+                    
+                    appendLog("🌐 Local address: $localAddress")
+                    appendLog("📱 Address layout visibility set to VISIBLE")
+                    appendLog("🔧 Port used: $port")
+                    
+                    // Force a layout update
+                    addressLayout.requestLayout()
+                    addressLayout.invalidate()
+                    
+                } catch (e: Exception) {
+                    appendLog("❌ Error showing local address: ${e.message}")
+                    Log.e(TAG, "Error showing local address", e)
+                }
+            }
+        } catch (e: Exception) {
+            appendLog("❌ Error in showLocalAddress: ${e.message}")
+            Log.e(TAG, "Error in showLocalAddress", e)
+        }
     }
     
     private fun hideAddress() {
@@ -1045,7 +1099,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     val status = purrmintManager.getServiceStatus()
                     
                     try {
-                        val statusJson = org.json.JSONObject(status)
+                        val statusJson = org.json.JSONObject(status.toString())
                         val onionAddrFromStatus = statusJson.optString("onion_address", "")
                         
                         if (onionAddrFromStatus.isNotEmpty()) {

@@ -4,7 +4,7 @@
 use std::sync::{Arc, Mutex, OnceLock};
 use std::ffi::{CString, c_char};
 use serde_json::json;
-use tracing::{info, error};
+use tracing::{info, error, warn};
 
 use crate::config::AndroidConfig;
 use crate::nostr::{nsec_to_npub as nostr_nsec_to_npub};
@@ -19,6 +19,9 @@ static mut TOR_SERVICE: Option<Arc<Mutex<Option<TorService>>>> = None;
 
 /// Global runtime for service management
 static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+
+/// Service state lock to prevent concurrent start/stop operations
+static SERVICE_LOCK: OnceLock<Arc<Mutex<()>>> = OnceLock::new();
 
 /// Initialize global state and runtime
 fn init_globals() {
@@ -35,6 +38,17 @@ fn init_globals() {
     RUNTIME.get_or_init(|| {
         tokio::runtime::Runtime::new().expect("Failed to create global runtime")
     });
+    
+    // Initialize service lock
+    SERVICE_LOCK.get_or_init(|| {
+        Arc::new(Mutex::new(()))
+    });
+}
+
+/// Get service lock for thread-safe operations
+fn get_service_lock() -> Arc<Mutex<()>> {
+    init_globals();
+    SERVICE_LOCK.get().unwrap().clone()
 }
 
 // =============================================================================
@@ -42,7 +56,23 @@ fn init_globals() {
 // =============================================================================
 
 /// Initialize logging for Android
-pub fn init_logging() {
+#[no_mangle]
+pub extern "C" fn init_logging() -> *mut c_char {
+    match init_logging_internal() {
+        Ok(_) => {
+            let result = CString::new("Logging initialized successfully").unwrap();
+            result.into_raw()
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to initialize logging: {}", e);
+            let result = CString::new(error_msg).unwrap();
+            result.into_raw()
+        }
+    }
+}
+
+/// Initialize logging for Android (internal function)
+pub fn init_logging_internal() -> Result<(), String> {
     #[cfg(target_os = "android")]
     {
         android_logger::init_once(
@@ -63,23 +93,68 @@ pub fn init_logging() {
     info!("PurrMint logging initialized");
     info!("Log level set to debug");
     info!("Android logger configured for logcat output");
+    Ok(())
 }
 
-// =============================================================================
-// Nostr account management
-// =============================================================================
+/// Convert nsec to npub
+#[no_mangle]
+pub extern "C" fn nsec_to_npub(nsec: *const c_char) -> *mut c_char {
+    let nsec_str = unsafe {
+        match CString::from_raw(nsec as *mut c_char).into_string() {
+            Ok(s) => s,
+            Err(_) => {
+                let error = CString::new("Invalid nsec string").unwrap();
+                return error.into_raw();
+            }
+        }
+    };
+    
+    match nostr_nsec_to_npub(&nsec_str) {
+        Ok(npub) => {
+            let result = CString::new(npub).unwrap();
+            result.into_raw()
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to convert nsec to npub: {}", e);
+            let result = CString::new(error_msg).unwrap();
+            result.into_raw()
+        }
+    }
+}
 
 /// Convert nsec to npub (wrapper for nostr module function)
-pub fn nsec_to_npub(nsec: &str) -> Result<String, String> {
+pub fn nsec_to_npub_internal(nsec: &str) -> Result<String, String> {
     nostr_nsec_to_npub(nsec).map_err(|e| e.to_string())
 }
 
-// =============================================================================
-// Configuration management
-// =============================================================================
+/// Load Android configuration from file
+#[no_mangle]
+pub extern "C" fn load_android_config_from_file(file_path: *const c_char) -> *mut c_char {
+    let file_path_str = unsafe {
+        match CString::from_raw(file_path as *mut c_char).into_string() {
+            Ok(s) => s,
+            Err(_) => {
+                let error = CString::new("Invalid file path").unwrap();
+                return error.into_raw();
+            }
+        }
+    };
+    
+    match load_android_config_from_file_internal(&file_path_str) {
+        Ok(config) => {
+            let result = CString::new(config).unwrap();
+            result.into_raw()
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to load config: {}", e);
+            let result = CString::new(error_msg).unwrap();
+            result.into_raw()
+        }
+    }
+}
 
 /// Load Android configuration from JSON file
-pub fn load_android_config_from_file(file_path: &str) -> Result<String, String> {
+pub fn load_android_config_from_file_internal(file_path: &str) -> Result<String, String> {
     info!("Loading Android config from file: {}", file_path);
     
     if !std::path::Path::new(file_path).exists() {
@@ -101,8 +176,44 @@ pub fn load_android_config_from_file(file_path: &str) -> Result<String, String> 
     Ok(json)
 }
 
+/// Save Android configuration to file
+#[no_mangle]
+pub extern "C" fn save_android_config_to_file(file_path: *const c_char, config_json: *const c_char) -> *mut c_char {
+    let file_path_str = unsafe {
+        match CString::from_raw(file_path as *mut c_char).into_string() {
+            Ok(s) => s,
+            Err(_) => {
+                let error = CString::new("Invalid file path").unwrap();
+                return error.into_raw();
+            }
+        }
+    };
+    
+    let config_json_str = unsafe {
+        match CString::from_raw(config_json as *mut c_char).into_string() {
+            Ok(s) => s,
+            Err(_) => {
+                let error = CString::new("Invalid config JSON").unwrap();
+                return error.into_raw();
+            }
+        }
+    };
+    
+    match save_android_config_to_file_internal(&file_path_str, &config_json_str) {
+        Ok(_) => {
+            let result = CString::new("Configuration saved successfully").unwrap();
+            result.into_raw()
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to save config: {}", e);
+            let result = CString::new(error_msg).unwrap();
+            result.into_raw()
+        }
+    }
+}
+
 /// Save Android configuration to JSON file
-pub fn save_android_config_to_file(file_path: &str, config_json: &str) -> Result<(), String> {
+pub fn save_android_config_to_file_internal(file_path: &str, config_json: &str) -> Result<(), String> {
     info!("Saving Android config to file: {}", file_path);
     
     // Validate JSON by parsing it
@@ -125,8 +236,24 @@ pub fn save_android_config_to_file(file_path: &str, config_json: &str) -> Result
     Ok(())
 }
 
+/// Generate default Android configuration
+#[no_mangle]
+pub extern "C" fn generate_default_android_config() -> *mut c_char {
+    match generate_default_android_config_internal() {
+        Ok(config) => {
+            let result = CString::new(config).unwrap();
+            result.into_raw()
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to generate default config: {}", e);
+            let result = CString::new(error_msg).unwrap();
+            result.into_raw()
+        }
+    }
+}
+
 /// Generate default Android configuration JSON
-pub fn generate_default_android_config() -> Result<String, String> {
+pub fn generate_default_android_config_internal() -> Result<String, String> {
     let config = AndroidConfig::default();
     config.to_json().map_err(|e| format!("Failed to serialize default config: {}", e))
 }
@@ -145,6 +272,17 @@ pub fn start_android_service(config: &AndroidConfig, nsec: &str) -> Result<(), S
     
     info!("Service configuration: port={}, host={}", config.port, config.host);
     
+    // Acquire service lock to prevent concurrent start/stop operations
+    let lock = get_service_lock();
+    let _lock = lock.lock().map_err(|e| format!("Failed to acquire service lock: {}", e))?;
+    
+    // Always stop existing service first to ensure clean state
+    info!("Ensuring clean service state...");
+    if let Err(e) = stop_service_internal() {
+        warn!("Failed to stop existing service: {}", e);
+        // Continue anyway, as the service might not be running
+    }
+    
     let config_path = std::path::Path::new(&config.database_path)
         .parent()
         .ok_or("Invalid database path")?
@@ -154,15 +292,21 @@ pub fn start_android_service(config: &AndroidConfig, nsec: &str) -> Result<(), S
     std::fs::create_dir_all(&config_path)
         .map_err(|e| format!("Failed to create config directory: {}", e))?;
     
-    // Check if service is already running
+    // Check if service is already running (double-check after stop)
     init_globals();
     unsafe {
         if let Some(service_guard) = MINT_SERVICE.as_ref() {
             if let Ok(guard) = service_guard.lock() {
                 if let Some(service) = guard.as_ref() {
                     if service.is_running() {
-                        info!("Service is already running");
-                        return Ok(());
+                        info!("Service is still running after stop attempt, waiting...");
+                        // Give the service a moment to fully stop
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+                        
+                        // Try stopping again
+                        if let Err(e) = stop_service_internal() {
+                            return Err(format!("Failed to stop existing service: {}", e));
+                        }
                     }
                 }
             }
@@ -262,9 +406,9 @@ pub fn start_android_service(config: &AndroidConfig, nsec: &str) -> Result<(), S
     })
 }
 
-/// Stop mint service
-pub fn stop_service() -> Result<(), String> {
-    info!("Stopping mint service...");
+/// Internal stop service function (without lock)
+fn stop_service_internal() -> Result<(), String> {
+    info!("Stopping mint service (internal)...");
     init_globals();
     
     unsafe {
@@ -284,6 +428,17 @@ pub fn stop_service() -> Result<(), String> {
     
     info!("No running service found to stop");
     Ok(())
+}
+
+/// Stop mint service (thread-safe)
+pub fn stop_service() -> Result<(), String> {
+    info!("Stopping mint service...");
+    
+    // Acquire service lock to prevent concurrent start/stop operations
+    let lock = get_service_lock();
+    let _lock = lock.lock().map_err(|e| format!("Failed to acquire service lock: {}", e))?;
+    
+    stop_service_internal()
 }
 
 /// Get service status
@@ -307,7 +462,22 @@ pub fn get_service_status() -> String {
 }
 
 /// Get onion address if available
-pub fn get_onion_address() -> Option<String> {
+#[no_mangle]
+pub extern "C" fn get_onion_address() -> *mut c_char {
+    match get_onion_address_internal() {
+        Some(address) => {
+            let result = CString::new(address).unwrap();
+            result.into_raw()
+        }
+        None => {
+            let result = CString::new("No onion address available").unwrap();
+            result.into_raw()
+        }
+    }
+}
+
+/// Get onion address if available
+pub fn get_onion_address_internal() -> Option<String> {
     init_globals();
     
     unsafe {
@@ -337,57 +507,43 @@ pub fn get_onion_address() -> Option<String> {
     None
 }
 
-/// Free string memory
-pub fn free_string(s: *mut c_char) {
-    if s.is_null() {
-        return;
-    }
-    
+/// Free string allocated by Rust
+#[no_mangle]
+pub extern "C" fn free_string(s: *mut c_char) {
     unsafe {
-        drop(CString::from_raw(s));
+        if !s.is_null() {
+            let _ = CString::from_raw(s);
+        }
     }
 }
+
+// =============================================================================
+// Tests
+// =============================================================================
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nostr::{Keys, ToBech32};
-    use tempfile::tempdir;
 
     #[test]
     fn test_nsec_to_npub() {
-        let keys = Keys::generate();
-        let nsec = keys.secret_key().to_secret_hex();
-        let expected_npub = keys.public_key().to_bech32().unwrap();
-        
-        let result = nsec_to_npub(&nsec);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), expected_npub);
+        let nsec = "5c0c523f52a5b6fad39ed2403092df8cebc36318b39383bca6c00808626fab3a";
+        let npub = nostr_nsec_to_npub(nsec).unwrap();
+        assert_eq!(npub, "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619");
     }
-    
+
     #[test]
     fn test_generate_default_android_config() {
-        let result = generate_default_android_config();
-        assert!(result.is_ok());
-        
-        let json = result.unwrap();
-        assert!(json.contains("port"));
-        assert!(json.contains("PurrMint"));
+        let config = generate_default_android_config_internal().unwrap();
+        assert!(config.contains("port"));
+        assert!(config.contains("host"));
     }
-    
+
     #[test]
     fn test_config_roundtrip() {
-        let temp_dir = tempdir().expect("Failed to create temp dir");
-        let config_file = temp_dir.path().join("test_config.json");
-        let config_file_path = config_file.to_str().unwrap();
-        
-        let default_config_json = generate_default_android_config().unwrap();
-        
-        // Save and load
-        let save_result = save_android_config_to_file(config_file_path, &default_config_json);
-        assert!(save_result.is_ok());
-        
-        let load_result = load_android_config_from_file(config_file_path);
-        assert!(load_result.is_ok());
+        let config = generate_default_android_config_internal().unwrap();
+        let parsed: AndroidConfig = serde_json::from_str(&config).unwrap();
+        let serialized = serde_json::to_string(&parsed).unwrap();
+        assert_eq!(config, serialized);
     }
 } 

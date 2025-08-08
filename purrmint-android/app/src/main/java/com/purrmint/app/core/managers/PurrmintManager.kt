@@ -191,12 +191,19 @@ class PurrmintManager(private val context: Context) {
     }
     
     /**
-     * Start mint service
+     * Start mint service with nsec
      * @param nsec REQUIRED nsec key for mint service
      * @return true if service started successfully
      */
     fun startMintService(nsec: String): Boolean {
         return try {
+            // Stop existing service first to ensure clean state
+            Log.i(TAG, "Ensuring clean service state before starting...")
+            stopMintService()
+            
+            // Wait a moment for service to fully stop
+            Thread.sleep(500)
+            
             createDirectories()
             initLogging()
             
@@ -240,6 +247,13 @@ class PurrmintManager(private val context: Context) {
      */
     fun startMintServiceWithConfig(nsec: String, configJson: String): Boolean {
         return try {
+            // Stop existing service first to ensure clean state
+            Log.i(TAG, "Ensuring clean service state before starting with custom config...")
+            stopMintService()
+            
+            // Wait a moment for service to fully stop
+            Thread.sleep(500)
+            
             createDirectories()
             initLogging()
             

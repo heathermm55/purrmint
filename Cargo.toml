@@ -19,17 +19,17 @@ tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
 tracing = { version = "0.1", default-features = false, features = ["attributes", "log"] }
 
-# Nostr dependencies
-nostr = { version = "0.42", features = ["std", "nip44", "nip04"] }
-nostr-sdk = { version = "0.42" }
-nostr-connect = { version = "0.42" }
-nostr-relay-pool = { version = "0.42" }
+# Nostr dependencies - using heathermm55's fork
+nostr = { git = "https://github.com/heathermm55/nostr", branch = "master" }
+nostr-sdk = { git = "https://github.com/heathermm55/nostr", branch = "master" }
+nostr-connect = { git = "https://github.com/heathermm55/nostr", branch = "master" }
+nostr-relay-pool = { git = "https://github.com/heathermm55/nostr", branch = "master" }
 
 # NWC (Nostr Wallet Connect) support
 bech32 = "0.9"
 urlencoding = "2.1"
 chrono = { version = "0.4", features = ["serde"] }
-nwc = { path = "../nostr/crates/nwc" }
+nwc = { path = "../nostr/crates/nwc" }  
 
 # CDK dependencies
 cdk = { version = "0.11", features = ["mint"] }
