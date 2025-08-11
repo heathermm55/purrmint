@@ -25,6 +25,10 @@ class ConfigActivity : AppCompatActivity() {
     private lateinit var btnStart: MaterialButton
     private lateinit var toolbar: MaterialToolbar
     
+    // Global fee configuration views
+    private lateinit var globalFeePercentInput: TextInputEditText
+    private lateinit var globalReserveFeeMinInput: TextInputEditText
+    
     // Lightning configuration views
     private lateinit var lightningBackendSpinner: AutoCompleteTextView
     private lateinit var clnConfigLayout: View
@@ -34,7 +38,6 @@ class ConfigActivity : AppCompatActivity() {
     
     // CLN inputs
     private lateinit var clnRpcPathInput: TextInputEditText
-    private lateinit var clnFeePercentInput: TextInputEditText
     
     // LNBits inputs
     private lateinit var lnbitsAdminApiKeyInput: TextInputEditText
@@ -62,6 +65,8 @@ class ConfigActivity : AppCompatActivity() {
         const val EXTRA_FAKE_WALLET_FEE_PERCENT = "fake_wallet_fee_percent"
         const val EXTRA_FAKE_WALLET_RESERVE_FEE_MIN = "fake_wallet_reserve_fee_min"
         const val EXTRA_NWC_CONNECTION_URI = "nwc_connection_uri"
+        const val EXTRA_GLOBAL_FEE_PERCENT = "global_fee_percent"
+        const val EXTRA_GLOBAL_RESERVE_FEE_MIN = "global_reserve_fee_min"
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,6 +96,10 @@ class ConfigActivity : AppCompatActivity() {
         btnStart = findViewById(R.id.btnStart)
         toolbar = findViewById(R.id.topAppBar)
         
+        // Global fee configuration views
+        globalFeePercentInput = findViewById(R.id.globalFeePercentInput)
+        globalReserveFeeMinInput = findViewById(R.id.globalReserveFeeMinInput)
+        
         // Lightning configuration views
         lightningBackendSpinner = findViewById(R.id.lightningBackendSpinner)
         clnConfigLayout = findViewById(R.id.clnConfigLayout)
@@ -100,7 +109,6 @@ class ConfigActivity : AppCompatActivity() {
         
         // CLN inputs
         clnRpcPathInput = findViewById(R.id.clnRpcPathInput)
-        clnFeePercentInput = findViewById(R.id.clnFeePercentInput)
         
         // LNBits inputs
         lnbitsAdminApiKeyInput = findViewById(R.id.lnbitsAdminApiKeyInput)
@@ -191,92 +199,88 @@ class ConfigActivity : AppCompatActivity() {
             lightningBackendSpinner.setText(existingConfig.lightningBackend, false)
             updateLightningConfigVisibility(existingConfig.lightningBackend)
             
+            // Load global fee configuration with fallback to defaults
+            val feePercent = existingConfig.feePercent ?: 0.02f
+            val reserveFeeMin = existingConfig.reserveFeeMin ?: 1L
+            
+            globalFeePercentInput.setText(feePercent.toString())
+            globalReserveFeeMinInput.setText(reserveFeeMin.toString())
+            
             // Load NWC configuration if available
             if (existingConfig.lightningBackend == "nwc" && existingConfig.nwcConnectionUri != null) {
                 nwcConnectionUriInput.setText(existingConfig.nwcConnectionUri)
             }
         } else {
             // Load default values
-        portInput.setText("3338")
-        mintNameInput.setText("My Mint")
-        descriptionInput.setText("A simple mint service")
-        
-        // Set default lightning backend
-        lightningBackendSpinner.setText("fakewallet", false)
-        updateLightningConfigVisibility("fakewallet")
+            portInput.setText("3338")
+            mintNameInput.setText("My Mint")
+            descriptionInput.setText("A simple mint service")
+            lightningBackendSpinner.setText("fakewallet", false)
+            updateLightningConfigVisibility("fakewallet")
+            
+            // Set default global fee values
+            globalFeePercentInput.setText("0.02")
+            globalReserveFeeMinInput.setText("1")
         }
     }
     
     private fun saveConfiguration() {
         try {
-            val port = portInput.text.toString().trim()
-            val mintName = mintNameInput.text.toString().trim()
-            val description = descriptionInput.text.toString().trim()
-            val lightningBackend = lightningBackendSpinner.text.toString().trim()
+            val port = portInput.text.toString().toIntOrNull() ?: 3338
+            val mintName = mintNameInput.text.toString()
+            val description = descriptionInput.text.toString()
+            val lightningBackend = lightningBackendSpinner.text.toString()
             
-            // Validate required inputs
-            if (port.isEmpty() || mintName.isEmpty() || lightningBackend.isEmpty()) {
-                Log.w(TAG, "Required fields are empty")
-                return
-            }
+            // Get global fee configuration
+            val feePercent = globalFeePercentInput.text.toString().toFloatOrNull() ?: 0.02f
+            val reserveFeeMin = globalReserveFeeMinInput.text.toString().toLongOrNull() ?: 1L
             
-            // Validate lightning backend
-            if (lightningBackend !in listOf("fakewallet", "cln", "lnbits", "nwc")) {
-                Log.w(TAG, "Invalid lightning backend: '$lightningBackend'")
-                return
-            }
+            // Get Lightning backend specific configuration
+            val lnbitsAdminApiKey = if (lightningBackend == "lnbits") lnbitsAdminApiKeyInput.text.toString() else null
+            val lnbitsInvoiceApiKey = if (lightningBackend == "lnbits") lnbitsInvoiceApiKeyInput.text.toString() else null
+            val lnbitsApiUrl = if (lightningBackend == "lnbits") lnbitsApiUrlInput.text.toString() else null
             
-            // Save configuration to local storage
+            val clnRpcPath = if (lightningBackend == "cln") clnRpcPathInput.text.toString() else null
+            val clnBolt12 = if (lightningBackend == "cln") false else null  // Default to false for now
+            
+            val nwcConnectionUri = if (lightningBackend == "nwc") nwcConnectionUriInput.text.toString() else null
+            
             val configManager = com.purrmint.app.core.managers.ConfigManager(this)
             val success = configManager.saveConfiguration(
-                port = port.toInt(),
+                port = port,
                 mintName = mintName,
                 description = description,
                 lightningBackend = lightningBackend,
-                lnbitsAdminApiKey = if (lightningBackend == "lnbits") lnbitsAdminApiKeyInput.text.toString().trim() else null,
-                lnbitsInvoiceApiKey = if (lightningBackend == "lnbits") lnbitsInvoiceApiKeyInput.text.toString().trim() else null,
-                lnbitsApiUrl = if (lightningBackend == "lnbits") lnbitsApiUrlInput.text.toString().trim() else null,
-                nwcConnectionUri = if (lightningBackend == "nwc") nwcConnectionUriInput.text.toString().trim() else null
+                lnbitsAdminApiKey = lnbitsAdminApiKey,
+                lnbitsInvoiceApiKey = lnbitsInvoiceApiKey,
+                lnbitsApiUrl = lnbitsApiUrl,
+                clnRpcPath = clnRpcPath,
+                clnBolt12 = clnBolt12,
+                feePercent = feePercent,
+                reserveFeeMin = reserveFeeMin,
+                nwcConnectionUri = nwcConnectionUri
             )
             
-            if (!success) {
-                Log.e(TAG, "Failed to save configuration to local storage")
-                return
-            }
-            
-            // Create result intent for MainActivity
-            val resultIntent = Intent().apply {
-                putExtra(EXTRA_PORT, port)
-                putExtra(EXTRA_MINT_NAME, mintName)
-                putExtra(EXTRA_DESCRIPTION, description)
-                putExtra(EXTRA_LIGHTNING_BACKEND, lightningBackend)
+            if (success) {
+                // Configuration saved successfully
+                val intent = Intent()
+                intent.putExtra(EXTRA_PORT, port)
+                intent.putExtra(EXTRA_MINT_NAME, mintName)
+                intent.putExtra(EXTRA_DESCRIPTION, description)
+                intent.putExtra(EXTRA_LIGHTNING_BACKEND, lightningBackend)
+                intent.putExtra(EXTRA_GLOBAL_FEE_PERCENT, feePercent)
+                intent.putExtra(EXTRA_GLOBAL_RESERVE_FEE_MIN, reserveFeeMin)
                 
-                // Add lightning-specific configuration
-                when (lightningBackend) {
-                    "cln" -> {
-                        putExtra(EXTRA_CLN_RPC_PATH, clnRpcPathInput.text.toString().trim())
-                        putExtra(EXTRA_CLN_FEE_PERCENT, clnFeePercentInput.text.toString().trim())
-                    }
-                    "lnbits" -> {
-                        putExtra(EXTRA_LNBITS_ADMIN_API_KEY, lnbitsAdminApiKeyInput.text.toString().trim())
-                        putExtra(EXTRA_LNBITS_INVOICE_API_KEY, lnbitsInvoiceApiKeyInput.text.toString().trim())
-                        putExtra(EXTRA_LNBITS_API_URL, lnbitsApiUrlInput.text.toString().trim())
-                    }
-                    "fakewallet" -> {
-                        putExtra(EXTRA_FAKE_WALLET_FEE_PERCENT, fakeWalletFeePercentInput.text.toString().trim())
-                        putExtra(EXTRA_FAKE_WALLET_RESERVE_FEE_MIN, fakeWalletReserveFeeMinInput.text.toString().trim())
-                    }
-                    "nwc" -> {
-                        putExtra(EXTRA_NWC_CONNECTION_URI, nwcConnectionUriInput.text.toString().trim())
-                    }
-                }
+                setResult(RESULT_OK, intent)
+                finish()
+            } else {
+                // Failed to save configuration
+                Log.e(TAG, "Failed to save configuration")
+                // You can show an error message to the user here
             }
-            
-            setResult(RESULT_OK, resultIntent)
-            finish()
-            
         } catch (e: Exception) {
             Log.e(TAG, "Error saving configuration", e)
+            // You can show an error message to the user here
         }
     }
 } 

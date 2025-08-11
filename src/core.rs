@@ -544,6 +544,11 @@ mod tests {
         let config = generate_default_android_config_internal().unwrap();
         let parsed: AndroidConfig = serde_json::from_str(&config).unwrap();
         let serialized = serde_json::to_string(&parsed).unwrap();
-        assert_eq!(config, serialized);
+        
+        // Parse both JSON strings to compare the actual data, not formatting
+        let original_parsed: serde_json::Value = serde_json::from_str(&config).unwrap();
+        let roundtrip_parsed: serde_json::Value = serde_json::from_str(&serialized).unwrap();
+        
+        assert_eq!(original_parsed, roundtrip_parsed);
     }
 } 

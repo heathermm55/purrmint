@@ -23,6 +23,7 @@ use cdk::Bolt11Invoice;
 use cdk_axum::cache::HttpCache;
 use cdk_sqlite::MintSqliteDatabase;
 use cdk_common::Amount;
+use cdk::nuts::CurrencyUnit;
 
 pub struct MintdService {
     mint: Option<Arc<cdk::mint::Mint>>,
@@ -191,62 +192,52 @@ impl MintdService {
 
         // Set backend-specific configuration
         match android_config.lightning_backend.as_str() {
-            "fakewallet" | "fake" => {
+            "fakewallet" => {
+                // Configure fake wallet backend
                 settings.fake_wallet = Some(FakeWallet {
-                    supported_units: vec![
-                        cdk::nuts::CurrencyUnit::Sat,
-                        cdk::nuts::CurrencyUnit::Msat,
-                    ],
-                    fee_percent: 0.02,
-                    reserve_fee_min: 1.into(),
+                    supported_units: vec![CurrencyUnit::Sat],
+                    fee_percent: android_config.fee_percent.unwrap_or(0.02),
+                    reserve_fee_min: Amount::from(android_config.reserve_fee_min.unwrap_or(1)),
                     min_delay_time: 1,
                     max_delay_time: 3,
                 });
             }
             "lnbits" => {
-                // Use LNBits configuration from Android config
-                if let (Some(admin_key), Some(invoice_key), Some(api_url)) = (
-                    &android_config.lnbits_admin_api_key,
-                    &android_config.lnbits_invoice_api_key,
-                    &android_config.lnbits_api_url,
-                ) {
-                    settings.lnbits = Some(LNbits {
-                        admin_api_key: admin_key.clone(),
-                        invoice_api_key: invoice_key.clone(),
-                        lnbits_api: api_url.clone(),
-                        fee_percent: 0.02,
-                        reserve_fee_min: 1.into(),
-                    });
-                } else {
-                    // Fallback to default if LNBits config is incomplete
-                    settings.lnbits = Some(LNbits::default());
-                }
+                // Configure LNBits backend
+                let admin_key = android_config.lnbits_admin_api_key.clone()
+                    .ok_or_else(|| anyhow!("LNBits admin API key is required"))?;
+                let invoice_key = android_config.lnbits_invoice_api_key.clone()
+                    .ok_or_else(|| anyhow!("LNBits invoice API key is required"))?;
+                let api_url = android_config.lnbits_api_url.clone()
+                    .ok_or_else(|| anyhow!("LNBits API URL is required"))?;
+                
+                settings.lnbits = Some(LNbits {
+                    admin_api_key: admin_key,
+                    invoice_api_key: invoice_key,
+                    lnbits_api: api_url,
+                    fee_percent: android_config.fee_percent.unwrap_or(0.02),
+                    reserve_fee_min: Amount::from(android_config.reserve_fee_min.unwrap_or(1)),
+                });
             }
             "cln" => {
-                // Use CLN configuration from Android config
-                if let Some(rpc_path) = &android_config.cln_rpc_path {
-                    settings.cln = Some(Cln {
-                        rpc_path: rpc_path.clone(),
-                        bolt12: android_config.cln_bolt12.unwrap_or(false),
-                        fee_percent: 0.02,
-                        reserve_fee_min: 1.into(),
-                    });
-                } else {
-                    // Fallback to default if CLN config is incomplete
-                    settings.cln = Some(Cln::default());
-                }
+                // Configure CLN backend
+                let rpc_path = android_config.cln_rpc_path.clone()
+                    .ok_or_else(|| anyhow!("CLN RPC path is required"))?;
+                
+                settings.cln = Some(Cln {
+                    rpc_path,
+                    bolt12: android_config.cln_bolt12.unwrap_or(false),
+                    fee_percent: android_config.fee_percent.unwrap_or(0.02),
+                    reserve_fee_min: Amount::from(android_config.reserve_fee_min.unwrap_or(1)),
+                });
             }
             "nwc" => {
-                // Use NWC configuration from Android config
-                if let Some(connection_uri) = &android_config.nwc_connection_uri {
-                    settings.nwc = Some(NWC {
-                        connection_uri: connection_uri.clone(),
-                        fee_percent: android_config.nwc_fee_percent.unwrap_or(0.02),
-                        reserve_fee_min: Amount::from(android_config.nwc_reserve_fee_min.unwrap_or(1)),
-                    });
-                } else {
-                    return Err(anyhow!("NWC connection URI is required when using NWC backend"));
-                }
+                // Configure NWC backend
+                settings.nwc = Some(NWC {
+                    connection_uri: android_config.nwc_connection_uri.clone().unwrap(),
+                    fee_percent: android_config.fee_percent.unwrap_or(0.02),
+                    reserve_fee_min: Amount::from(android_config.reserve_fee_min.unwrap_or(1)),
+                });
             }
             _ => {
                 // Default to fake wallet if backend is not recognized

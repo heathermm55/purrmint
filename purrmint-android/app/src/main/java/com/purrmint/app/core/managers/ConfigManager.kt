@@ -16,6 +16,11 @@ data class AndroidConfig(
     val lnbitsAdminApiKey: String? = null,
     val lnbitsInvoiceApiKey: String? = null,
     val lnbitsApiUrl: String? = null,
+    val clnRpcPath: String? = null,
+    val clnBolt12: Boolean? = null,
+    // Global fee configuration for all Lightning backends
+    val feePercent: Float? = null,
+    val reserveFeeMin: Long? = null,
     val nwcConnectionUri: String? = null
 )
 
@@ -49,6 +54,10 @@ class ConfigManager(private val context: Context) {
             lnbitsAdminApiKey = null,
             lnbitsInvoiceApiKey = null,
             lnbitsApiUrl = null,
+            clnRpcPath = null,
+            clnBolt12 = null,
+            feePercent = 0.02f,        // Default 2% fee
+            reserveFeeMin = 1L,         // Default 1 msat minimum
             nwcConnectionUri = null
         )
     }
@@ -89,6 +98,10 @@ class ConfigManager(private val context: Context) {
         lnbitsAdminApiKey: String? = null,
         lnbitsInvoiceApiKey: String? = null,
         lnbitsApiUrl: String? = null,
+        clnRpcPath: String? = null,
+        clnBolt12: Boolean? = null,
+        feePercent: Float = 0.02f,     // Default 2% fee
+        reserveFeeMin: Long = 1L,       // Default 1 msat minimum
         nwcConnectionUri: String? = null
     ): Boolean {
         val dataDir = context.filesDir.absolutePath
@@ -103,6 +116,10 @@ class ConfigManager(private val context: Context) {
             lnbitsAdminApiKey = lnbitsAdminApiKey,
             lnbitsInvoiceApiKey = lnbitsInvoiceApiKey,
             lnbitsApiUrl = lnbitsApiUrl,
+            clnRpcPath = clnRpcPath,
+            clnBolt12 = clnBolt12,
+            feePercent = feePercent,
+            reserveFeeMin = reserveFeeMin,
             nwcConnectionUri = nwcConnectionUri
         )
         return saveConfiguration(config)
@@ -213,6 +230,10 @@ class ConfigManager(private val context: Context) {
             json.put("lnbitsAdminApiKey", config.lnbitsAdminApiKey)
             json.put("lnbitsInvoiceApiKey", config.lnbitsInvoiceApiKey)
             json.put("lnbitsApiUrl", config.lnbitsApiUrl)
+            json.put("clnRpcPath", config.clnRpcPath)
+            json.put("clnBolt12", config.clnBolt12)
+            json.put("feePercent", config.feePercent)
+            json.put("reserveFeeMin", config.reserveFeeMin)
             json.put("nwcConnectionUri", config.nwcConnectionUri)
             json.toString()
         } catch (e: JSONException) {
@@ -248,6 +269,41 @@ class ConfigManager(private val context: Context) {
     private fun jsonToConfig(json: String): AndroidConfig {
         return try {
             val jsonObject = JSONObject(json)
+            
+            // Safely parse feePercent with proper null checking
+            val feePercent = if (jsonObject.has("feePercent") && !jsonObject.isNull("feePercent")) {
+                try {
+                    val value = jsonObject.optDouble("feePercent")
+                    if (value.isNaN() || value == 0.0) {
+                        0.02f
+                    } else {
+                        value.toFloat()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error parsing feePercent, using default: 0.02f", e)
+                    0.02f
+                }
+            } else {
+                0.02f
+            }
+            
+            // Safely parse reserveFeeMin with proper null checking
+            val reserveFeeMin = if (jsonObject.has("reserveFeeMin") && !jsonObject.isNull("reserveFeeMin")) {
+                try {
+                    val value = jsonObject.optLong("reserveFeeMin")
+                    if (value == 0L) {
+                        1L
+                    } else {
+                        value
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error parsing reserveFeeMin, using default: 1L", e)
+                    1L
+                }
+            } else {
+                1L
+            }
+            
             AndroidConfig(
                 host = jsonObject.optString("host", DEFAULT_HOST),
                 port = jsonObject.optInt("port", DEFAULT_PORT),
@@ -259,6 +315,10 @@ class ConfigManager(private val context: Context) {
                 lnbitsAdminApiKey = jsonObject.optString("lnbitsAdminApiKey", null),
                 lnbitsInvoiceApiKey = jsonObject.optString("lnbitsInvoiceApiKey", null),
                 lnbitsApiUrl = jsonObject.optString("lnbitsApiUrl", null),
+                clnRpcPath = jsonObject.optString("clnRpcPath", null),
+                clnBolt12 = if (jsonObject.has("clnBolt12")) jsonObject.optBoolean("clnBolt12") else null,
+                feePercent = feePercent,
+                reserveFeeMin = reserveFeeMin,
                 nwcConnectionUri = jsonObject.optString("nwcConnectionUri", null)
             )
         } catch (e: JSONException) {

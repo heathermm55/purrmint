@@ -353,10 +353,11 @@ pub struct AndroidConfig {
     pub lnbits_api_url: Option<String>,
     pub cln_rpc_path: Option<String>,
     pub cln_bolt12: Option<bool>,
+    // Global fee configuration for all Lightning backends
+    pub fee_percent: Option<f32>,        // Fee percentage, default 0.02
+    pub reserve_fee_min: Option<u64>,    // Minimum fee in msat, default 1
     // NWC configuration
     pub nwc_connection_uri: Option<String>,
-    pub nwc_fee_percent: Option<f32>,        // Fee percentage, default 0.02
-    pub nwc_reserve_fee_min: Option<u64>,    // Minimum fee in msat, default 1
     // Tor configuration
     pub tor_enabled: Option<bool>,
     pub tor_mode: Option<String>,
@@ -384,9 +385,9 @@ impl Default for AndroidConfig {
             lnbits_api_url: None,
             cln_rpc_path: None,
             cln_bolt12: None,
+            fee_percent: Some(0.02),
+            reserve_fee_min: Some(1),
             nwc_connection_uri: None,
-            nwc_fee_percent: Some(0.02),
-            nwc_reserve_fee_min: Some(1),
             // Tor defaults
             tor_enabled: Some(false),
             tor_mode: Some("disabled".to_string()),
@@ -488,8 +489,8 @@ impl AndroidConfig {
                         admin_api_key: admin_key.clone(),
                         invoice_api_key: invoice_key.clone(),
                         lnbits_api: api_url.clone(),
-                        fee_percent: 0.02,
-                        reserve_fee_min: 1.into(),
+                        fee_percent: self.fee_percent.unwrap_or(0.02),
+                        reserve_fee_min: Amount::from(self.reserve_fee_min.unwrap_or(1)),
                     });
                     // Clear fake wallet config when using LNBits
                     settings.fake_wallet = None;
@@ -501,8 +502,8 @@ impl AndroidConfig {
                     settings.cln = Some(Cln {
                         rpc_path: rpc_path.clone(),
                         bolt12: self.cln_bolt12.unwrap_or(false),
-                        fee_percent: 0.02,
-                        reserve_fee_min: 1.into(),
+                        fee_percent: self.fee_percent.unwrap_or(0.02),
+                        reserve_fee_min: Amount::from(self.reserve_fee_min.unwrap_or(1)),
                     });
                     // Clear fake wallet config when using CLN
                     settings.fake_wallet = None;
@@ -513,8 +514,8 @@ impl AndroidConfig {
                 if let Some(connection_uri) = &self.nwc_connection_uri {
                     settings.nwc = Some(NWC {
                         connection_uri: connection_uri.clone(),
-                        fee_percent: self.nwc_fee_percent.unwrap_or(0.02),
-                        reserve_fee_min: Amount::from(self.nwc_reserve_fee_min.unwrap_or(1)),
+                        fee_percent: self.fee_percent.unwrap_or(0.02),
+                        reserve_fee_min: Amount::from(self.reserve_fee_min.unwrap_or(1)),
                     });
                 } else {
                     return Err(anyhow!("NWC connection URI is required when using NWC backend"));
@@ -684,8 +685,8 @@ mod tests {
         let mut config = AndroidConfig::default();
         config.lightning_backend = "nwc".to_string();
         config.nwc_connection_uri = Some("ws://localhost:10009".to_string());
-        config.nwc_fee_percent = Some(0.01);
-        config.nwc_reserve_fee_min = Some(1);
+        config.fee_percent = Some(0.01);
+        config.reserve_fee_min = Some(1);
 
         let settings = config.to_settings(None).expect("Failed to convert to settings");
         assert_eq!(settings.ln.ln_backend, LnBackend::NWC);
@@ -701,16 +702,23 @@ mod tests {
         let mut config = AndroidConfig::default();
         config.lightning_backend = "nwc".to_string();
         config.nwc_connection_uri = Some("ws://localhost:10009".to_string());
-        config.nwc_fee_percent = Some(0.05);  // 5% fee
-        config.nwc_reserve_fee_min = Some(100); // 100 msat minimum
+        config.fee_percent = Some(0.05);  // 5% fee
+        config.reserve_fee_min = Some(100); // 100 msat minimum
 
         let settings = config.to_settings(None).expect("Failed to convert to settings");
-        assert_eq!(settings.ln.ln_backend, LnBackend::NWC);
+        
+        // Verify NWC backend is configured with custom fees
         assert!(settings.nwc.is_some());
-        let nwc_settings = settings.nwc.unwrap();
-        assert_eq!(nwc_settings.connection_uri, "ws://localhost:10009");
-        assert_eq!(nwc_settings.fee_percent, 0.05);
-        assert_eq!(nwc_settings.reserve_fee_min, 100.into());
+        let nwc = settings.nwc.unwrap();
+        assert_eq!(nwc.connection_uri, "ws://localhost:10009");
+        assert_eq!(nwc.fee_percent, 0.05);
+        assert_eq!(nwc.reserve_fee_min, Amount::from(100));
+        
+        // Verify other backends also use the same global fee configuration
+        if let Some(fake_wallet) = settings.fake_wallet {
+            assert_eq!(fake_wallet.fee_percent, 0.05);
+            assert_eq!(fake_wallet.reserve_fee_min, Amount::from(100));
+        }
     }
 
     #[test]
