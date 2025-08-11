@@ -257,7 +257,7 @@ impl MintdService {
         Ok(settings)
     }
 
-    pub async fn start(&mut self) -> Result<()> {
+    pub async fn start(&mut self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if self.is_running {
             return Ok(());
         }
@@ -274,27 +274,48 @@ impl MintdService {
         mint_arc.set_mint_info(mint_info).await?;
         self.mint = Some(mint_arc.clone());
 
-        // Initialize mint
-        mint_arc.check_pending_mint_quotes().await?;
-        mint_arc.check_pending_melt_quotes().await?;
+        // Set quote TTL
         mint_arc
             .set_quote_ttl(QuoteTTL::new(10_000, 10_000))
             .await?;
 
-        // Start HTTP server
+        // Start background payment status checks without blocking startup
+        let mint_for_checks = mint_arc.clone();
+        tokio::spawn(async move {
+            info!("Starting background payment status checks...");
+            
+            // Check pending mint quotes
+            if let Err(e) = mint_for_checks.check_pending_mint_quotes().await {
+                error!("Background mint quote check failed: {}", e);
+            } else {
+                info!("Background mint quote check completed successfully");
+            }
+            
+            // Check pending melt quotes  
+            if let Err(e) = mint_for_checks.check_pending_melt_quotes().await {
+                error!("Background melt quote check failed: {}", e);
+            } else {
+                info!("Background melt quote check completed successfully");
+            }
+            
+            info!("Background payment status checks completed");
+        });
+
+        // Start HTTP server (this will block until server starts)
         info!("About to start HTTP server");
-        match self.start_http_server(mint_arc).await {
+        match self.start_http_server(mint_arc.clone()).await {
             Ok(()) => {
                 info!("HTTP server started successfully");
             }
             Err(e) => {
                 error!("HTTP server failed to start: {}", e);
-                return Err(e);
+                return Err(e.into());
             }
         }
-
+        
         self.is_running = true;
         info!("MintdService started successfully");
+        
         Ok(())
     }
 
