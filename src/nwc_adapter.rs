@@ -16,6 +16,8 @@ use std::sync::{Arc, Mutex};
 pub struct NWCLightningBackend {
     pub(crate) nwc: Arc<Mutex<Option<NWC>>>,
     pub(crate) connection_uri: String,
+    pub fee_percent: f32,        // Fee percentage
+    pub reserve_fee_min: u64,    // Minimum fee in msat
 }
 
 impl NWCLightningBackend {
@@ -24,6 +26,18 @@ impl NWCLightningBackend {
         Self {
             nwc: Arc::new(Mutex::new(None)),
             connection_uri,
+            fee_percent: 0.02, // Default fee
+            reserve_fee_min: 1000, // Default reserve fee
+        }
+    }
+    
+    /// Create a new NWC Lightning backend with custom fee configuration
+    pub fn new_with_fees(connection_uri: String, fee_percent: f32, reserve_fee_min: u64) -> Self {
+        Self {
+            nwc: Arc::new(Mutex::new(None)),
+            connection_uri,
+            fee_percent,
+            reserve_fee_min,
         }
     }
 
@@ -116,9 +130,9 @@ impl MintPayment for NWCLightningBackend {
             _ => return Err(Self::Err::UnsupportedUnit),
         };
         
-        // Calculate fee (2% with minimum 1 satoshi)
-        let fee_amount = (*amount.as_ref() as f64 * 0.02) as u64;
-        let fee = std::cmp::max(fee_amount, 1);
+        // Calculate fee using configurable parameters instead of hardcoded values
+        let fee_amount = (*amount.as_ref() as f64 * self.fee_percent as f64) as u64;
+        let fee = std::cmp::max(fee_amount, self.reserve_fee_min);
         
         Ok(PaymentQuoteResponse {
             request_lookup_id: invoice.payment_hash().to_string(),
@@ -232,6 +246,19 @@ mod tests {
         let backend = NWCLightningBackend::new(uri.to_string());
         
         assert_eq!(backend.connection_uri, uri);
+        assert_eq!(backend.fee_percent, 0.02);
+        assert_eq!(backend.reserve_fee_min, 1000);
+        assert!(backend.nwc.lock().unwrap().is_none());
+    }
+    
+    #[test]
+    fn test_nwc_backend_creation_with_fees() {
+        let uri = "nostr+walletconnect://test?relay=wss://test.com&secret=test";
+        let backend = NWCLightningBackend::new_with_fees(uri.to_string(), 0.03, 500);
+        
+        assert_eq!(backend.connection_uri, uri);
+        assert_eq!(backend.fee_percent, 0.03);
+        assert_eq!(backend.reserve_fee_min, 500);
         assert!(backend.nwc.lock().unwrap().is_none());
     }
 } 

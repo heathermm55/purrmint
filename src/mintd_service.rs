@@ -22,6 +22,7 @@ use cdk::types::QuoteTTL;
 use cdk::Bolt11Invoice;
 use cdk_axum::cache::HttpCache;
 use cdk_sqlite::MintSqliteDatabase;
+use cdk_common::Amount;
 
 pub struct MintdService {
     mint: Option<Arc<cdk::mint::Mint>>,
@@ -240,6 +241,8 @@ impl MintdService {
                 if let Some(connection_uri) = &android_config.nwc_connection_uri {
                     settings.nwc = Some(NWC {
                         connection_uri: connection_uri.clone(),
+                        fee_percent: android_config.nwc_fee_percent.unwrap_or(0.02),
+                        reserve_fee_min: Amount::from(android_config.nwc_reserve_fee_min.unwrap_or(1)),
                     });
                 } else {
                     return Err(anyhow!("NWC connection URI is required when using NWC backend"));

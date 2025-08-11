@@ -279,12 +279,16 @@ impl Default for Cln {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NWC {
     pub connection_uri: String,
+    pub fee_percent: f32,        // Fee percentage, default 0.02
+    pub reserve_fee_min: Amount, // Minimum fee in msat, default 1
 }
 
 impl Default for NWC {
     fn default() -> Self {
         Self {
             connection_uri: String::new(),
+            fee_percent: 0.02,
+            reserve_fee_min: 2.into(),
         }
     }
 }
@@ -351,6 +355,8 @@ pub struct AndroidConfig {
     pub cln_bolt12: Option<bool>,
     // NWC configuration
     pub nwc_connection_uri: Option<String>,
+    pub nwc_fee_percent: Option<f32>,        // Fee percentage, default 0.02
+    pub nwc_reserve_fee_min: Option<u64>,    // Minimum fee in msat, default 1
     // Tor configuration
     pub tor_enabled: Option<bool>,
     pub tor_mode: Option<String>,
@@ -379,6 +385,8 @@ impl Default for AndroidConfig {
             cln_rpc_path: None,
             cln_bolt12: None,
             nwc_connection_uri: None,
+            nwc_fee_percent: Some(0.02),
+            nwc_reserve_fee_min: Some(1),
             // Tor defaults
             tor_enabled: Some(false),
             tor_mode: Some("disabled".to_string()),
@@ -505,6 +513,8 @@ impl AndroidConfig {
                 if let Some(connection_uri) = &self.nwc_connection_uri {
                     settings.nwc = Some(NWC {
                         connection_uri: connection_uri.clone(),
+                        fee_percent: self.nwc_fee_percent.unwrap_or(0.02),
+                        reserve_fee_min: Amount::from(self.nwc_reserve_fee_min.unwrap_or(1)),
                     });
                 } else {
                     return Err(anyhow!("NWC connection URI is required when using NWC backend"));
@@ -674,11 +684,33 @@ mod tests {
         let mut config = AndroidConfig::default();
         config.lightning_backend = "nwc".to_string();
         config.nwc_connection_uri = Some("ws://localhost:10009".to_string());
+        config.nwc_fee_percent = Some(0.01);
+        config.nwc_reserve_fee_min = Some(1);
 
         let settings = config.to_settings(None).expect("Failed to convert to settings");
         assert_eq!(settings.ln.ln_backend, LnBackend::NWC);
         assert!(settings.nwc.is_some());
-        assert_eq!(settings.nwc.unwrap().connection_uri, "ws://localhost:10009");
+        let nwc_settings = settings.nwc.unwrap();
+        assert_eq!(nwc_settings.connection_uri, "ws://localhost:10009");
+        assert_eq!(nwc_settings.fee_percent, 0.01);
+        assert_eq!(nwc_settings.reserve_fee_min, 1.into());
+    }
+    
+    #[test]
+    fn test_nwc_config_with_custom_fees() {
+        let mut config = AndroidConfig::default();
+        config.lightning_backend = "nwc".to_string();
+        config.nwc_connection_uri = Some("ws://localhost:10009".to_string());
+        config.nwc_fee_percent = Some(0.05);  // 5% fee
+        config.nwc_reserve_fee_min = Some(100); // 100 msat minimum
+
+        let settings = config.to_settings(None).expect("Failed to convert to settings");
+        assert_eq!(settings.ln.ln_backend, LnBackend::NWC);
+        assert!(settings.nwc.is_some());
+        let nwc_settings = settings.nwc.unwrap();
+        assert_eq!(nwc_settings.connection_uri, "ws://localhost:10009");
+        assert_eq!(nwc_settings.fee_percent, 0.05);
+        assert_eq!(nwc_settings.reserve_fee_min, 100.into());
     }
 
     #[test]
