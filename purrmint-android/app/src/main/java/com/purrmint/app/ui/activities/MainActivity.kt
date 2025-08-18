@@ -32,6 +32,7 @@ import com.purrmint.app.core.managers.LoginManager
 import com.purrmint.app.core.managers.ConfigManager
 import com.purrmint.app.core.managers.PurrmintManager
 import com.purrmint.app.core.services.PurrmintService
+import com.purrmint.app.ui.dialogs.QRCodeDialog
 import android.os.Handler
 import android.os.Looper
 import androidx.core.view.WindowCompat
@@ -60,6 +61,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var addressTitle: TextView
     private lateinit var addressText: TextView
     private lateinit var copyAddressButton: ImageButton
+    private lateinit var qrCodeButton: ImageButton
     
     // Service
     private var purrmintService: PurrmintService.LocalBinder? = null
@@ -264,6 +266,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         addressTitle = findViewById(R.id.addressTitle)
         addressText = findViewById(R.id.addressText)
         copyAddressButton = findViewById(R.id.copyAddressButton)
+        qrCodeButton = findViewById(R.id.qrCodeButton)
         
         // Setup toolbar and navigation drawer
         setSupportActionBar(toolbar)
@@ -357,6 +360,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Setup copy address button
         copyAddressButton.setOnClickListener {
             copyAddressToClipboard()
+        }
+        
+        // Setup QR code button
+        qrCodeButton.setOnClickListener {
+            showQRCodeDialog()
         }
         
         clearLogsButton.setOnClickListener {
@@ -1158,6 +1166,45 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 PurrmintManager.ServiceMode.TOR -> "📋 Onion address copied to clipboard"
             }
             appendLog(logMessage)
+        } else {
+            val errorMessage = when (currentMode) {
+                PurrmintManager.ServiceMode.LOCAL -> "No local address available"
+                PurrmintManager.ServiceMode.TOR -> "No onion address available"
+            }
+            Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    /**
+     * Show QR code dialog for the current address
+     */
+    private fun showQRCodeDialog() {
+        val address = when (currentMode) {
+            PurrmintManager.ServiceMode.LOCAL -> localAddress ?: addressText.text.toString()
+            PurrmintManager.ServiceMode.TOR -> onionAddress ?: addressText.text.toString()
+        }
+        
+        if (address.isNotEmpty() && address != getString(R.string.onion_address_loading) && 
+            address != getString(R.string.onion_address_not_available)) {
+            
+            try {
+                val dialog = when (currentMode) {
+                    PurrmintManager.ServiceMode.LOCAL -> {
+                        QRCodeDialog.newLocalAddressInstance(address)
+                    }
+                    PurrmintManager.ServiceMode.TOR -> {
+                        QRCodeDialog.newOnionAddressInstance(address)
+                    }
+                }
+                
+                dialog.show(supportFragmentManager, "QRCodeDialog")
+                appendLog("📱 Showing QR code for ${currentMode.name.lowercase()} address")
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Error showing QR code dialog", e)
+                appendLog("❌ Error showing QR code: ${e.message}")
+                Toast.makeText(this, "Error showing QR code", Toast.LENGTH_SHORT).show()
+            }
         } else {
             val errorMessage = when (currentMode) {
                 PurrmintManager.ServiceMode.LOCAL -> "No local address available"

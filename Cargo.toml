@@ -1,6 +1,6 @@
 [package]
 name = "purrmint"
-version = "0.0.3"
+version = "0.0.6"
 edition = "2021"
 authors = ["heatherm"]
 description = "Mobile Cashu mint service suitable for Android (via JNI)"

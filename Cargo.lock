@@ -3887,7 +3887,7 @@ dependencies = [
 
 [[package]]
 name = "purrmint"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "android_logger",
  "anyhow",

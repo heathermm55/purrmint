@@ -235,6 +235,19 @@
                                         android:padding="4dp"
                                         app:tint="@color/primary_color" />
 
+                                    <ImageButton
+                                        android:id="@+id/qrCodeButton"
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
+                                        android:background="@android:color/transparent"
+                                        android:src="@drawable/ic_qr_code"
+                                        android:contentDescription="Show QR Code"
+                                        android:focusable="true"
+                                        android:clickable="true"
+                                        android:padding="4dp"
+                                        android:layout_marginStart="8dp"
+                                        app:tint="@color/primary_color" />
+
                                 </LinearLayout>
 
                             </com.google.android.material.card.MaterialCardView>
