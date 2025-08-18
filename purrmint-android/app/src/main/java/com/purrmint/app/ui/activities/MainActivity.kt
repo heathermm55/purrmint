@@ -33,6 +33,7 @@ import com.purrmint.app.core.managers.ConfigManager
 import com.purrmint.app.core.managers.PurrmintManager
 import com.purrmint.app.core.services.PurrmintService
 import com.purrmint.app.ui.dialogs.QRCodeDialog
+import com.purrmint.app.utils.NetworkUtils
 import android.os.Handler
 import android.os.Looper
 import androidx.core.view.WindowCompat
@@ -74,6 +75,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var currentMode: PurrmintManager.ServiceMode = PurrmintManager.ServiceMode.LOCAL
     private var onionAddress: String? = null
     private var localAddress: String? = null
+    private var networkAddress: String? = null
     
     // Login Manager
     private lateinit var loginManager: LoginManager
@@ -1049,11 +1051,66 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     // Get port from config (now always returns a value)
                     val port = configManager.getPort() ?: 3338
                     localAddress = "http://127.0.0.1:$port"
-                    addressText.text = localAddress
+                    
+                    // Try to get network address for LAN access
+                    networkAddress = NetworkUtils.getBestNetworkAddress(port)
+                    
+                    // Display address with appropriate guidance
+                    val displayText = if (networkAddress != null) {
+                        networkAddress
+                    } else {
+                        localAddress
+                    }
+                    addressText.text = displayText
                     
                     appendLog("🌐 Local address: $localAddress")
+                    if (networkAddress != null) {
+                        appendLog("🌐 Network address: $networkAddress")
+                        
+                        // Check if it's an emulator address
+                        val isEmulator = NetworkUtils.isEmulatorAddress(
+                            networkAddress!!.replace("http://", "").split(":")[0]
+                        )
+                        
+                        if (isEmulator) {
+                            appendLog("📱 Emulator detected: $networkAddress")
+                            appendLog("💡 Use this address in the emulator's browser")
+                            appendLog("⚠️ Host computer cannot access this address")
+                            appendLog("💡 For external access, use a real device or port forwarding")
+                        } else {
+                            appendLog("✅ Real network address: $networkAddress")
+                            appendLog("💡 Other devices on the same network can access this address")
+                        }
+                    } else {
+                        appendLog("⚠️ No network address available")
+                        appendLog("💡 Check if device is connected to WiFi network")
+                        appendLog("💡 Use localhost (127.0.0.1) for same-device access only")
+                        
+                        // Check network connectivity
+                        if (!NetworkUtils.isNetworkConnected(this@MainActivity)) {
+                            appendLog("❌ No network connection detected")
+                        } else {
+                            appendLog("🌐 Network connected but no local IP found")
+                            appendLog("💡 Try reconnecting to WiFi or check network settings")
+                        }
+                    }
                     appendLog("📱 Address layout visibility set to VISIBLE")
                     appendLog("🔧 Port used: $port")
+                    
+                    // Show all available addresses for debugging
+                    val allAddresses = NetworkUtils.getAllLocalNetworkAddresses(port)
+                    if (allAddresses.isNotEmpty()) {
+                        appendLog("📋 All available addresses:")
+                        allAddresses.forEach { addr ->
+                            val ip = addr.replace("http://", "").split(":")[0]
+                            val type = when {
+                                NetworkUtils.isEmulatorAddress(ip) -> "📱 Emulator"
+                                ip == "127.0.0.1" -> "🏠 Localhost"
+                                else -> "🌐 Network"
+                            }
+                            appendLog("  $type: $addr")
+                        }
+                    }
                     
                     // Force a layout update
                     addressLayout.requestLayout()
@@ -1074,6 +1131,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         addressLayout.visibility = android.view.View.GONE
         onionAddress = null
         localAddress = null
+        networkAddress = null
     }
     
     private fun startOnionAddressPolling() {
@@ -1140,7 +1198,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     
     private fun copyAddressToClipboard() {
         val address = when (currentMode) {
-            PurrmintManager.ServiceMode.LOCAL -> localAddress ?: addressText.text.toString()
+            PurrmintManager.ServiceMode.LOCAL -> {
+                // Prefer network address for LAN access, fallback to local address
+                networkAddress ?: localAddress ?: addressText.text.toString()
+            }
             PurrmintManager.ServiceMode.TOR -> onionAddress ?: addressText.text.toString()
         }
         
@@ -1162,7 +1223,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             Toast.makeText(this, toastMessage, Toast.LENGTH_SHORT).show()
             
             val logMessage = when (currentMode) {
-                PurrmintManager.ServiceMode.LOCAL -> "📋 Local address copied to clipboard"
+                PurrmintManager.ServiceMode.LOCAL -> {
+                    if (networkAddress != null && address == networkAddress) {
+                        "📋 Network address copied to clipboard"
+                    } else {
+                        "📋 Local address copied to clipboard"
+                    }
+                }
                 PurrmintManager.ServiceMode.TOR -> "📋 Onion address copied to clipboard"
             }
             appendLog(logMessage)
@@ -1180,7 +1247,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
      */
     private fun showQRCodeDialog() {
         val address = when (currentMode) {
-            PurrmintManager.ServiceMode.LOCAL -> localAddress ?: addressText.text.toString()
+            PurrmintManager.ServiceMode.LOCAL -> {
+                // Prefer network address for LAN access, fallback to local address
+                networkAddress ?: localAddress ?: addressText.text.toString()
+            }
             PurrmintManager.ServiceMode.TOR -> onionAddress ?: addressText.text.toString()
         }
         
@@ -1198,7 +1268,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
                 
                 dialog.show(supportFragmentManager, "QRCodeDialog")
-                appendLog("📱 Showing QR code for ${currentMode.name.lowercase()} address")
+                val addressType = when (currentMode) {
+                    PurrmintManager.ServiceMode.LOCAL -> {
+                        if (networkAddress != null && address == networkAddress) {
+                            "network"
+                        } else {
+                            "local"
+                        }
+                    }
+                    PurrmintManager.ServiceMode.TOR -> "onion"
+                }
+                appendLog("📱 Showing QR code for $addressType address")
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Error showing QR code dialog", e)

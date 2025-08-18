@@ -221,7 +221,10 @@
                                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                                         android:textColor="@color/on_surface_color"
                                         android:fontFamily="monospace"
-                                        android:textIsSelectable="true" />
+                                        android:textIsSelectable="true"
+                                        android:lineSpacingExtra="2dp"
+                                        android:maxLines="3"
+                                        android:scrollHorizontally="false" />
 
                                     <ImageButton
                                         android:id="@+id/copyAddressButton"
