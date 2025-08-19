@@ -6,3 +6,4 @@
 export-android-env.sh
 purrmint-android/local.properties
 build-release.sh
+export-android-env_backup.sh

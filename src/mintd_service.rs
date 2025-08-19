@@ -432,12 +432,24 @@ impl MintdService {
         });
 
         let https_server = if enable_https {
+            // Get SSL certificate paths from Android config
             let key_path = self
                 .config
                 .info
                 .ssl_key_path
                 .clone()
-                .unwrap_or_else(|| "ssl/purrmint-key.pem".to_string());
+                .ok_or_else(|| anyhow!("SSL key path not configured in Android config"))?;
+            
+            let cert_path = self
+                .config
+                .info
+                .ssl_cert_path
+                .clone()
+                .ok_or_else(|| anyhow!("SSL certificate path not configured in Android config"))?;
+
+            info!("SSL certificate paths from Android config:");
+            info!("  Private key: {}", key_path);
+            info!("  Certificate: {}", cert_path);
 
             let https_addr = SocketAddr::from_str(&format!("{listen_addr}:{https_port}"))?;
             let mint_clone = mint.clone();
@@ -447,9 +459,9 @@ impl MintdService {
                 info!("Starting HTTPS server task on {}", https_addr);
                 
                 // Load TLS identity using PKCS#8 format (PEM cert + PEM key)
-                info!("Loading TLS identity using PKCS#8 format from: {}", key_path);
-                
-                let cert_path = key_path.replace("-key.pem", "-cert.pem");
+                info!("Loading TLS identity using PKCS#8 format");
+                info!("  Private key: {}", key_path);
+                info!("  Certificate: {}", cert_path);
                 
                 // Check if both PEM files exist
                 if !std::path::Path::new(&key_path).exists() {
