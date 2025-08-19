@@ -42,8 +42,14 @@ cdk-axum = { version = "0.11" }
 
 # HTTP server dependencies
 axum = "0.8.1"
+hyper = { version = "1.0", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6.1", features = ["compression-full", "decompression-full", "cors", "trace"] }
+
+# HTTPS/TLS dependencies
+native-tls = "0.2"
+tokio-native-tls = "0.3"
 
 # BIP39 for mnemonic handling
 bip39 = { version = "2.0", features = ["rand"] }

@@ -178,6 +178,11 @@ pub struct Info {
     pub signatory_url: Option<String>,
     pub signatory_certs: Option<String>,
     pub input_fee_ppk: Option<u64>,
+    // HTTPS configuration
+    pub enable_https: bool,
+    pub https_port: u16,
+    pub ssl_cert_path: Option<String>,
+    pub ssl_key_path: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
@@ -367,6 +372,11 @@ pub struct AndroidConfig {
     pub tor_num_intro_points: Option<u32>,
     pub tor_bridges: Option<Vec<String>>,
     pub tor_use_bridges: Option<bool>,
+    // HTTPS configuration
+    pub enable_https: Option<bool>,
+    pub https_port: Option<u16>,
+    pub ssl_cert_path: Option<String>,
+    pub ssl_key_path: Option<String>,
 }
 
 impl Default for AndroidConfig {
@@ -397,6 +407,11 @@ impl Default for AndroidConfig {
             tor_num_intro_points: Some(3),
             tor_bridges: None,
             tor_use_bridges: Some(false),
+            // HTTPS defaults
+            enable_https: Some(false),
+            https_port: None,
+            ssl_cert_path: None,
+            ssl_key_path: None,
         }
     }
 }
@@ -416,6 +431,10 @@ impl Settings {
             signatory_url: None,
             signatory_certs: None,
             input_fee_ppk: None,
+            enable_https: false,
+            https_port: 443,
+            ssl_cert_path: None,
+            ssl_key_path: None,
         };
 
         let mint_info = MintInfo {

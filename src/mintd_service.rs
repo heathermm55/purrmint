@@ -6,12 +6,15 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Notify;
-use tower::ServiceBuilder;
+use tower::{ServiceBuilder, ServiceExt};
 use tower_http::compression::CompressionLayer;
 use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 use uuid::Uuid;
+use native_tls::{Identity, TlsAcceptor as NativeTlsAcceptor};
+use tokio_native_tls::TlsAcceptor;
+
 
 use crate::config::{
     AndroidConfig, Cln, Database, DatabaseEngine, FakeWallet, Info, LNbits, Ln, LnBackend,
@@ -109,6 +112,11 @@ impl MintdService {
             signatory_url: None,
             signatory_certs: None,
             input_fee_ppk: None,
+            // HTTPS configuration
+            enable_https: true,
+            https_port: 8443,
+            ssl_cert_path: Some("ssl/purrmint-cert.pem".to_string()),
+            ssl_key_path: Some("ssl/purrmint-key.pem".to_string()),
         };
 
         let mint_info = MintInfo {
@@ -166,6 +174,11 @@ impl MintdService {
                 signatory_url: None,
                 signatory_certs: None,
                 input_fee_ppk: None,
+                // HTTPS configuration
+                enable_https: android_config.enable_https.unwrap_or(false),
+                https_port: android_config.https_port.unwrap_or(8443),
+                ssl_cert_path: android_config.ssl_cert_path.clone(),
+                ssl_key_path: android_config.ssl_key_path.clone(),
             },
             mint_info: MintInfo {
                 name: android_config.mint_name.clone(),
@@ -254,6 +267,22 @@ impl MintdService {
             }
         }
 
+        // Set HTTPS configuration if provided by Android config
+        if let Some(cert_path) = android_config.ssl_cert_path.clone() {
+            settings.info.ssl_cert_path = Some(cert_path);
+        }
+        if let Some(key_path) = android_config.ssl_key_path.clone() {
+            settings.info.ssl_key_path = Some(key_path);
+        }
+        if let Some(enable_https) = android_config.enable_https {
+            if enable_https {
+                settings.info.enable_https = true;
+                if let Some(https_port) = android_config.https_port {
+                    settings.info.https_port = https_port;
+                }
+            }
+        }
+
         Ok(settings)
     }
 
@@ -322,12 +351,17 @@ impl MintdService {
     async fn start_http_server(&mut self, mint: Arc<cdk::mint::Mint>) -> Result<()> {
         let listen_addr = self.config.info.listen_host.clone();
         let listen_port = self.config.info.listen_port;
+        let enable_https = self.config.info.enable_https;
+        let https_port = self.config.info.https_port;
 
         info!("Starting HTTP server on {}:{}", listen_addr, listen_port);
+        if enable_https {
+            info!("HTTPS enabled on port {}", https_port);
+        }
 
         // Create mint router with default cache
         let v1_service =
-            cdk_axum::create_mint_router_with_custom_cache(mint, HttpCache::default()).await?;
+            cdk_axum::create_mint_router_with_custom_cache(mint.clone(), HttpCache::default()).await?;
 
         let mint_service = Router::new().merge(v1_service).layer(
             ServiceBuilder::new()
@@ -336,7 +370,8 @@ impl MintdService {
                 .layer(TraceLayer::new_for_http()),
         );
 
-        let socket_addr =
+        // Start HTTP server
+        let http_socket_addr =
             SocketAddr::from_str(&format!("{listen_addr}:{listen_port}")).map_err(|e| {
                 anyhow!(
                     "Invalid socket address '{}:{}': {}",
@@ -346,28 +381,28 @@ impl MintdService {
                 )
             })?;
 
-        info!("Attempting to bind to socket address: {}", socket_addr);
+        info!("Attempting to bind HTTP server to socket address: {}", http_socket_addr);
 
-        let listener = match tokio::net::TcpListener::bind(socket_addr).await {
+        let http_listener = match tokio::net::TcpListener::bind(http_socket_addr).await {
             Ok(listener) => {
-                info!("Successfully bound to address: {}", socket_addr);
+                info!("Successfully bound HTTP server to address: {}", http_socket_addr);
                 listener
             }
             Err(e) => {
-                error!("Failed to bind to address '{}': {}", socket_addr, e);
+                error!("Failed to bind HTTP server to address '{}': {}", http_socket_addr, e);
                 return Err(anyhow!(
-                    "Failed to bind to address '{}': {}",
-                    socket_addr,
+                    "Failed to bind HTTP server to address '{}': {}",
+                    http_socket_addr,
                     e
                 ));
             }
         };
 
-        let actual_addr = listener
+        let actual_http_addr = http_listener
             .local_addr()
-            .map_err(|e| anyhow!("Failed to get local address: {}", e))?;
+            .map_err(|e| anyhow!("Failed to get HTTP local address: {}", e))?;
 
-        info!("HTTP server successfully listening on {}", actual_addr);
+        info!("HTTP server successfully listening on {}", actual_http_addr);
 
         // Create a channel to signal when server is ready
         let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
@@ -379,7 +414,7 @@ impl MintdService {
 
             // Use a select to either start the server or signal readiness
             let server_future =
-                axum::serve(listener, mint_service).with_graceful_shutdown(async move {
+                axum::serve(http_listener, mint_service.clone()).with_graceful_shutdown(async move {
                     shutdown.notified().await;
                     info!("HTTP server received shutdown signal");
                 });
@@ -396,12 +431,195 @@ impl MintdService {
             }
         });
 
+        let https_server = if enable_https {
+            let key_path = self
+                .config
+                .info
+                .ssl_key_path
+                .clone()
+                .unwrap_or_else(|| "ssl/purrmint-key.pem".to_string());
+
+            let https_addr = SocketAddr::from_str(&format!("{listen_addr}:{https_port}"))?;
+            let mint_clone = mint.clone();
+            let shutdown = self.shutdown.clone();
+
+            Some(tokio::spawn(async move {
+                info!("Starting HTTPS server task on {}", https_addr);
+                
+                // Load TLS identity using PKCS#8 format (PEM cert + PEM key)
+                info!("Loading TLS identity using PKCS#8 format from: {}", key_path);
+                
+                let cert_path = key_path.replace("-key.pem", "-cert.pem");
+                
+                // Check if both PEM files exist
+                if !std::path::Path::new(&key_path).exists() {
+                    error!("Private key file not found: {}", key_path);
+                    info!("Continuing without HTTPS support");
+                    return;
+                }
+                
+                if !std::path::Path::new(&cert_path).exists() {
+                    error!("Certificate file not found: {}", cert_path);
+                    info!("Continuing without HTTPS support");
+                    return;
+                }
+                
+                // Load certificate and private key
+                let cert_data = match std::fs::read(&cert_path) {
+                    Ok(data) => data,
+                    Err(e) => {
+                        error!("Failed to read certificate file: {}", e);
+                        info!("Continuing without HTTPS support");
+                        return;
+                    }
+                };
+                
+                let key_data = match std::fs::read(&key_path) {
+                    Ok(data) => data,
+                    Err(e) => {
+                        error!("Failed to read private key file: {}", e);
+                        info!("Continuing without HTTPS support");
+                        return;
+                    }
+                };
+                
+                info!("Read cert ({} bytes) and key ({} bytes) files", cert_data.len(), key_data.len());
+                
+                // Create TLS identity using PKCS#8 format
+                let tls_identity = match Identity::from_pkcs8(&cert_data, &key_data) {
+                    Ok(identity) => {
+                        info!("Successfully loaded TLS identity from PKCS#8 (PEM files)");
+                        identity
+                    }
+                    Err(e) => {
+                        error!("Failed to load TLS identity from PKCS#8: {}", e);
+                        info!("Continuing without HTTPS support");
+                        return;
+                    }
+                };
+                
+                info!("Loaded TLS identity from {}", key_path);
+
+                // Create TLS acceptor
+                let tls_acceptor = match NativeTlsAcceptor::builder(tls_identity).build() {
+                    Ok(acceptor) => {
+                        info!("Created TLS acceptor successfully");
+                        TlsAcceptor::from(acceptor)
+                    }
+                    Err(e) => {
+                        error!("Failed to create TLS acceptor: {}", e);
+                        return;
+                    }
+                };
+
+                // Create HTTPS router with the same routes as HTTP
+                let v1_service = match cdk_axum::create_mint_router_with_custom_cache(mint_clone.clone(), cdk_axum::cache::HttpCache::default()).await {
+                    Ok(router) => router,
+                    Err(e) => {
+                        error!("Failed to create v1 service: {}", e);
+                        return;
+                    }
+                };
+                
+                let https_app = Router::new().merge(v1_service).layer(
+                    ServiceBuilder::new()
+                        .layer(RequestDecompressionLayer::new())
+                        .layer(CompressionLayer::new())
+                        .layer(TraceLayer::new_for_http()),
+                );
+
+                // Create HTTPS listener
+                let https_listener = match tokio::net::TcpListener::bind(https_addr).await {
+                    Ok(listener) => {
+                        info!("HTTPS listener bound to {}", https_addr);
+                        listener
+                    }
+                    Err(e) => {
+                        error!("Failed to bind HTTPS listener to {}: {}", https_addr, e);
+                        return;
+                    }
+                };
+
+                info!("HTTPS server ready and listening on {}", https_addr);
+
+                // Accept and handle HTTPS connections
+                loop {
+                    tokio::select! {
+                        accept_result = https_listener.accept() => {
+                            match accept_result {
+                                Ok((tcp_stream, addr)) => {
+                                    info!("HTTPS connection accepted from {}", addr);
+                                    
+                                    let tls_acceptor = tls_acceptor.clone();
+                                    let https_app = https_app.clone();
+                                    
+                                    tokio::spawn(async move {
+                                        match tls_acceptor.accept(tcp_stream).await {
+                                            Ok(tls_stream) => {
+                                                info!("TLS handshake successful for {}", addr);
+                                                
+                                                // Use tokio_util to wrap the TLS stream for hyper compatibility
+                                                let io = hyper_util::rt::TokioIo::new(tls_stream);
+                                                
+                                                // Create hyper service from axum router
+                                                let tower_service = https_app.clone();
+                                                let hyper_service = hyper::service::service_fn(move |request| {
+                                                    tower_service.clone().oneshot(request)
+                                                });
+                                                
+                                                if let Err(e) = hyper::server::conn::http1::Builder::new()
+                                                    .serve_connection(io, hyper_service)
+                                                    .await
+                                                {
+                                                    error!("HTTPS connection error for {}: {}", addr, e);
+                                                } else {
+                                                    info!("HTTPS request completed successfully for {}", addr);
+                                                }
+                                            }
+                                            Err(e) => {
+                                                error!("TLS handshake failed for {}: {}", addr, e);
+                                            }
+                                        }
+                                    });
+                                }
+                                Err(e) => {
+                                    error!("Failed to accept HTTPS connection: {}", e);
+                                }
+                            }
+                        }
+                        _ = shutdown.notified() => {
+                            info!("HTTPS server received shutdown signal");
+                            break;
+                        }
+                    }
+                }
+            }))
+        } else {
+            None
+        };
+
         self.http_server = Some(http_server);
+
+        // Start HTTPS server if enabled
+        if enable_https {
+            info!("HTTPS is enabled, starting HTTPS server...");
+            if let Some(https_server) = https_server {
+                info!("HTTPS server task created successfully");
+                self.http_server = Some(https_server);
+            } else {
+                error!("Failed to create HTTPS server task");
+            }
+        } else {
+            info!("HTTPS is disabled");
+        }
 
         // Wait for server to signal it's ready
         match tokio::time::timeout(tokio::time::Duration::from_secs(3), ready_rx).await {
             Ok(Ok(_)) => {
                 info!("HTTP server started successfully");
+                if enable_https {
+                    info!("HTTPS server started successfully");
+                }
                 // Give the server a moment to actually start listening
                 tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
                 Ok(())
@@ -416,6 +634,8 @@ impl MintdService {
             }
         }
     }
+
+
 
     async fn build_mint(&self) -> Result<(cdk::mint::Mint, cdk::nuts::MintInfo)> {
         let database_path = self.work_dir.join("mint.db");
@@ -625,13 +845,11 @@ impl MintdService {
     }
 
     pub fn get_status(&self) -> Value {
-        let mut status = serde_json::json!({
+        serde_json::json!({
             "running": self.is_running,
             "server_url": format!("http://{}:{}", self.config.info.listen_host, self.config.info.listen_port),
             "work_dir": self.work_dir.to_string_lossy(),
-        });
-
-        status
+        })
     }
 
     // Mint operations
@@ -796,6 +1014,8 @@ impl Drop for MintdService {
         }
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {
