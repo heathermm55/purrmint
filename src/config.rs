@@ -3,6 +3,7 @@ use cdk::nuts::{CurrencyUnit, PublicKey};
 use cdk::Amount;
 use serde::{Deserialize, Serialize};
 use anyhow::{Result, anyhow};
+use tracing::info;
 
 // =============================================================================
 // Tor Configuration
@@ -408,10 +409,10 @@ impl Default for AndroidConfig {
             tor_bridges: None,
             tor_use_bridges: Some(false),
             // HTTPS defaults
-            enable_https: Some(false),
-            https_port: None,
-            ssl_cert_path: None,
-            ssl_key_path: None,
+            enable_https: Some(true),
+            https_port: Some(8443),
+            ssl_cert_path: None,  // Will be set by Android
+            ssl_key_path: None,   // Will be set by Android
         }
     }
 }

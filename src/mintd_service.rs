@@ -115,8 +115,8 @@ impl MintdService {
             // HTTPS configuration
             enable_https: true,
             https_port: 8443,
-            ssl_cert_path: Some("ssl/purrmint-cert.pem".to_string()),
-            ssl_key_path: Some("ssl/purrmint-key.pem".to_string()),
+            ssl_cert_path: None,  // Will be set by Android
+            ssl_key_path: None,   // Will be set by Android
         };
 
         let mint_info = MintInfo {

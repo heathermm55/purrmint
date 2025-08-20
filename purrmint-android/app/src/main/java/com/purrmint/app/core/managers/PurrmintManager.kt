@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import java.io.File
 import com.purrmint.app.PurrmintNative
+import com.purrmint.app.R
 import org.json.JSONObject
 
 /**
@@ -17,6 +18,8 @@ class PurrmintManager(private val context: Context) {
         private const val TAG = "PurrmintManager"
         private const val CONFIG_FILE_NAME = "android_config.json"
         private const val ACCOUNT_FILE_NAME = "nostr_account.json"
+        private const val SSL_CERT_NAME = "purrmint_cert_pem"
+        private const val SSL_KEY_NAME = "purrmint_key_pem"
     }
     
     /**
@@ -83,7 +86,7 @@ class PurrmintManager(private val context: Context) {
      * @return Configuration JSON string or null if failed
      */
     fun generateDefaultConfig(): String? {
-        return try {
+        return safeExecute("generate default configuration") {
             // Generate default config with correct Android paths
             val dataDir = getDataDir()
             val defaultConfig = mapOf(
@@ -94,16 +97,20 @@ class PurrmintManager(private val context: Context) {
                 "lightningBackend" to "fakewallet",
                 "mode" to "mintd_only",
                 "databasePath" to "$dataDir/mint.db",
-                "logsPath" to "$dataDir/logs"
+                "logsPath" to "$dataDir/logs",
+                "enableHttps" to true,
+                "httpsPort" to 8443,
+                "sslCertPath" to "$dataDir/ssl/purrmint_cert_pem",
+                "sslKeyPath" to "$dataDir/ssl/purrmint_key_pem"
             )
             
             // Convert to JSON string
             val json = org.json.JSONObject(defaultConfig).toString()
-            Log.i(TAG, "Default configuration generated with paths: db=$dataDir/mint.db, logs=$dataDir/logs")
+            Log.i(TAG, "Default configuration generated with paths: db=$dataDir/mint.db, logs=$dataDir/logs, HTTPS enabled on port 8443")
+            Log.d(TAG, "SSL Certificate Path: ${defaultConfig["sslCertPath"]}")
+            Log.d(TAG, "SSL Key Path: ${defaultConfig["sslKeyPath"]}")
+            Log.d(TAG, "Full config JSON: $json")
             json
-        } catch (e: Exception) {
-            Log.e(TAG, "Error generating default configuration", e)
-            null
         }
     }
     
@@ -113,7 +120,7 @@ class PurrmintManager(private val context: Context) {
      * @return true if saved successfully
      */
     fun saveConfigToFile(config: String): Boolean {
-        return try {
+        return safeExecute("save configuration to file") {
             createDirectories()
             val result = native.saveAndroidConfigToFile(getConfigFilePath(), config)
             val success = result == 0  // 0 = success in Rust
@@ -123,10 +130,7 @@ class PurrmintManager(private val context: Context) {
                 Log.e(TAG, "Failed to save configuration to file")
             }
             success
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving configuration to file", e)
-            false
-        }
+        } ?: false
     }
     
     /**
@@ -134,7 +138,7 @@ class PurrmintManager(private val context: Context) {
      * @return Configuration JSON string or null if failed
      */
     fun loadConfigFromFile(): String? {
-        return try {
+        return safeExecute("load configuration from file") {
             val config = native.loadAndroidConfigFromFile(getConfigFilePath())
             if (config != null) {
                 Log.i(TAG, "Configuration loaded from file")
@@ -142,9 +146,6 @@ class PurrmintManager(private val context: Context) {
                 Log.e(TAG, "Failed to load configuration from file")
             }
             config
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading configuration from file", e)
-            null
         }
     }
     
@@ -153,7 +154,7 @@ class PurrmintManager(private val context: Context) {
      * @return Account JSON string or null if failed
      */
     fun createNostrAccount(): String? {
-        return try {
+        return safeExecute("create Nostr account") {
             val account = native.createAccount()
             if (account != null) {
                 // Save account to file
@@ -164,9 +165,6 @@ class PurrmintManager(private val context: Context) {
                 Log.e(TAG, "Failed to create Nostr account")
             }
             account
-        } catch (e: Exception) {
-            Log.e(TAG, "Error creating Nostr account", e)
-            null
         }
     }
     
@@ -176,7 +174,7 @@ class PurrmintManager(private val context: Context) {
      * @return npub string or null if failed
      */
     fun convertNsecToNpub(nsec: String): String? {
-        return try {
+        return safeExecute("convert nsec to npub") {
             val npub = native.nsecToNpub(nsec)
             if (npub != null) {
                 Log.i(TAG, "Successfully converted nsec to npub")
@@ -184,9 +182,6 @@ class PurrmintManager(private val context: Context) {
                 Log.e(TAG, "Failed to convert nsec to npub")
             }
             npub
-        } catch (e: Exception) {
-            Log.e(TAG, "Error converting nsec to npub", e)
-            null
         }
     }
     
@@ -196,7 +191,7 @@ class PurrmintManager(private val context: Context) {
      * @return true if service started successfully
      */
     fun startMintService(nsec: String): Boolean {
-        return try {
+        return safeExecute("start mint service") {
             // Stop existing service first to ensure clean state
             Log.i(TAG, "Ensuring clean service state before starting...")
             stopMintService()
@@ -205,20 +200,24 @@ class PurrmintManager(private val context: Context) {
             Thread.sleep(500)
             
             createDirectories()
+            ensureSslCertificatesExist()  // Ensure SSL certificates are copied
             initLogging()
             
             // Validate nsec
             if (nsec.isEmpty()) {
                 Log.e(TAG, "Cannot start mint service: nsec is required")
-                return false
+                return@safeExecute false
             }
             
             // Load or generate configuration
             val config = loadConfigFromFile() ?: generateDefaultConfig()
             if (config == null) {
                 Log.e(TAG, "Failed to get configuration for service")
-                return false
+                return@safeExecute false
             }
+            
+            // Log the configuration being sent to Rust for debugging
+            Log.d(TAG, "Configuration being sent to Rust: $config")
             
             Log.i(TAG, "Starting mint service with nsec: ***provided***")
             
@@ -233,10 +232,7 @@ class PurrmintManager(private val context: Context) {
             }
             
             success
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start mint service", e)
-            false
-        }
+        } ?: false
     }
     
     /**
@@ -246,7 +242,7 @@ class PurrmintManager(private val context: Context) {
      * @return true if service started successfully
      */
     fun startMintServiceWithConfig(nsec: String, configJson: String): Boolean {
-        return try {
+        return safeExecute("start mint service with custom config") {
             // Stop existing service first to ensure clean state
             Log.i(TAG, "Ensuring clean service state before starting with custom config...")
             stopMintService()
@@ -255,18 +251,19 @@ class PurrmintManager(private val context: Context) {
             Thread.sleep(500)
             
             createDirectories()
+            ensureSslCertificatesExist()  // Ensure SSL certificates are copied
             initLogging()
             
             // Validate nsec
             if (nsec.isEmpty()) {
                 Log.e(TAG, "Cannot start mint service: nsec is required")
-                return false
+                return@safeExecute false
             }
             
             // Validate config JSON
             if (configJson.isEmpty()) {
                 Log.e(TAG, "Cannot start mint service: config JSON is required")
-                return false
+                return@safeExecute false
             }
             
             Log.i(TAG, "Starting mint service with custom configuration")
@@ -283,10 +280,7 @@ class PurrmintManager(private val context: Context) {
             }
             
             success
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start mint service with custom config", e)
-            false
-        }
+        } ?: false
     }
     
     /**
@@ -294,7 +288,7 @@ class PurrmintManager(private val context: Context) {
      * @return true if service started successfully
      */
     fun startMintServiceWithSavedNsec(): Boolean {
-        return try {
+        return safeExecute("start mint service with saved nsec") {
             // Get saved nsec from SharedPreferences directly
             val prefs = context.getSharedPreferences("PurrmintLoginPrefs", Context.MODE_PRIVATE)
             val savedNsec = prefs.getString("nsec_key", null)
@@ -306,10 +300,7 @@ class PurrmintManager(private val context: Context) {
                 Log.e(TAG, "No saved nsec found, cannot start mint service")
                 false
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start mint service with saved nsec", e)
-            false
-        }
+        } ?: false
     }
     
     /**
@@ -317,7 +308,7 @@ class PurrmintManager(private val context: Context) {
      * @return true if service stopped successfully
      */
     fun stopMintService(): Boolean {
-        return try {
+        return safeExecute("stop mint service") {
             val result = native.stopMint()
             val success = result == 0  // 0 = success in Rust
             if (success) {
@@ -326,10 +317,7 @@ class PurrmintManager(private val context: Context) {
                 Log.e(TAG, "Failed to stop mint service")
             }
             success
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop mint service", e)
-            false
-        }
+        } ?: false
     }
     
     /**
@@ -337,12 +325,9 @@ class PurrmintManager(private val context: Context) {
      * @return JSON string containing service status
      */
     fun getServiceStatus(): String {
-        return try {
+        return safeExecute("get service status") {
             native.getMintStatus() ?: "{\"status\":\"unknown\"}"
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get service status", e)
-            "{\"status\":\"error\",\"message\":\"${e.message}\"}"
-        }
+        } ?: "{\"status\":\"error\",\"message\":\"Failed to get service status\"}"
     }
     
     /**
@@ -350,24 +335,21 @@ class PurrmintManager(private val context: Context) {
      * @return JSON string containing account info
      */
     fun getCurrentAccount(): String {
-        return try {
+        return safeExecute("get current account") {
             val accountFile = File(getAccountFilePath())
             if (accountFile.exists()) {
                 accountFile.readText()
             } else {
                 "{\"account\":\"none\"}"
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get current account", e)
-            "{\"account\":\"error\",\"message\":\"${e.message}\"}"
-        }
+        } ?: "{\"account\":\"error\",\"message\":\"Failed to get current account\"}"
     }
     
     /**
      * Get device IP address
      */
     fun getDeviceIpAddress(): String {
-        return try {
+        return safeExecute("get device IP address") {
             val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
             val wifiInfo = wifiManager.connectionInfo
             val ipAddress = wifiInfo.ipAddress
@@ -383,10 +365,7 @@ class PurrmintManager(private val context: Context) {
             } else {
                 "127.0.0.1"
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get device IP", e)
-            "127.0.0.1"
-        }
+        } ?: "127.0.0.1"
     }
     
     /**
@@ -394,7 +373,7 @@ class PurrmintManager(private val context: Context) {
      * @return true if connection successful
      */
     fun testHttpConnection(): Boolean {
-        return try {
+        return safeExecute("test HTTP connection") {
             val deviceIp = getDeviceIpAddress()
             
             // First try localhost connection
@@ -405,7 +384,7 @@ class PurrmintManager(private val context: Context) {
                 localhostSocket.close()
                 
                 if (localhostConnected) {
-                    return true
+                    return@safeExecute true
                 }
             } catch (e: Exception) {
                 // Ignore localhost connection failure
@@ -417,15 +396,12 @@ class PurrmintManager(private val context: Context) {
                 socket.connect(java.net.InetSocketAddress(deviceIp, 3338), 3000)
                 val connected = socket.isConnected
                 socket.close()
-                return connected
+                return@safeExecute connected
             } catch (e: Exception) {
                 Log.e(TAG, "Device IP connection failed: ${e.message}")
-                return false
+                return@safeExecute false
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "HTTP connection test failed", e)
-            false
-        }
+        } ?: false
     }
 
     // =============================================================================
@@ -448,6 +424,7 @@ class PurrmintManager(private val context: Context) {
         
         try {
             createDirectories()
+            ensureSslCertificatesExist()  // Ensure SSL certificates are copied
             initLogging()
             
             // Validate nsec
@@ -487,6 +464,7 @@ class PurrmintManager(private val context: Context) {
         
         try {
             createDirectories()
+            ensureSslCertificatesExist()  // Ensure SSL certificates are copied
             initLogging()
             
             // Validate nsec
@@ -501,7 +479,6 @@ class PurrmintManager(private val context: Context) {
                 Log.e(TAG, "Failed to get configuration for service")
                 return false
             }
-            
             val result = native.startTorMint(config, nsec)
             if (result == 0) {
                 currentMode = ServiceMode.TOR
@@ -537,7 +514,7 @@ class PurrmintManager(private val context: Context) {
      * @return Onion address string or null if not available
      */
     fun getOnionAddress(): String? {
-        return try {
+        return safeExecute("get onion address") {
             val address = native.getOnionAddress()
             if (address != null) {
                 Log.i(TAG, "Onion address retrieved: $address")
@@ -545,9 +522,6 @@ class PurrmintManager(private val context: Context) {
                 Log.d(TAG, "No onion address available yet")
             }
             address
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting onion address", e)
-            null
         }
     }
 
@@ -556,7 +530,7 @@ class PurrmintManager(private val context: Context) {
      * @return JSON string containing detailed service status
      */
     fun getDetailedServiceStatus(): String {
-        return try {
+        return safeExecute("get detailed service status") {
             val status = getServiceStatus()
             val statusJson = JSONObject(status)
             
@@ -575,9 +549,55 @@ class PurrmintManager(private val context: Context) {
             }
             
             statusJson.toString()
+        } ?: "{\"status\":\"error\",\"message\":\"Failed to get detailed service status\"}"
+    }
+
+    // Private helper methods to eliminate code duplication
+    private fun ensureSslCertificatesExist() {
+        try {
+            val dataDir = getDataDir()
+            val sslDir = File(dataDir, "ssl")
+            if (!sslDir.exists()) {
+                sslDir.mkdirs()
+                Log.d(TAG, "Created SSL directory: ${sslDir.absolutePath}")
+            }
+            val certFile = File(sslDir, SSL_CERT_NAME)
+            val keyFile = File(sslDir, SSL_KEY_NAME)
+            
+            Log.d(TAG, "SSL Certificate target path: ${certFile.absolutePath}")
+            Log.d(TAG, "SSL Key target path: ${keyFile.absolutePath}")
+            
+            if (!certFile.exists()) {
+                context.resources.openRawResource(R.raw.purrmint_cert_pem).use { input ->
+                    certFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                Log.i(TAG, "SSL certificate copied to: ${certFile.absolutePath}")
+            } else {
+                Log.d(TAG, "SSL certificate already exists at: ${certFile.absolutePath}")
+            }
+            if (!keyFile.exists()) {
+                context.resources.openRawResource(R.raw.purrmint_key_pem).use { input ->
+                    keyFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                Log.i(TAG, "SSL private key copied to: ${keyFile.absolutePath}")
+            } else {
+                Log.d(TAG, "SSL private key already exists at: ${keyFile.absolutePath}")
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting detailed service status", e)
-            "{\"status\":\"error\",\"message\":\"${e.message}\"}"
+            Log.e(TAG, "Error ensuring SSL certificates exist", e)
+        }
+    }
+    
+    private fun <T> safeExecute(operation: String, block: () -> T): T? {
+        return try {
+            block()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to $operation", e)
+            null
         }
     }
 } 

@@ -21,13 +21,15 @@ object NetworkUtils {
     /**
      * Get the local network IP address
      * @param port The port number to append
-     * @return Local network address (e.g., "http://192.168.1.100:3338") or null if not available
+     * @return Local network address (e.g., "https://192.168.1.100:8443") or null if not available
      */
-    fun getLocalNetworkAddress(port: Int): String? {
+    fun getLocalNetworkAddress(port: Int, useHttps: Boolean = false): String? {
         return try {
             val localIp = getLocalIpAddress()
             if (localIp != null) {
-                "http://$localIp:$port"
+                val protocol = if (useHttps) "https" else "http"
+                val httpsPort = if (useHttps && port == 3338) 8443 else port
+                "$protocol://$localIp:$httpsPort"
             } else {
                 null
             }
@@ -140,7 +142,7 @@ object NetworkUtils {
      * Get all available local network addresses
      * @return List of local network addresses
      */
-    fun getAllLocalNetworkAddresses(port: Int): List<String> {
+    fun getAllLocalNetworkAddresses(port: Int, useHttps: Boolean = false): List<String> {
         val addresses = mutableListOf<String>()
         
         try {
@@ -163,7 +165,9 @@ object NetworkUtils {
                     }
                     
                     if (hostAddress != null && isLocalNetworkAddress(hostAddress)) {
-                        addresses.add("http://$hostAddress:$port")
+                        val protocol = if (useHttps) "https" else "http"
+                        val httpsPort = if (useHttps && port == 3338) 8443 else port
+                        addresses.add("$protocol://$hostAddress:$httpsPort")
                     }
                 }
             }
@@ -180,8 +184,8 @@ object NetworkUtils {
      * @param port The port number to append
      * @return Best network address or null if none available
      */
-    fun getBestNetworkAddress(port: Int): String? {
-        val allAddresses = getAllLocalNetworkAddresses(port)
+    fun getBestNetworkAddress(port: Int, useHttps: Boolean = false): String? {
+        val allAddresses = getAllLocalNetworkAddresses(port, useHttps)
         
         if (allAddresses.isEmpty()) {
             return null
@@ -189,7 +193,7 @@ object NetworkUtils {
         
         // Prioritize real network addresses over emulator addresses
         val realAddresses = allAddresses.filter { address ->
-            !isEmulatorAddress(address.replace("http://", "").split(":")[0])
+            !isEmulatorAddress(address.replace("https://", "").replace("http://", "").split(":")[0])
         }
         
         // Return the first real network address, or the first available address if none are real

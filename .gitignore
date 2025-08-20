@@ -7,3 +7,12 @@ export-android-env.sh
 purrmint-android/local.properties
 build-release.sh
 export-android-env_backup.sh
+/tests
+/purrmint-android/app/src/main/assets/ssl
+purrmint-android/release-apks/app-arm64-v8a-release-signed.apk.idsig
+purrmint-android/release-apks/app-armeabi-v7a-release-signed.apk.idsig
+purrmint-android/release-apks/app-universal-release-signed.apk.idsig
+purrmint-android/release-apks/app-x86-release-signed.apk.idsig
+purrmint-android/release-apks/app-x86_64-release-signed.apk.idsig
+purrmint-android/app/src/main/res/raw/purrmint_cert_pem
+purrmint-android/app/src/main/res/raw/purrmint_key_pem

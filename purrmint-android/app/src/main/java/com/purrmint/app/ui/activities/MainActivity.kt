@@ -76,6 +76,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var onionAddress: String? = null
     private var localAddress: String? = null
     private var networkAddress: String? = null
+    private var useHttps: Boolean = true
     
     // Login Manager
     private lateinit var loginManager: LoginManager
@@ -1050,10 +1051,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     
                     // Get port from config (now always returns a value)
                     val port = configManager.getPort() ?: 3338
-                    localAddress = "http://127.0.0.1:$port"
+                    localAddress = if (useHttps) "https://127.0.0.1:8443" else "http://127.0.0.1:$port"
                     
                     // Try to get network address for LAN access
-                    networkAddress = NetworkUtils.getBestNetworkAddress(port)
+                    networkAddress = NetworkUtils.getBestNetworkAddress(port, useHttps)
                     
                     // Display address with appropriate guidance
                     val displayText = if (networkAddress != null) {
@@ -1069,7 +1070,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         
                         // Check if it's an emulator address
                         val isEmulator = NetworkUtils.isEmulatorAddress(
-                            networkAddress!!.replace("http://", "").split(":")[0]
+                            networkAddress!!.replace("https://", "").replace("http://", "").split(":")[0]
                         )
                         
                         if (isEmulator) {
@@ -1080,6 +1081,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         } else {
                             appendLog("✅ Real network address: $networkAddress")
                             appendLog("💡 Other devices on the same network can access this address")
+                        }
+                        
+                        // Show HTTPS status
+                        if (useHttps) {
+                            appendLog("🔒 HTTPS enabled - addresses use secure protocol")
+                            appendLog("💡 HTTPS addresses can be accessed from HTTPS websites")
+                        } else {
+                            appendLog("🔓 HTTP mode - addresses use standard protocol")
+                            appendLog("⚠️ HTTPS websites may block access to HTTP addresses")
                         }
                     } else {
                         appendLog("⚠️ No network address available")

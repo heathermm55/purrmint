@@ -21,7 +21,12 @@ data class AndroidConfig(
     // Global fee configuration for all Lightning backends
     val feePercent: Float? = null,
     val reserveFeeMin: Long? = null,
-    val nwcConnectionUri: String? = null
+    val nwcConnectionUri: String? = null,
+    // HTTPS configuration
+    val enableHttps: Boolean = true,
+    val httpsPort: Int = 8443,
+    val sslCertPath: String? = null,  // Will be set dynamically
+    val sslKeyPath: String? = null    // Will be set dynamically
 )
 
 class ConfigManager(private val context: Context) {
@@ -58,7 +63,11 @@ class ConfigManager(private val context: Context) {
             clnBolt12 = null,
             feePercent = 0.02f,        // Default 2% fee
             reserveFeeMin = 1L,         // Default 1 msat minimum
-            nwcConnectionUri = null
+            nwcConnectionUri = null,
+            enableHttps = true,
+            httpsPort = 8443,
+            sslCertPath = "$dataDir/ssl/purrmint_cert_pem",
+            sslKeyPath = "$dataDir/ssl/purrmint_key_pem"
         )
     }
     
@@ -102,7 +111,11 @@ class ConfigManager(private val context: Context) {
         clnBolt12: Boolean? = null,
         feePercent: Float = 0.02f,     // Default 2% fee
         reserveFeeMin: Long = 1L,       // Default 1 msat minimum
-        nwcConnectionUri: String? = null
+        nwcConnectionUri: String? = null,
+        enableHttps: Boolean = true,
+        httpsPort: Int = 8443,
+        sslCertPath: String? = null,  // Will be set dynamically
+        sslKeyPath: String? = null    // Will be set dynamically
     ): Boolean {
         val dataDir = context.filesDir.absolutePath
         val config = AndroidConfig(
@@ -120,7 +133,11 @@ class ConfigManager(private val context: Context) {
             clnBolt12 = clnBolt12,
             feePercent = feePercent,
             reserveFeeMin = reserveFeeMin,
-            nwcConnectionUri = nwcConnectionUri
+            nwcConnectionUri = nwcConnectionUri,
+            enableHttps = enableHttps,
+            httpsPort = httpsPort,
+            sslCertPath = sslCertPath ?: "$dataDir/ssl/purrmint_cert_pem",
+            sslKeyPath = sslKeyPath ?: "$dataDir/ssl/purrmint_key_pem"
         )
         return saveConfiguration(config)
     }
@@ -235,6 +252,10 @@ class ConfigManager(private val context: Context) {
             json.put("feePercent", config.feePercent)
             json.put("reserveFeeMin", config.reserveFeeMin)
             json.put("nwcConnectionUri", config.nwcConnectionUri)
+            json.put("enableHttps", config.enableHttps)
+            json.put("httpsPort", config.httpsPort)
+            json.put("sslCertPath", config.sslCertPath)
+            json.put("sslKeyPath", config.sslKeyPath)
             json.toString()
         } catch (e: JSONException) {
             Log.e(TAG, "Error converting config to JSON", e)
@@ -304,6 +325,34 @@ class ConfigManager(private val context: Context) {
                 1L
             }
             
+            // Safely parse enableHttps with proper null checking
+            val enableHttps = if (jsonObject.has("enableHttps") && !jsonObject.isNull("enableHttps")) {
+                jsonObject.optBoolean("enableHttps")
+            } else {
+                true
+            }
+
+            // Safely parse httpsPort with proper null checking
+            val httpsPort = if (jsonObject.has("httpsPort") && !jsonObject.isNull("httpsPort")) {
+                jsonObject.optInt("httpsPort")
+            } else {
+                8443
+            }
+
+            // Safely parse sslCertPath with proper null checking
+            val sslCertPath = if (jsonObject.has("sslCertPath") && !jsonObject.isNull("sslCertPath")) {
+                jsonObject.optString("sslCertPath")
+            } else {
+                null
+            }
+
+            // Safely parse sslKeyPath with proper null checking
+            val sslKeyPath = if (jsonObject.has("sslKeyPath") && !jsonObject.isNull("sslKeyPath")) {
+                jsonObject.optString("sslKeyPath")
+            } else {
+                null
+            }
+            
             AndroidConfig(
                 host = jsonObject.optString("host", DEFAULT_HOST),
                 port = jsonObject.optInt("port", DEFAULT_PORT),
@@ -319,7 +368,11 @@ class ConfigManager(private val context: Context) {
                 clnBolt12 = if (jsonObject.has("clnBolt12")) jsonObject.optBoolean("clnBolt12") else null,
                 feePercent = feePercent,
                 reserveFeeMin = reserveFeeMin,
-                nwcConnectionUri = jsonObject.optString("nwcConnectionUri", null)
+                nwcConnectionUri = jsonObject.optString("nwcConnectionUri", null),
+                enableHttps = enableHttps,
+                httpsPort = httpsPort,
+                sslCertPath = sslCertPath,
+                sslKeyPath = sslKeyPath
             )
         } catch (e: JSONException) {
             Log.e(TAG, "Error parsing JSON to config", e)
