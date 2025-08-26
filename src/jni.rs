@@ -408,3 +408,48 @@ pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getOnionAddress(
         }
     }
 } 
+
+/// Delete mint service and clean up resources
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_deleteMint(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jint {
+    match crate::core::delete_mint_service() {
+        Ok(()) => 0,
+        Err(e) => {
+            error!("Failed to delete mint service: {}", e);
+            1
+        }
+    }
+}
+
+/// Check if mint service exists
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_mintExists(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jint {
+    if crate::core::mint_service_exists() {
+        1 // true
+    } else {
+        0 // false
+    }
+}
+
+/// Get cleanup status and remaining files
+#[no_mangle]
+pub extern "system" fn Java_com_purrmint_app_PurrmintNative_getCleanupStatus(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jstring {
+    let status = crate::core::get_cleanup_status();
+    
+    match _env.new_string(status) {
+        Ok(java_string) => java_string.into_raw(),
+        Err(e) => {
+            error!("Failed to create Java string for cleanup status: {:?}", e);
+            ptr::null_mut()
+        }
+    }
+} 

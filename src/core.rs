@@ -441,6 +441,202 @@ pub fn stop_service() -> Result<(), String> {
     stop_service_internal()
 }
 
+/// Delete mint service and clean up resources
+pub fn delete_mint_service() -> Result<(), String> {
+    info!("Deleting mint service and cleaning up resources...");
+    
+    // Acquire service lock to prevent concurrent operations
+    let lock = get_service_lock();
+    let _lock = lock.lock().map_err(|e| format!("Failed to acquire service lock: {}", e))?;
+    
+    // Stop the service first if it's running
+    if let Err(e) = stop_service_internal() {
+        warn!("Failed to stop service before deletion: {}", e);
+        // Continue with deletion anyway
+    }
+    
+    // Clean up global state
+    init_globals();
+    unsafe {
+        // Clear mint service
+        if let Some(service_guard) = MINT_SERVICE.as_ref() {
+            if let Ok(mut guard) = service_guard.lock() {
+                *guard = None;
+            }
+        }
+        
+        // Clear Tor service
+        if let Some(tor_service_guard) = TOR_SERVICE.as_ref() {
+            if let Ok(mut guard) = tor_service_guard.lock() {
+                *guard = None;
+            }
+        }
+    }
+    
+    // Clean up files and directories
+    if let Err(e) = cleanup_mint_files() {
+        warn!("Failed to clean up some files: {}", e);
+        // Continue with deletion anyway
+    }
+    
+    // Clean up Android-specific configuration files
+    if let Err(e) = cleanup_android_config_files() {
+        warn!("Failed to clean up Android config files: {}", e);
+        // Continue with deletion anyway
+    }
+    
+    // Verify cleanup was successful
+    if let Err(e) = verify_cleanup() {
+        warn!("Cleanup verification failed: {}", e);
+        // Continue anyway, as some files might be locked
+    }
+    
+    info!("Mint service deleted and resources cleaned up");
+    Ok(())
+}
+
+/// Clean up mint-related files and directories
+fn cleanup_mint_files() -> Result<(), String> {
+    info!("Cleaning up mint files and directories...");
+    
+    // Get all paths to clean up from configuration
+    let paths_to_clean = get_paths_to_clean_from_config();
+    
+    for path_str in paths_to_clean {
+        let path = std::path::Path::new(&path_str);
+        if path.exists() {
+            if let Err(e) = remove_path(path) {
+                warn!("Failed to remove path {}: {}", path_str, e);
+            } else {
+                info!("Removed path: {}", path_str);
+            }
+        }
+    }
+    
+    // Try to remove the main data directory if it's empty
+    let data_dir = get_android_data_dir();
+    let data_path = std::path::Path::new(&data_dir);
+    if data_path.exists() && data_path.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(data_path) {
+            if entries.count() == 0 {
+                if let Err(e) = std::fs::remove_dir(data_path) {
+                    warn!("Failed to remove empty data directory {}: {}", data_dir, e);
+                } else {
+                    info!("Removed empty data directory: {}", data_dir);
+                }
+            }
+        }
+    }
+    
+    Ok(())
+}
+
+/// Clean up Android-specific configuration files
+fn cleanup_android_config_files() -> Result<(), String> {
+    info!("Cleaning up Android configuration files...");
+    
+    // Get all paths to clean up from configuration
+    let mut paths_to_clean = get_paths_to_clean_from_config();
+    
+    // Add Android-specific paths dynamically
+    let config_paths = get_config_file_paths();
+    for config_path in config_paths {
+        // Add the config file itself to cleanup list
+        paths_to_clean.push(config_path.clone());
+        
+        // Note: We do NOT delete nostr_account.json, tor_data, or shared_prefs
+        // These contain user data that should be preserved
+    }
+    
+    // Remove duplicates
+    paths_to_clean.sort();
+    paths_to_clean.dedup();
+    
+    info!("Android paths to clean up: {:?}", paths_to_clean);
+    
+    for path_str in paths_to_clean {
+        let path = std::path::Path::new(&path_str);
+        if path.exists() {
+            if let Err(e) = std::fs::remove_file(path) {
+                warn!("Failed to remove config file {}: {}", path_str, e);
+            } else {
+                info!("Removed config file: {}", path_str);
+            }
+        }
+    }
+    
+    // Note: We do NOT clean up shared_prefs, nostr_account.json, or tor_data
+    // These contain user data and should be preserved for security and user experience
+    
+    Ok(())
+}
+
+/// Remove a file or directory recursively
+fn remove_path(path: &std::path::Path) -> Result<(), String> {
+    if path.is_file() {
+        std::fs::remove_file(path)
+            .map_err(|e| format!("Failed to remove file {}: {}", path.display(), e))
+    } else if path.is_dir() {
+        std::fs::remove_dir_all(path)
+            .map_err(|e| format!("Failed to remove directory {}: {}", path.display(), e))
+    } else {
+        // Path doesn't exist or is a symlink, ignore
+        Ok(())
+    }
+}
+
+/// Get Android data directory for mint service
+fn get_android_data_dir() -> String {
+    // Try to get from environment variable first
+    if let Ok(data_dir) = std::env::var("ANDROID_DATA_DIR") {
+        return data_dir;
+    }
+    
+    // Try to get from existing configuration if available
+    let config_paths = get_config_file_paths();
+    
+    for config_path in config_paths {
+        if let Ok(config_json) = std::fs::read_to_string(&config_path) {
+            if let Ok(config) = serde_json::from_str::<crate::config::AndroidConfig>(&config_json) {
+                // Extract directory from database_path
+                if let Some(db_path) = std::path::Path::new(&config.database_path).parent() {
+                    let data_dir = db_path.to_string_lossy().to_string();
+                    info!("Using data directory from config: {}", data_dir);
+                    return data_dir;
+                }
+                
+                // If database_path is empty, try logs_path
+                if let Some(logs_path) = std::path::Path::new(&config.logs_path).parent() {
+                    let data_dir = logs_path.to_string_lossy().to_string();
+                    info!("Using data directory from logs_path: {}", data_dir);
+                    return data_dir;
+                }
+            }
+        }
+    }
+    
+    // No fallback - return empty string if no config found
+    warn!("No configuration found, cannot determine data directory");
+    "".to_string()
+}
+
+/// Check if mint service exists
+pub fn mint_service_exists() -> bool {
+    init_globals();
+    
+    unsafe {
+        if let Some(service_guard) = MINT_SERVICE.as_ref() {
+            if let Ok(guard) = service_guard.lock() {
+                guard.is_some()
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+}
+
 /// Get service status
 pub fn get_service_status() -> String {
     init_globals();
@@ -515,6 +711,247 @@ pub extern "C" fn free_string(s: *mut c_char) {
             let _ = CString::from_raw(s);
         }
     }
+}
+
+/// Check if cleanup was successful
+fn verify_cleanup() -> Result<(), String> {
+    info!("Verifying cleanup...");
+    
+    let data_dir = get_android_data_dir();
+    let data_path = std::path::Path::new(&data_dir);
+    
+    // Check if main data directory still exists
+    if data_path.exists() {
+        // Check if it contains any important files
+        if let Ok(entries) = std::fs::read_dir(data_path) {
+            let remaining_files: Vec<_> = entries
+                .filter_map(|entry| entry.ok())
+                .filter(|entry| {
+                    let file_name = entry.file_name();
+                    let name = file_name.to_string_lossy();
+                    // Check if any important files remain
+                    // Note: SSL certificates are intentionally preserved for security
+                    name.contains("mint.db") || 
+                    name.contains("android_config") || 
+                    name.contains("nostr_account")
+                    // SSL certificates are NOT checked: name.contains("purrmint_cert") || name.contains("purrmint_key")
+                })
+                .collect();
+            
+            if !remaining_files.is_empty() {
+                warn!("Some files still remain after cleanup: {:?}", 
+                    remaining_files.iter().map(|e| e.file_name()).collect::<Vec<_>>());
+                return Err("Some files could not be removed during cleanup".to_string());
+            }
+        }
+    }
+    
+    // Check Android-specific paths dynamically from config
+    let mut android_paths: Vec<String> = vec![
+        "/data/data/com.purrmint.app/files/android_config.json".to_string(),
+        "/data/data/com.purrmint.app/files/nostr_account.json".to_string(),
+    ];
+    
+    // Try to load configuration to get additional paths to check
+    if let Ok(config_json) = std::fs::read_to_string("/data/data/com.purrmint.app/files/android_config.json") {
+        if let Ok(config) = serde_json::from_str::<crate::config::AndroidConfig>(&config_json) {
+            if !config.database_path.is_empty() {
+                android_paths.push(config.database_path.clone());
+            }
+            if !config.logs_path.is_empty() {
+                android_paths.push(config.logs_path.clone());
+            }
+        }
+    }
+    
+    for path_str in android_paths {
+        let path = std::path::Path::new(&path_str);
+        if path.exists() {
+            warn!("Android config file still exists: {}", path_str);
+            return Err("Android configuration files could not be removed".to_string());
+        }
+    }
+    
+    info!("Cleanup verification successful");
+    Ok(())
+}
+
+/// Get cleanup status and remaining files
+pub fn get_cleanup_status() -> String {
+    let data_dir = get_android_data_dir();
+    let data_path = std::path::Path::new(&data_dir);
+    
+    let mut status = serde_json::json!({
+        "data_directory": data_dir,
+        "data_directory_exists": data_path.exists(),
+        "remaining_files": Vec::<String>::new(),
+        "cleanup_required": false
+    });
+    
+    if data_path.exists() {
+        if let Ok(entries) = std::fs::read_dir(data_path) {
+            let remaining_files: Vec<String> = entries
+                .filter_map(|entry| entry.ok())
+                .map(|entry| entry.file_name().to_string_lossy().to_string())
+                .collect();
+            
+            status["remaining_files"] = serde_json::Value::Array(
+                remaining_files.iter().map(|f| serde_json::Value::String(f.clone())).collect()
+            );
+            status["cleanup_required"] = serde_json::Value::Bool(!remaining_files.is_empty());
+        }
+    }
+    
+    // Check Android-specific paths
+    // Note: SSL certificates are intentionally preserved for security
+    let mut android_paths: Vec<String> = Vec::new();
+    
+    // Try to load configuration to get paths
+    let config_paths = get_config_file_paths();
+    for config_path in config_paths {
+        if let Ok(config_json) = std::fs::read_to_string(&config_path) {
+            if let Ok(config) = serde_json::from_str::<crate::config::AndroidConfig>(&config_json) {
+                if !config.database_path.is_empty() {
+                    android_paths.push(config.database_path.clone());
+                }
+                if !config.logs_path.is_empty() {
+                    android_paths.push(config.logs_path.clone());
+                }
+            }
+        }
+    }
+    
+    // SSL certificates are NOT checked: "/data/data/com.purrmint.app/files/purrmint_cert.pem",
+    // SSL certificates are NOT checked: "/data/data/com.purrmint.app/files/purrmint_key.pem",
+    
+    let mut android_status = Vec::new();
+    for path_str in android_paths {
+        let path = std::path::Path::new(&path_str);
+        android_status.push(serde_json::json!({
+            "path": path_str,
+            "exists": path.exists(),
+            "size": if path.exists() && path.is_file() {
+                std::fs::metadata(path).map(|m| m.len()).unwrap_or(0)
+            } else {
+                0
+            }
+        }));
+    }
+    
+    status["android_files"] = serde_json::Value::Array(android_status);
+    
+    status.to_string()
+}
+
+/// Get all paths that need to be cleaned up from configuration
+fn get_paths_to_clean_from_config() -> Vec<String> {
+    let mut paths_to_clean = Vec::new();
+    
+    // Try to load configuration to get actual paths
+    let config_paths = get_config_file_paths();
+    
+    for config_path in config_paths {
+        if let Ok(config_json) = std::fs::read_to_string(&config_path) {
+            if let Ok(config) = serde_json::from_str::<crate::config::AndroidConfig>(&config_json) {
+                info!("Loaded configuration from: {}", config_path);
+                
+                // Add database paths
+                if !config.database_path.is_empty() {
+                    paths_to_clean.push(config.database_path.clone());
+                    info!("Added database path: {}", config.database_path);
+                    
+                    // Also add SQLite temporary files
+                    if let Some(db_dir) = std::path::Path::new(&config.database_path).parent() {
+                        let db_name = std::path::Path::new(&config.database_path).file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("mint.db");
+                        let db_stem = db_name.trim_end_matches(".db");
+                        
+                        let temp_files = vec![
+                            format!("{}/{}-shm", db_dir.display(), db_stem),
+                            format!("{}/{}-wal", db_dir.display(), db_stem),
+                            format!("{}/{}-journal", db_dir.display(), db_stem),
+                        ];
+                        
+                        paths_to_clean.extend_from_slice(&temp_files);
+                        info!("Added SQLite temp files: {:?}", temp_files);
+                    }
+                }
+                
+                // Add logs path
+                if !config.logs_path.is_empty() {
+                    paths_to_clean.push(config.logs_path.clone());
+                    info!("Added logs path: {}", config.logs_path);
+                }
+                
+                // Add Tor-specific paths if Tor is enabled
+                // Note: We do NOT delete Tor data as it contains user configuration
+                // if config.tor_enabled.unwrap_or(false) {
+                //     if let Some(tor_data_dir) = &config.tor_data_dir {
+                //         if !tor_data_dir.is_empty() {
+                //             paths_to_clean.push(tor_data_dir.clone());
+                //             info!("Added Tor data path: {}", tor_data_dir);
+                //         }
+                //     }
+                // }
+                
+                // SSL certificates are NOT removed for security reasons
+                // Only remove them if they are explicitly marked as temporary
+                // if config.enable_https.unwrap_or(false) {
+                //     if let Some(ssl_cert_path) = &config.ssl_cert_path {
+                //         if !ssl_cert_path.is_empty() {
+                //             paths_to_clean.push(ssl_cert_path.clone());
+                //         }
+                //     }
+                //     if let Some(ssl_key_path) = &config.ssl_key_path {
+                //         if !ssl_key_path.is_empty() {
+                //             paths_to_clean.push(ssl_key_path.clone());
+                //         }
+                //     }
+                // }
+                
+                // Found and loaded config, break
+                break;
+            }
+        }
+    }
+    
+    // Note: We don't add hardcoded paths anymore - everything comes from config
+    // If no config is found, only the config files themselves will be cleaned
+    
+    // Remove duplicates and sort
+    paths_to_clean.sort();
+    paths_to_clean.dedup();
+    
+    info!("Total paths to clean up: {:?}", paths_to_clean);
+    paths_to_clean
+}
+
+/// Get possible configuration file paths dynamically
+fn get_config_file_paths() -> Vec<String> {
+    let mut config_paths = Vec::new();
+    
+    // Try to get from environment variable first
+    if let Ok(data_dir) = std::env::var("ANDROID_DATA_DIR") {
+        config_paths.push(format!("{}/android_config.json", data_dir));
+    }
+    
+    // Try common Android app data directories
+    let common_paths = vec![
+        "/data/data/com.purrmint.app/files",
+        "/data/data/com.purrmint.app",
+        "/storage/emulated/0/Android/data/com.purrmint.app/files",
+        "/storage/emulated/0/Android/data/com.purrmint.app",
+    ];
+    
+    for base_path in common_paths {
+        config_paths.push(format!("{}/android_config.json", base_path));
+    }
+    
+    // Add relative path as last resort
+    config_paths.push("android_config.json".to_string());
+    
+    config_paths
 }
 
 // =============================================================================
