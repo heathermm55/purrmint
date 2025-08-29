@@ -322,12 +322,70 @@ class PurrmintManager(private val context: Context) {
     
     /**
      * Get mint service status
-     * @return JSON string containing service status
+     * @return Status JSON string
      */
     fun getServiceStatus(): String {
-        return safeExecute("get service status") {
+        return try {
             native.getMintStatus() ?: "{\"status\":\"unknown\"}"
-        } ?: "{\"status\":\"error\",\"message\":\"Failed to get service status\"}"
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get mint status", e)
+            "{\"status\":\"error\",\"error\":\"${e.message}\"}"
+        }
+    }
+    
+    /**
+     * Delete mint service and clean up resources
+     * @return true if successful, false otherwise
+     */
+    fun deleteMintService(): Boolean {
+        return try {
+            Log.i(TAG, "Deleting mint service and cleaning up resources...")
+            Log.i(TAG, "Note: User data (Nostr account, Tor settings, preferences) will be preserved")
+            
+            val result = native.deleteMint()
+            if (result == 0) {
+                Log.i(TAG, "Mint service deleted successfully")
+                Log.i(TAG, "Cleanup completed: Service runtime data removed, user data preserved")
+                true
+            } else {
+                Log.e(TAG, "Failed to delete mint service, result: $result")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception while deleting mint service", e)
+            false
+        }
+    }
+    
+    /**
+     * Check if mint service exists
+     * @return true if mint service exists, false otherwise
+     */
+    fun mintServiceExists(): Boolean {
+        return try {
+            val result = native.mintExists()
+            result == 1
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception while checking mint existence", e)
+            false
+        }
+    }
+    
+    /**
+     * Get cleanup status and remaining files
+     * @return Cleanup status JSON string
+     */
+    fun getCleanupStatus(): String {
+        return try {
+            Log.i(TAG, "Getting cleanup status...")
+            val status = native.getCleanupStatus() ?: "{\"status\":\"unknown\"}"
+            Log.i(TAG, "Cleanup status retrieved: $status")
+            Log.i(TAG, "Note: Remaining files may include user data that is intentionally preserved")
+            status
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get cleanup status", e)
+            "{\"status\":\"error\",\"error\":\"${e.message}\"}"
+        }
     }
     
     /**

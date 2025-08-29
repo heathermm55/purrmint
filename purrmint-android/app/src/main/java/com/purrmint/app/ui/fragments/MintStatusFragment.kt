@@ -18,6 +18,7 @@ class MintStatusFragment : Fragment() {
     private lateinit var statusChip: Chip
     private lateinit var statusTextView: TextView
     private lateinit var startButton: MaterialButton
+    private lateinit var deleteButton: MaterialButton
     private lateinit var logoutButton: MaterialButton
     private lateinit var accountInfoText: TextView
     
@@ -41,6 +42,7 @@ class MintStatusFragment : Fragment() {
         statusChip = view.findViewById(R.id.statusChip)
         statusTextView = view.findViewById(R.id.statusTextView)
         startButton = view.findViewById(R.id.startButton)
+        deleteButton = view.findViewById(R.id.deleteButton)
         logoutButton = view.findViewById(R.id.logoutButton)
         accountInfoText = view.findViewById(R.id.accountInfoText)
     }
@@ -48,6 +50,10 @@ class MintStatusFragment : Fragment() {
     private fun setupClickListeners() {
         startButton.setOnClickListener {
             (activity as? MainActivity)?.startMintService()
+        }
+        
+        deleteButton.setOnClickListener {
+            (activity as? MainActivity)?.showDeleteConfirmationDialog()
         }
         
         logoutButton.setOnClickListener {
@@ -85,6 +91,28 @@ class MintStatusFragment : Fragment() {
             startButton.setIconResource(R.drawable.ic_stop)
         } else {
             startButton.setIconResource(R.drawable.ic_play)
+        }
+    }
+    
+    fun enableDeleteButton() {
+        deleteButton.isEnabled = true
+        deleteButton.text = getString(R.string.delete_mint_service)
+        deleteButton.setIconResource(R.drawable.ic_delete)
+    }
+    
+    fun disableDeleteButton() {
+        deleteButton.isEnabled = false
+        deleteButton.text = getString(R.string.delete_mint_service)
+        deleteButton.setIconResource(R.drawable.ic_delete)
+    }
+    
+    fun updateDeleteButton(text: String, isEnabled: Boolean) {
+        deleteButton.text = text
+        deleteButton.isEnabled = isEnabled
+        if (isEnabled) {
+            deleteButton.setIconResource(R.drawable.ic_delete)
+        } else {
+            deleteButton.setIconResource(R.drawable.ic_delete)
         }
     }
     

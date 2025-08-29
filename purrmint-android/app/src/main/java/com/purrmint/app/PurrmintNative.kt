@@ -71,4 +71,13 @@ class PurrmintNative {
     
     // Get onion address - matches Java_com_purrmint_app_PurrmintNative_getOnionAddress
     external fun getOnionAddress(): String?
+    
+    // Delete mint service - matches Java_com_purrmint_app_PurrmintNative_deleteMint
+    external fun deleteMint(): Int
+    
+    // Check if mint exists - matches Java_com_purrmint_app_PurrmintNative_mintExists
+    external fun mintExists(): Int
+    
+    // Get cleanup status - matches Java_com_purrmint_app_PurrmintNative_getCleanupStatus
+    external fun getCleanupStatus(): String?
 } 

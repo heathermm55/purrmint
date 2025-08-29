@@ -33,6 +33,7 @@ import com.purrmint.app.core.managers.ConfigManager
 import com.purrmint.app.core.managers.PurrmintManager
 import com.purrmint.app.core.services.PurrmintService
 import com.purrmint.app.ui.dialogs.QRCodeDialog
+import com.purrmint.app.ui.fragments.MintStatusFragment
 import com.purrmint.app.utils.NetworkUtils
 import android.os.Handler
 import android.os.Looper
@@ -738,6 +739,76 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             updateStartButton("Stop Service", true, true)
         }
     }
+    
+    private fun deleteMintService() {
+        try {
+            updateStatus("Deleting mint service...", false)
+            updateStartButton("Deleting...", false, false)
+            appendLog("🗑️ Deleting mint service...")
+            
+            if (isServiceBound && purrmintService != null) {
+                val purrmintManager = purrmintService!!.getPurrmintManager()
+                val success = purrmintManager.deleteMintService()
+                if (success) {
+                    updateStatus("Mint service deleted", false)
+                    appendLog("✅ Mint service deleted successfully!")
+                    appendLog("📊 Cleanup summary:")
+                    appendLog("   • Removed: Service runtime data, logs, config")
+                    appendLog("   • Preserved: Nostr account, Tor settings, preferences")
+                    hideAddress()
+                    updateStartButton("Start Mint Service", false, true)
+                    isMintRunning = false
+                    
+                    // Show confirmation dialog
+                    showDeleteConfirmationDialog()
+                } else {
+                    updateStatus("Failed to delete service", true)
+                    appendLog("❌ Failed to delete mint service")
+                    updateStartButton("Delete Service", true, true)
+                }
+            } else {
+                updateStatus("Service deleted", false)
+                appendLog("✅ Service deleted!")
+                appendLog("📊 Cleanup summary:")
+                appendLog("   • Removed: Service runtime data, logs, config")
+                appendLog("   • Preserved: Nostr account, Tor settings, preferences")
+                hideAddress()
+                updateStartButton("Start Mint Service", false, true)
+                isMintRunning = false
+                showDeleteConfirmationDialog()
+            }
+        } catch (e: Exception) {
+            updateStatus("Error: ${e.message}", true)
+            appendLog("❌ Error deleting service: ${e.message}")
+            Log.e(TAG, "Error deleting service", e)
+            updateStartButton("Delete Service", true, true)
+        }
+    }
+    
+    private fun showDeleteConfirmationDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mint_service_deleted))
+            .setMessage(getString(R.string.mint_service_deleted_message))
+            .setPositiveButton(getString(R.string.ok)) { _, _ ->
+                // Dialog dismissed
+            }
+            .setCancelable(false)
+            .show()
+    }
+    
+    fun showDeleteConfirmationDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.delete_mint_service_title))
+            .setMessage(getString(R.string.delete_mint_service_message))
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
+                deleteMintService()
+            }
+            .setNegativeButton(getString(R.string.cancel)) { _, _ ->
+                // Dialog dismissed
+            }
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .show()
+    }
 
     private fun updateStatus(status: String, isOnline: Boolean) {
         isMintRunning = isOnline
@@ -748,18 +819,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         
         statusTextView.text = status
         
+        // Update delete button state based on mint status
         if (isOnline) {
             statusIcon.setImageResource(R.drawable.ic_status_online)
             statusIcon.setColorFilter(resources.getColor(R.color.success_color, null))
             statusChip.text = getString(R.string.online)
             statusChip.setChipBackgroundColorResource(R.color.success_container_color)
             statusChip.setTextColor(resources.getColor(R.color.success_color, null))
+            
+            // Enable delete button when mint is running
+            enableDeleteButton()
         } else {
             statusIcon.setImageResource(R.drawable.ic_status_offline)
             statusIcon.setColorFilter(resources.getColor(R.color.error_color, null))
             statusChip.text = getString(R.string.offline)
             statusChip.setChipBackgroundColorResource(R.color.error_container_color)
             statusChip.setTextColor(resources.getColor(R.color.error_color, null))
+            
+            // Disable delete button when mint is not running
+            disableDeleteButton()
         }
     }
     
@@ -1319,5 +1397,21 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .create()
         
         dialog.show()
+    }
+
+    private fun enableDeleteButton() {
+        // Get current fragment and enable delete button
+        val currentFragment = supportFragmentManager.fragments.firstOrNull { it is MintStatusFragment }
+        if (currentFragment is MintStatusFragment) {
+            currentFragment.enableDeleteButton()
+        }
+    }
+
+    private fun disableDeleteButton() {
+        // Get current fragment and disable delete button
+        val currentFragment = supportFragmentManager.fragments.firstOrNull { it is MintStatusFragment }
+        if (currentFragment is MintStatusFragment) {
+            currentFragment.disableDeleteButton()
+        }
     }
 } 

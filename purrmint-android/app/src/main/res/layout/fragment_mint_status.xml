@@ -150,6 +150,19 @@
                     style="@style/Widget.Material3.Button"
                     android:enabled="false" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/deleteButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/delete_mint_service"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                    app:icon="@drawable/ic_delete"
+                    app:iconGravity="textStart"
+                    app:cornerRadius="12dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_marginTop="8dp"
+                    android:enabled="false" />
+
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>

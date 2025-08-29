@@ -98,8 +98,13 @@
     
     <!-- Service Dialog -->
     <string name="service_running_title">Service Running</string>
-    <string name="service_running_message">To perform %1$s operation, the service needs to be stopped first. Do you want to stop the service?</string>
-    <string name="stop_service_button">Stop Service</string>
+    <string name="service_running_message">The mint service is currently running. You can stop it or delete it completely.</string>
+    <string name="delete_mint_service">Delete Mint Service</string>
+    <string name="delete_mint_service_title">Delete Mint Service</string>
+    <string name="delete_mint_service_message">Are you sure you want to delete the mint service? This action will:\n\n• Stop the running service\n• Remove service runtime data (database, logs)\n• Remove service configuration files\n\n⚠️ User data will be preserved:\n• Nostr account information\n• Tor configuration and data\n• User preferences and settings\n• SSL certificates\n\nThis action cannot be undone</string>
+    <string name="delete">Delete</string>
+    <string name="mint_service_deleted">Mint Service Deleted</string>
+    <string name="mint_service_deleted_message">The mint service has been successfully deleted.\n\n✅ Removed: Service runtime data and configuration\n🔒 Preserved: Your Nostr account, Tor settings, and preferences</string>
     
     <!-- Operation Names -->
     <string name="config_settings">Configuration Settings</string>
