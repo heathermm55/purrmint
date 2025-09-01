@@ -53,7 +53,7 @@ class MintStatusFragment : Fragment() {
         }
         
         deleteButton.setOnClickListener {
-            (activity as? MainActivity)?.showDeleteConfirmationDialog()
+            (activity as? MainActivity)?.showDeleteServiceConfirmationDialog()
         }
         
         logoutButton.setOnClickListener {
@@ -101,7 +101,8 @@ class MintStatusFragment : Fragment() {
     }
     
     fun disableDeleteButton() {
-        deleteButton.isEnabled = false
+        // Keep delete button enabled for cleanup purposes
+        deleteButton.isEnabled = true
         deleteButton.text = getString(R.string.delete_mint_service)
         deleteButton.setIconResource(R.drawable.ic_delete)
     }

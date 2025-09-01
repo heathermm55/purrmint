@@ -345,7 +345,7 @@ class PurrmintManager(private val context: Context) {
             val result = native.deleteMint()
             if (result == 0) {
                 Log.i(TAG, "Mint service deleted successfully")
-                Log.i(TAG, "Cleanup completed: Service runtime data removed, user data preserved")
+                Log.i(TAG, "Cleanup completed: Service runtime data removed, configuration and user data preserved")
                 true
             } else {
                 Log.e(TAG, "Failed to delete mint service, result: $result")

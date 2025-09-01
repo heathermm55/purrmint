@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Trust self-signed certificates for local development and PurrMint HTTPS -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
@@ -7,7 +8,12 @@
         <domain includeSubdomains="true">10.0.2.16</domain>
         <domain includeSubdomains="true">10.0.2.1</domain>
         <domain includeSubdomains="true">10.0.2.15</domain>
+        <trust-anchors>
+            <certificates src="system"/>
+            <certificates src="@raw/purrmint_cert_pem"/>
+        </trust-anchors>
     </domain-config>
+    
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system"/>

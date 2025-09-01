@@ -99,6 +99,7 @@
     <!-- Service Dialog -->
     <string name="service_running_title">Service Running</string>
     <string name="service_running_message">The mint service is currently running. You can stop it or delete it completely.</string>
+    <string name="stop_service_button">Stop Service</string>
     <string name="delete_mint_service">Delete Mint Service</string>
     <string name="delete_mint_service_title">Delete Mint Service</string>
     <string name="delete_mint_service_message">Are you sure you want to delete the mint service? This action will:\n\n• Stop the running service\n• Remove service runtime data (database, logs)\n• Remove service configuration files\n\n⚠️ User data will be preserved:\n• Nostr account information\n• Tor configuration and data\n• User preferences and settings\n• SSL certificates\n\nThis action cannot be undone</string>

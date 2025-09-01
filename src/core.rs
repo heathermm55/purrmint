@@ -538,15 +538,9 @@ fn cleanup_android_config_files() -> Result<(), String> {
     // Get all paths to clean up from configuration
     let mut paths_to_clean = get_paths_to_clean_from_config();
     
-    // Add Android-specific paths dynamically
-    let config_paths = get_config_file_paths();
-    for config_path in config_paths {
-        // Add the config file itself to cleanup list
-        paths_to_clean.push(config_path.clone());
-        
-        // Note: We do NOT delete nostr_account.json, tor_data, or shared_prefs
-        // These contain user data that should be preserved
-    }
+    // Note: We do NOT delete the main android_config.json file
+    // This preserves user configuration for future use
+    // We only clean up runtime data (database, logs, etc.)
     
     // Remove duplicates
     paths_to_clean.sort();
@@ -565,7 +559,11 @@ fn cleanup_android_config_files() -> Result<(), String> {
         }
     }
     
-    // Note: We do NOT clean up shared_prefs, nostr_account.json, or tor_data
+    // Note: We do NOT clean up:
+    // - android_config.json (preserves user configuration)
+    // - shared_prefs (preserves user preferences)
+    // - nostr_account.json (preserves user account)
+    // - tor_data (preserves Tor configuration)
     // These contain user data and should be preserved for security and user experience
     
     Ok(())

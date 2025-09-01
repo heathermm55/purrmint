@@ -52,6 +52,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var statusChip: Chip
     private lateinit var statusTextView: TextView
     private lateinit var startButton: MaterialButton
+    private lateinit var deleteButton: MaterialButton
     private lateinit var clearLogsButton: MaterialButton
     private lateinit var logsText: TextView
     
@@ -259,6 +260,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         statusChip = findViewById(R.id.statusChip)
         statusTextView = findViewById(R.id.statusTextView)
         startButton = findViewById(R.id.startButton)
+        deleteButton = findViewById(R.id.deleteButton)
         clearLogsButton = findViewById(R.id.clearLogsButton)
         logsText = findViewById(R.id.logsText)
         
@@ -314,6 +316,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     }
                 }
             }
+        }
+        
+        deleteButton.setOnClickListener {
+            showDeleteServiceConfirmationDialog()
         }
         
         // Setup mode selection listeners
@@ -753,14 +759,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     updateStatus("Mint service deleted", false)
                     appendLog("✅ Mint service deleted successfully!")
                     appendLog("📊 Cleanup summary:")
-                    appendLog("   • Removed: Service runtime data, logs, config")
-                    appendLog("   • Preserved: Nostr account, Tor settings, preferences")
+                    appendLog("   • Removed: Service runtime data, logs, database")
+                    appendLog("   • Preserved: Configuration, Nostr account, Tor settings, preferences")
                     hideAddress()
                     updateStartButton("Start Mint Service", false, true)
                     isMintRunning = false
                     
                     // Show confirmation dialog
-                    showDeleteConfirmationDialog()
+                    showServiceDeletedDialog()
                 } else {
                     updateStatus("Failed to delete service", true)
                     appendLog("❌ Failed to delete mint service")
@@ -770,12 +776,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 updateStatus("Service deleted", false)
                 appendLog("✅ Service deleted!")
                 appendLog("📊 Cleanup summary:")
-                appendLog("   • Removed: Service runtime data, logs, config")
-                appendLog("   • Preserved: Nostr account, Tor settings, preferences")
+                appendLog("   • Removed: Service runtime data, logs, database")
+                appendLog("   • Preserved: Configuration, Nostr account, Tor settings, preferences")
                 hideAddress()
                 updateStartButton("Start Mint Service", false, true)
                 isMintRunning = false
-                showDeleteConfirmationDialog()
+                showServiceDeletedDialog()
             }
         } catch (e: Exception) {
             updateStatus("Error: ${e.message}", true)
@@ -785,7 +791,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
     
-    private fun showDeleteConfirmationDialog() {
+    private fun showServiceDeletedDialog() {
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(getString(R.string.mint_service_deleted))
             .setMessage(getString(R.string.mint_service_deleted_message))
@@ -796,7 +802,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .show()
     }
     
-    fun showDeleteConfirmationDialog() {
+    fun showDeleteServiceConfirmationDialog() {
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(getString(R.string.delete_mint_service_title))
             .setMessage(getString(R.string.delete_mint_service_message))
@@ -836,8 +842,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             statusChip.setChipBackgroundColorResource(R.color.error_container_color)
             statusChip.setTextColor(resources.getColor(R.color.error_color, null))
             
-            // Disable delete button when mint is not running
-            disableDeleteButton()
+            // Enable delete button even when mint is not running (for cleanup purposes)
+            enableDeleteButton()
         }
     }
     
@@ -1400,18 +1406,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun enableDeleteButton() {
-        // Get current fragment and enable delete button
-        val currentFragment = supportFragmentManager.fragments.firstOrNull { it is MintStatusFragment }
-        if (currentFragment is MintStatusFragment) {
-            currentFragment.enableDeleteButton()
-        }
+        // Enable delete button in MainActivity
+        deleteButton.isEnabled = true
+        deleteButton.text = getString(R.string.delete_mint_service)
+        deleteButton.setIconResource(R.drawable.ic_delete)
     }
 
     private fun disableDeleteButton() {
-        // Get current fragment and disable delete button
-        val currentFragment = supportFragmentManager.fragments.firstOrNull { it is MintStatusFragment }
-        if (currentFragment is MintStatusFragment) {
-            currentFragment.disableDeleteButton()
-        }
+        // Keep delete button enabled for cleanup purposes
+        deleteButton.isEnabled = true
+        deleteButton.text = getString(R.string.delete_mint_service)
+        deleteButton.setIconResource(R.drawable.ic_delete)
     }
 } 
