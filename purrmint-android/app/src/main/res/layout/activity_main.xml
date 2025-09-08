@@ -191,12 +191,14 @@
                                 android:id="@+id/addressTitle"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="@string/onion_address"
+                                android:text="@string/local_address"
                                 android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
                                 android:textColor="@color/on_surface_color"
                                 android:layout_marginBottom="8dp" />
 
+                            <!-- Single Address Display (for Tor mode) -->
                             <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/singleAddressCard"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 app:cardElevation="1dp"
@@ -254,6 +256,161 @@
                                 </LinearLayout>
 
                             </com.google.android.material.card.MaterialCardView>
+
+                            <!-- Dual Address Display (for Local mode) -->
+                            <LinearLayout
+                                android:id="@+id/dualAddressLayout"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:visibility="gone">
+
+                                <!-- Localhost Address Section -->
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical"
+                                    android:layout_marginBottom="12dp">
+
+                                    <TextView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:text="Local"
+                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                        android:textColor="@color/on_surface_variant_color"
+                                        android:layout_marginBottom="4dp" />
+
+                                    <com.google.android.material.card.MaterialCardView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        app:cardElevation="1dp"
+                                        app:cardCornerRadius="8dp"
+                                        app:cardBackgroundColor="@color/surface_variant_color"
+                                        app:strokeColor="@color/outline_color"
+                                        app:strokeWidth="1dp">
+
+                                        <LinearLayout
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:orientation="horizontal"
+                                            android:padding="12dp"
+                                            android:gravity="center_vertical">
+
+                                            <TextView
+                                                android:id="@+id/localhostAddressText"
+                                                android:layout_width="0dp"
+                                                android:layout_height="wrap_content"
+                                                android:layout_weight="1"
+                                                android:text="http://127.0.0.1:3338"
+                                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                                android:textColor="@color/on_surface_color"
+                                                android:fontFamily="monospace"
+                                                android:textIsSelectable="true" />
+
+                                            <ImageButton
+                                                android:id="@+id/copyLocalhostButton"
+                                                android:layout_width="32dp"
+                                                android:layout_height="32dp"
+                                                android:background="@android:color/transparent"
+                                                android:src="@drawable/ic_copy"
+                                                android:contentDescription="Copy localhost address"
+                                                android:focusable="true"
+                                                android:clickable="true"
+                                                android:padding="4dp"
+                                                app:tint="@color/primary_color" />
+
+                                            <ImageButton
+                                                android:id="@+id/qrLocalhostButton"
+                                                android:layout_width="32dp"
+                                                android:layout_height="32dp"
+                                                android:background="@android:color/transparent"
+                                                android:src="@drawable/ic_qr_code"
+                                                android:contentDescription="Show localhost QR code"
+                                                android:focusable="true"
+                                                android:clickable="true"
+                                                android:padding="4dp"
+                                                android:layout_marginStart="8dp"
+                                                app:tint="@color/primary_color" />
+
+                                        </LinearLayout>
+
+                                    </com.google.android.material.card.MaterialCardView>
+
+                                </LinearLayout>
+
+                                <!-- Network Address Section -->
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:text="Network"
+                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                        android:textColor="@color/on_surface_variant_color"
+                                        android:layout_marginBottom="4dp" />
+
+                                    <com.google.android.material.card.MaterialCardView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        app:cardElevation="1dp"
+                                        app:cardCornerRadius="8dp"
+                                        app:cardBackgroundColor="@color/surface_variant_color"
+                                        app:strokeColor="@color/outline_color"
+                                        app:strokeWidth="1dp">
+
+                                        <LinearLayout
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:orientation="horizontal"
+                                            android:padding="12dp"
+                                            android:gravity="center_vertical">
+
+                                            <TextView
+                                                android:id="@+id/networkAddressText"
+                                                android:layout_width="0dp"
+                                                android:layout_height="wrap_content"
+                                                android:layout_weight="1"
+                                                android:text="Not available"
+                                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                                android:textColor="@color/on_surface_variant_color"
+                                                android:fontFamily="monospace"
+                                                android:textIsSelectable="true" />
+
+                                            <ImageButton
+                                                android:id="@+id/copyNetworkButton"
+                                                android:layout_width="32dp"
+                                                android:layout_height="32dp"
+                                                android:background="@android:color/transparent"
+                                                android:src="@drawable/ic_copy"
+                                                android:contentDescription="Copy network address"
+                                                android:focusable="true"
+                                                android:clickable="true"
+                                                android:padding="4dp"
+                                                app:tint="@color/primary_color" />
+
+                                            <ImageButton
+                                                android:id="@+id/qrNetworkButton"
+                                                android:layout_width="32dp"
+                                                android:layout_height="32dp"
+                                                android:background="@android:color/transparent"
+                                                android:src="@drawable/ic_qr_code"
+                                                android:contentDescription="Show network QR code"
+                                                android:focusable="true"
+                                                android:clickable="true"
+                                                android:padding="4dp"
+                                                android:layout_marginStart="8dp"
+                                                app:tint="@color/primary_color" />
+
+                                        </LinearLayout>
+
+                                    </com.google.android.material.card.MaterialCardView>
+
+                                </LinearLayout>
+
+                            </LinearLayout>
 
                         </LinearLayout>
 

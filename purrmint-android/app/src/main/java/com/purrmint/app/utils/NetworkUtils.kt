@@ -201,6 +201,46 @@ object NetworkUtils {
     }
     
     /**
+     * Get the best available network IP address (without protocol prefix)
+     * @return Best network IP address or null if none available
+     */
+    fun getBestNetworkIpAddress(): String? {
+        return try {
+            val networkInterfaces = NetworkInterface.getNetworkInterfaces()
+            
+            while (networkInterfaces.hasMoreElements()) {
+                val networkInterface = networkInterfaces.nextElement()
+                
+                if (networkInterface.isLoopback || !networkInterface.isUp) {
+                    continue
+                }
+                
+                val inetAddresses = networkInterface.inetAddresses
+                while (inetAddresses.hasMoreElements()) {
+                    val inetAddress = inetAddresses.nextElement()
+                    
+                    val hostAddress = inetAddress.hostAddress
+                    if (hostAddress?.contains(":") == true) {
+                        continue
+                    }
+                    
+                    if (hostAddress != null && isLocalNetworkAddress(hostAddress) && !isEmulatorAddress(hostAddress)) {
+                        Log.d(TAG, "Found best network IP address: $hostAddress")
+                        return hostAddress
+                    }
+                }
+            }
+            
+            Log.w(TAG, "No network IP address found")
+            null
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting network IP address", e)
+            null
+        }
+    }
+    
+    /**
      * Check if device is connected to a network
      * @param context Android context
      * @return true if connected to a network

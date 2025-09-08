@@ -66,6 +66,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var copyAddressButton: ImageButton
     private lateinit var qrCodeButton: ImageButton
     
+    // Dual address display components
+    private lateinit var singleAddressCard: com.google.android.material.card.MaterialCardView
+    private lateinit var dualAddressLayout: LinearLayout
+    private lateinit var localhostAddressText: TextView
+    private lateinit var networkAddressText: TextView
+    private lateinit var copyLocalhostButton: ImageButton
+    private lateinit var copyNetworkButton: ImageButton
+    private lateinit var qrLocalhostButton: ImageButton
+    private lateinit var qrNetworkButton: ImageButton
+    
     // Service
     private var purrmintService: PurrmintService.LocalBinder? = null
     private var isServiceBound = false
@@ -78,7 +88,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var onionAddress: String? = null
     private var localAddress: String? = null
     private var networkAddress: String? = null
-    private var useHttps: Boolean = true
+    private var useHttps: Boolean = false
     
     // Login Manager
     private lateinit var loginManager: LoginManager
@@ -274,6 +284,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         copyAddressButton = findViewById(R.id.copyAddressButton)
         qrCodeButton = findViewById(R.id.qrCodeButton)
         
+        // Initialize dual address display components
+        singleAddressCard = findViewById(R.id.singleAddressCard)
+        dualAddressLayout = findViewById(R.id.dualAddressLayout)
+        localhostAddressText = findViewById(R.id.localhostAddressText)
+        networkAddressText = findViewById(R.id.networkAddressText)
+        copyLocalhostButton = findViewById(R.id.copyLocalhostButton)
+        copyNetworkButton = findViewById(R.id.copyNetworkButton)
+        qrLocalhostButton = findViewById(R.id.qrLocalhostButton)
+        qrNetworkButton = findViewById(R.id.qrNetworkButton)
+        
         // Setup toolbar and navigation drawer
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -375,6 +395,24 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Setup QR code button
         qrCodeButton.setOnClickListener {
             showQRCodeDialog()
+        }
+        
+        // Setup dual address copy buttons
+        copyLocalhostButton.setOnClickListener {
+            copyAddressToClipboard(localhostAddressText.text.toString(), "Local address")
+        }
+        
+        copyNetworkButton.setOnClickListener {
+            copyAddressToClipboard(networkAddressText.text.toString(), "Network address")
+        }
+        
+        // Setup dual address QR code buttons
+        qrLocalhostButton.setOnClickListener {
+            showQRCodeDialog(localhostAddressText.text.toString(), "Local address")
+        }
+        
+        qrNetworkButton.setOnClickListener {
+            showQRCodeDialog(networkAddressText.text.toString(), "Network address")
         }
         
         clearLogsButton.setOnClickListener {
@@ -1121,6 +1159,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun showOnionAddress() {
         addressLayout.visibility = android.view.View.VISIBLE
         addressTitle.text = getString(R.string.onion_address)
+        
+        // Show single address layout for Tor mode
+        singleAddressCard.visibility = android.view.View.VISIBLE
+        dualAddressLayout.visibility = android.view.View.GONE
+        
         addressText.text = getString(R.string.onion_address_loading)
         startOnionAddressPolling()
     }
@@ -1133,20 +1176,36 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     addressLayout.visibility = android.view.View.VISIBLE
                     addressTitle.text = getString(R.string.local_address)
                     
-                    // Get port from config (now always returns a value)
-                    val port = configManager.getPort() ?: 3338
-                    localAddress = if (useHttps) "https://127.0.0.1:8443" else "http://127.0.0.1:$port"
+                    // Get port and HTTPS setting from config
+                    val config = configManager.getConfiguration()
+                    val port = config.port
+                    val enableHttps = config.enableHttps
                     
-                    // Try to get network address for LAN access
-                    networkAddress = NetworkUtils.getBestNetworkAddress(port, useHttps)
+                    // Local address is always HTTP on port 3338
+                    localAddress = "http://127.0.0.1:3338"
                     
-                    // Display address with appropriate guidance
-                    val displayText = if (networkAddress != null) {
-                        networkAddress
+                    // Network address uses the configured protocol and port
+                    networkAddress = NetworkUtils.getBestNetworkAddress(port, enableHttps)
+                    
+                    // Show dual address layout for local mode
+                    singleAddressCard.visibility = android.view.View.GONE
+                    dualAddressLayout.visibility = android.view.View.VISIBLE
+                    
+                    // Set localhost address
+                    localhostAddressText.text = localAddress
+                    
+                    // Set network address
+                    if (networkAddress != null && networkAddress!!.isNotEmpty()) {
+                        networkAddressText.text = networkAddress
+                        networkAddressText.setTextColor(resources.getColor(R.color.on_surface_color, null))
+                        copyNetworkButton.isEnabled = true
+                        qrNetworkButton.isEnabled = true
                     } else {
-                        localAddress
+                        networkAddressText.text = "Not available"
+                        networkAddressText.setTextColor(resources.getColor(R.color.on_surface_variant_color, null))
+                        copyNetworkButton.isEnabled = false
+                        qrNetworkButton.isEnabled = false
                     }
-                    addressText.text = displayText
                     
                     appendLog("🌐 Local address: $localAddress")
                     if (networkAddress != null) {
@@ -1221,8 +1280,28 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
     
+    /**
+     * Show addresses in MintStatusFragment
+     * @param localhostAddress The localhost address
+     * @param networkAddress The network address or null if not available
+     */
+    private fun showAddressesInFragment(localhostAddress: String?, networkAddress: String?) {
+        try {
+            // Find the MintStatusFragment and update it
+            val fragment = supportFragmentManager.fragments.find { it is MintStatusFragment } as? MintStatusFragment
+            fragment?.showLocalAddresses(
+                localhostAddress ?: "127.0.0.1:3338",
+                networkAddress
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error showing addresses in fragment", e)
+        }
+    }
+    
     private fun hideAddress() {
         addressLayout.visibility = android.view.View.GONE
+        singleAddressCard.visibility = android.view.View.GONE
+        dualAddressLayout.visibility = android.view.View.GONE
         onionAddress = null
         localAddress = null
         networkAddress = null
@@ -1333,6 +1412,54 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 PurrmintManager.ServiceMode.TOR -> "No onion address available"
             }
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    /**
+     * Copy specific address to clipboard
+     * @param address The address to copy
+     * @param label The label for the clipboard entry
+     */
+    private fun copyAddressToClipboard(address: String, label: String) {
+        if (address.isNotEmpty() && address != "Not available") {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText(label, address)
+            clipboard.setPrimaryClip(clip)
+            
+            Toast.makeText(this, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+            appendLog("📋 $label copied to clipboard")
+        } else {
+            Toast.makeText(this, "No address available to copy", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    /**
+     * Show QR code dialog for a specific address
+     * @param address The address to show QR code for
+     * @param label The label for the QR code
+     */
+    private fun showQRCodeDialog(address: String, label: String) {
+        if (address.isNotEmpty() && address != "Not available") {
+            try {
+                val dialog = when (currentMode) {
+                    PurrmintManager.ServiceMode.LOCAL -> {
+                        QRCodeDialog.newLocalAddressInstance(address)
+                    }
+                    PurrmintManager.ServiceMode.TOR -> {
+                        QRCodeDialog.newOnionAddressInstance(address)
+                    }
+                }
+                
+                dialog.show(supportFragmentManager, "QRCodeDialog")
+                appendLog("📱 Showing QR code for $label")
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Error showing QR code dialog", e)
+                appendLog("❌ Error showing QR code: ${e.message}")
+                Toast.makeText(this, "Error showing QR code", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(this, "No address available for QR code", Toast.LENGTH_SHORT).show()
         }
     }
     
