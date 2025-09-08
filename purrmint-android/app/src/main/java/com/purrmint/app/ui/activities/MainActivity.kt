@@ -48,11 +48,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var navigationView: NavigationView
     private lateinit var toolbar: MaterialToolbar
     private lateinit var btnConfig: ImageButton
+    private lateinit var btnDelete: ImageButton
     private lateinit var statusIcon: ImageView
     private lateinit var statusChip: Chip
     private lateinit var statusTextView: TextView
     private lateinit var startButton: MaterialButton
-    private lateinit var deleteButton: MaterialButton
     private lateinit var clearLogsButton: MaterialButton
     private lateinit var logsText: TextView
     
@@ -266,11 +266,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navigationView = findViewById(R.id.navigationView)
         toolbar = findViewById(R.id.topAppBar)
         btnConfig = findViewById(R.id.btnConfig)
+        btnDelete = findViewById(R.id.btnDelete)
         statusIcon = findViewById(R.id.statusIcon)
         statusChip = findViewById(R.id.statusChip)
         statusTextView = findViewById(R.id.statusTextView)
         startButton = findViewById(R.id.startButton)
-        deleteButton = findViewById(R.id.deleteButton)
         clearLogsButton = findViewById(R.id.clearLogsButton)
         logsText = findViewById(R.id.logsText)
         
@@ -314,6 +314,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
         
+        // Setup delete button
+        btnDelete.setOnClickListener {
+            showDeleteServiceConfirmationDialog()
+        }
+        
         startButton.setOnClickListener {
             if (isMintRunning) {
                 stopMintService()
@@ -338,9 +343,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
         
-        deleteButton.setOnClickListener {
-            showDeleteServiceConfirmationDialog()
-        }
         
         // Setup mode selection listeners
         modeChipGroup.setOnCheckedChangeListener { group, checkedId ->
@@ -1534,15 +1536,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun enableDeleteButton() {
         // Enable delete button in MainActivity
-        deleteButton.isEnabled = true
-        deleteButton.text = getString(R.string.delete_mint_service)
-        deleteButton.setIconResource(R.drawable.ic_delete)
+        btnDelete.isEnabled = true
+        btnDelete.visibility = android.view.View.VISIBLE
     }
 
     private fun disableDeleteButton() {
         // Keep delete button enabled for cleanup purposes
-        deleteButton.isEnabled = true
-        deleteButton.text = getString(R.string.delete_mint_service)
-        deleteButton.setIconResource(R.drawable.ic_delete)
+        btnDelete.isEnabled = true
+        btnDelete.visibility = android.view.View.VISIBLE
     }
 } 
