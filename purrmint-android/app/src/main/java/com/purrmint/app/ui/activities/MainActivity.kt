@@ -40,6 +40,7 @@ import android.os.Looper
 import androidx.core.view.WindowCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import android.view.View
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
     
@@ -69,12 +70,28 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     // Dual address display components
     private lateinit var singleAddressCard: com.google.android.material.card.MaterialCardView
     private lateinit var dualAddressLayout: LinearLayout
-    private lateinit var localhostAddressText: TextView
-    private lateinit var networkAddressText: TextView
-    private lateinit var copyLocalhostButton: ImageButton
-    private lateinit var copyNetworkButton: ImageButton
-    private lateinit var qrLocalhostButton: ImageButton
-    private lateinit var qrNetworkButton: ImageButton
+    
+    // Address type selection components
+    private lateinit var addressTypeCard: com.google.android.material.card.MaterialCardView
+    private lateinit var selectedAddressTypeText: TextView
+    private lateinit var addressTypeDropdownIcon: TextView
+    private lateinit var selectedAddressText: TextView
+    private lateinit var copySelectedAddressButton: ImageButton
+    private lateinit var qrSelectedAddressButton: ImageButton
+    private lateinit var addressTypeOptions: LinearLayout
+    private lateinit var localAddressOption: TextView
+    private lateinit var networkHttpOption: TextView
+    private lateinit var networkHttpsOption: TextView
+    
+    // Address type enum
+    enum class AddressType(val displayName: String) {
+        LOCAL("Local Address (127.0.0.1:3338)"),
+        NETWORK_HTTP("Network Address (HTTP)"),
+        NETWORK_HTTPS("Network Address (HTTPS)")
+    }
+    
+    private var currentAddressType = AddressType.LOCAL
+    private var isDropdownOpen = false
     
     // Service
     private var purrmintService: PurrmintService.LocalBinder? = null
@@ -287,12 +304,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Initialize dual address display components
         singleAddressCard = findViewById(R.id.singleAddressCard)
         dualAddressLayout = findViewById(R.id.dualAddressLayout)
-        localhostAddressText = findViewById(R.id.localhostAddressText)
-        networkAddressText = findViewById(R.id.networkAddressText)
-        copyLocalhostButton = findViewById(R.id.copyLocalhostButton)
-        copyNetworkButton = findViewById(R.id.copyNetworkButton)
-        qrLocalhostButton = findViewById(R.id.qrLocalhostButton)
-        qrNetworkButton = findViewById(R.id.qrNetworkButton)
+        
+        // Initialize address type selection components
+        addressTypeCard = findViewById(R.id.addressTypeCard)
+        selectedAddressTypeText = findViewById(R.id.selectedAddressTypeText)
+        addressTypeDropdownIcon = findViewById(R.id.addressTypeDropdownIcon)
+        selectedAddressText = findViewById(R.id.selectedAddressText)
+        copySelectedAddressButton = findViewById(R.id.copySelectedAddressButton)
+        qrSelectedAddressButton = findViewById(R.id.qrSelectedAddressButton)
+        addressTypeOptions = findViewById(R.id.addressTypeOptions)
+        localAddressOption = findViewById(R.id.localAddressOption)
+        networkHttpOption = findViewById(R.id.networkHttpOption)
+        networkHttpsOption = findViewById(R.id.networkHttpsOption)
         
         // Setup toolbar and navigation drawer
         setSupportActionBar(toolbar)
@@ -345,7 +368,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         
         
         // Setup mode selection listeners
-        modeChipGroup.setOnCheckedChangeListener { group, checkedId ->
+        modeChipGroup.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
                 R.id.localModeChip -> {
                     if (currentMode != PurrmintManager.ServiceMode.LOCAL) {
@@ -399,23 +422,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             showQRCodeDialog()
         }
         
-        // Setup dual address copy buttons
-        copyLocalhostButton.setOnClickListener {
-            copyAddressToClipboard(localhostAddressText.text.toString(), "Local address")
-        }
-        
-        copyNetworkButton.setOnClickListener {
-            copyAddressToClipboard(networkAddressText.text.toString(), "Network address")
-        }
-        
-        // Setup dual address QR code buttons
-        qrLocalhostButton.setOnClickListener {
-            showQRCodeDialog(localhostAddressText.text.toString(), "Local address")
-        }
-        
-        qrNetworkButton.setOnClickListener {
-            showQRCodeDialog(networkAddressText.text.toString(), "Network address")
-        }
         
         clearLogsButton.setOnClickListener {
             clearLogs()
@@ -423,12 +429,39 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun setupClickListeners() {
-        // Click listeners are handled in initializeViews
+        // Address type selector click
+        addressTypeCard.setOnClickListener {
+            toggleAddressTypeDropdown()
+        }
+        
+        // Address type options
+        localAddressOption.setOnClickListener {
+            selectAddressType(AddressType.LOCAL)
+        }
+        
+        networkHttpOption.setOnClickListener {
+            selectAddressType(AddressType.NETWORK_HTTP)
+        }
+        
+        networkHttpsOption.setOnClickListener {
+            selectAddressType(AddressType.NETWORK_HTTPS)
+        }
+        
+        // Copy and QR buttons
+        copySelectedAddressButton.setOnClickListener {
+            val address = selectedAddressText.text.toString()
+            copyAddressToClipboard(address, "Selected Address")
+        }
+        
+        qrSelectedAddressButton.setOnClickListener {
+            val address = selectedAddressText.text.toString()
+            showQRCodeDialog(address, "Selected Address")
+        }
     }
     
     private fun setupWindowInsets() {
         // Apply window insets to handle edge-to-edge display properly
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawerLayout)) { view, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawerLayout)) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             
             // Apply padding to the main content, but let the AppBar extend under the status bar
@@ -1193,21 +1226,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     singleAddressCard.visibility = android.view.View.GONE
                     dualAddressLayout.visibility = android.view.View.VISIBLE
                     
-                    // Set localhost address
-                    localhostAddressText.text = localAddress
-                    
-                    // Set network address
-                    if (networkAddress != null && networkAddress!!.isNotEmpty()) {
-                        networkAddressText.text = networkAddress
-                        networkAddressText.setTextColor(resources.getColor(R.color.on_surface_color, null))
-                        copyNetworkButton.isEnabled = true
-                        qrNetworkButton.isEnabled = true
-                    } else {
-                        networkAddressText.text = "Not available"
-                        networkAddressText.setTextColor(resources.getColor(R.color.on_surface_variant_color, null))
-                        copyNetworkButton.isEnabled = false
-                        qrNetworkButton.isEnabled = false
-                    }
+                    // Set default selection to LOCAL
+                    currentAddressType = AddressType.LOCAL
+                    selectedAddressTypeText.text = currentAddressType.displayName
+                    updateSelectedAddress()
                     
                     appendLog("🌐 Local address: $localAddress")
                     if (networkAddress != null) {
@@ -1544,5 +1566,43 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Keep delete button enabled for cleanup purposes
         btnDelete.isEnabled = true
         btnDelete.visibility = android.view.View.VISIBLE
+    }
+    
+    private fun toggleAddressTypeDropdown() {
+        isDropdownOpen = !isDropdownOpen
+        addressTypeOptions.visibility = if (isDropdownOpen) View.VISIBLE else View.GONE
+        
+        // Rotate dropdown icon
+        addressTypeDropdownIcon.rotation = if (isDropdownOpen) 180f else 0f
+    }
+    
+    private fun selectAddressType(addressType: AddressType) {
+        currentAddressType = addressType
+        selectedAddressTypeText.text = addressType.displayName
+        updateSelectedAddress()
+        toggleAddressTypeDropdown()
+    }
+    
+    private fun updateSelectedAddress() {
+        val port = configManager.getConfiguration().port
+        
+        val address = when (currentAddressType) {
+            AddressType.LOCAL -> "http://127.0.0.1:3338"
+            AddressType.NETWORK_HTTP -> {
+                val networkAddress = NetworkUtils.getBestNetworkAddress(port, false)
+                networkAddress ?: "Network not available"
+            }
+            AddressType.NETWORK_HTTPS -> {
+                val networkAddress = NetworkUtils.getBestNetworkAddress(port, true)
+                networkAddress ?: "Network not available"
+            }
+        }
+        
+        selectedAddressText.text = address
+        
+        // Enable/disable buttons based on address availability
+        val isAddressValid = address != "Network not available"
+        copySelectedAddressButton.isEnabled = isAddressValid
+        qrSelectedAddressButton.isEnabled = isAddressValid
     }
 } 
