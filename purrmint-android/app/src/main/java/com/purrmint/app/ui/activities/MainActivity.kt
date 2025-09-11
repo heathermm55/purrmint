@@ -78,14 +78,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var selectedAddressText: TextView
     private lateinit var copySelectedAddressButton: ImageButton
     private lateinit var qrSelectedAddressButton: ImageButton
-    private lateinit var addressTypeOptions: LinearLayout
+    private lateinit var addressTypeOptions: com.google.android.material.card.MaterialCardView
     private lateinit var localAddressOption: TextView
     private lateinit var networkHttpOption: TextView
     private lateinit var networkHttpsOption: TextView
     
     // Address type enum
     enum class AddressType(val displayName: String) {
-        LOCAL("Local Address (127.0.0.1:3338)"),
+        LOCAL("Local Address"),
         NETWORK_HTTP("Network Address (HTTP)"),
         NETWORK_HTTPS("Network Address (HTTPS)")
     }

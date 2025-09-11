@@ -278,58 +278,132 @@
                                 android:orientation="vertical"
                                 android:visibility="gone">
 
-                                <!-- Address Type Selector -->
+                                <!-- Address Type Selector Container -->
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:orientation="horizontal"
-                                    android:gravity="center_vertical"
+                                    android:orientation="vertical"
                                     android:layout_marginBottom="12dp">
                                     
-                                    <TextView
-                                        android:layout_width="wrap_content"
+                                    <!-- Address Type Selector -->
+                                    <LinearLayout
+                                        android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
-                                        android:text="Address Type:"
-                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                        android:textColor="@color/on_surface_variant_color"
-                                        android:layout_marginEnd="8dp" />
+                                        android:orientation="horizontal"
+                                        android:gravity="center_vertical">
+                                        
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="Address Type:"
+                                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                            android:textColor="@color/on_surface_variant_color"
+                                            android:layout_marginEnd="8dp" />
+                                        
+                                        <com.google.android.material.card.MaterialCardView
+                                            android:id="@+id/addressTypeCard"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            app:cardElevation="1dp"
+                                            app:cardCornerRadius="8dp"
+                                            app:cardBackgroundColor="@color/surface_variant_color"
+                                            app:strokeColor="@color/outline_color"
+                                            app:strokeWidth="1dp">
+                                            
+                                            <LinearLayout
+                                                android:layout_width="match_parent"
+                                                android:layout_height="wrap_content"
+                                                android:orientation="horizontal"
+                                                android:padding="12dp"
+                                                android:gravity="center_vertical">
+                                                
+                                                <TextView
+                                                    android:id="@+id/selectedAddressTypeText"
+                                                    android:layout_width="0dp"
+                                                    android:layout_height="wrap_content"
+                                                    android:layout_weight="1"
+                                                    android:text="Local Address"
+                                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                                    android:textColor="@color/on_surface_color"
+                                                    android:fontFamily="monospace" />
+                                                
+                                                <TextView
+                                                    android:id="@+id/addressTypeDropdownIcon"
+                                                    android:layout_width="24dp"
+                                                    android:layout_height="24dp"
+                                                    android:text="▼"
+                                                    android:gravity="center"
+                                                    android:textSize="12sp"
+                                                    android:textColor="@color/on_surface_variant_color" />
+                                            </LinearLayout>
+                                        </com.google.android.material.card.MaterialCardView>
+                                    </LinearLayout>
                                     
+                                    <!-- Address Type Options (Hidden by default) -->
                                     <com.google.android.material.card.MaterialCardView
-                                        android:id="@+id/addressTypeCard"
-                                        android:layout_width="0dp"
+                                        android:id="@+id/addressTypeOptions"
+                                        android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
-                                        android:layout_weight="1"
-                                        app:cardElevation="1dp"
+                                        android:layout_marginTop="4dp"
+                                        android:visibility="gone"
+                                        app:cardElevation="8dp"
                                         app:cardCornerRadius="8dp"
-                                        app:cardBackgroundColor="@color/surface_variant_color"
-                                        app:strokeColor="@color/outline_color"
-                                        app:strokeWidth="1dp">
+                                        app:cardBackgroundColor="@color/surface_color">
                                         
                                         <LinearLayout
                                             android:layout_width="match_parent"
                                             android:layout_height="wrap_content"
-                                            android:orientation="horizontal"
-                                            android:padding="12dp"
-                                            android:gravity="center_vertical">
+                                            android:orientation="vertical">
                                             
                                             <TextView
-                                                android:id="@+id/selectedAddressTypeText"
-                                                android:layout_width="0dp"
+                                                android:id="@+id/localAddressOption"
+                                                android:layout_width="match_parent"
                                                 android:layout_height="wrap_content"
-                                                android:layout_weight="1"
-                                                android:text="Local Address (127.0.0.1:3338)"
+                                                android:text="Local Address"
                                                 android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                                                 android:textColor="@color/on_surface_color"
-                                                android:fontFamily="monospace" />
+                                                android:fontFamily="monospace"
+                                                android:padding="16dp"
+                                                android:background="?attr/selectableItemBackground"
+                                                android:clickable="true"
+                                                android:focusable="true" />
+                                            
+                                            <View
+                                                android:layout_width="match_parent"
+                                                android:layout_height="1dp"
+                                                android:background="@color/outline_color" />
                                             
                                             <TextView
-                                                android:id="@+id/addressTypeDropdownIcon"
-                                                android:layout_width="24dp"
-                                                android:layout_height="24dp"
-                                                android:text="▼"
-                                                android:gravity="center"
-                                                android:textSize="12sp"
-                                                android:textColor="@color/on_surface_variant_color" />
+                                                android:id="@+id/networkHttpOption"
+                                                android:layout_width="match_parent"
+                                                android:layout_height="wrap_content"
+                                                android:text="Network Address (HTTP)"
+                                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                                android:textColor="@color/on_surface_color"
+                                                android:fontFamily="monospace"
+                                                android:padding="16dp"
+                                                android:background="?attr/selectableItemBackground"
+                                                android:clickable="true"
+                                                android:focusable="true" />
+                                            
+                                            <View
+                                                android:layout_width="match_parent"
+                                                android:layout_height="1dp"
+                                                android:background="@color/outline_color" />
+                                            
+                                            <TextView
+                                                android:id="@+id/networkHttpsOption"
+                                                android:layout_width="match_parent"
+                                                android:layout_height="wrap_content"
+                                                android:text="Network Address (HTTPS)"
+                                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                                android:textColor="@color/on_surface_color"
+                                                android:fontFamily="monospace"
+                                                android:padding="16dp"
+                                                android:background="?attr/selectableItemBackground"
+                                                android:clickable="true"
+                                                android:focusable="true" />
                                         </LinearLayout>
                                     </com.google.android.material.card.MaterialCardView>
                                 </LinearLayout>
@@ -389,66 +463,6 @@
                                             app:tint="@color/primary_color" />
                                     </LinearLayout>
                                 </com.google.android.material.card.MaterialCardView>
-
-                                <!-- Address Type Options (Hidden by default) -->
-                                <LinearLayout
-                                    android:id="@+id/addressTypeOptions"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="vertical"
-                                    android:visibility="gone"
-                                    android:background="@color/surface_color"
-                                    android:elevation="4dp">
-                                    
-                                    <TextView
-                                        android:id="@+id/localAddressOption"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:text="Local Address (127.0.0.1:3338)"
-                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                        android:textColor="@color/on_surface_color"
-                                        android:fontFamily="monospace"
-                                        android:padding="16dp"
-                                        android:background="?attr/selectableItemBackground"
-                                        android:clickable="true"
-                                        android:focusable="true" />
-                                    
-                                    <View
-                                        android:layout_width="match_parent"
-                                        android:layout_height="1dp"
-                                        android:background="@color/outline_color" />
-                                    
-                                    <TextView
-                                        android:id="@+id/networkHttpOption"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:text="Network Address (HTTP)"
-                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                        android:textColor="@color/on_surface_color"
-                                        android:fontFamily="monospace"
-                                        android:padding="16dp"
-                                        android:background="?attr/selectableItemBackground"
-                                        android:clickable="true"
-                                        android:focusable="true" />
-                                    
-                                    <View
-                                        android:layout_width="match_parent"
-                                        android:layout_height="1dp"
-                                        android:background="@color/outline_color" />
-                                    
-                                    <TextView
-                                        android:id="@+id/networkHttpsOption"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:text="Network Address (HTTPS)"
-                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                                        android:textColor="@color/on_surface_color"
-                                        android:fontFamily="monospace"
-                                        android:padding="16dp"
-                                        android:background="?attr/selectableItemBackground"
-                                        android:clickable="true"
-                                        android:focusable="true" />
-                                </LinearLayout>
 
 
                             </LinearLayout>
