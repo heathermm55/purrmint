@@ -190,6 +190,46 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         startActivityForResult(intent, REQUEST_LOGIN)
     }
     
+    /**
+     * Check service status after connection is established
+     */
+    private fun checkServiceStatusAfterConnection() {
+        if (isServiceBound && purrmintService != null) {
+            val purrmintManager = purrmintService!!.getPurrmintManager()
+            
+            // Add a delay to ensure service is fully initialized
+            Handler(Looper.getMainLooper()).postDelayed({
+                try {
+                    val status = purrmintManager.getServiceStatus()
+                    Log.d(TAG, "Service status after connection: $status")
+                    
+                    val statusJson = org.json.JSONObject(status.toString())
+                    val isRunning = statusJson.optBoolean("running", false)
+                    
+                    if (isRunning) {
+                        updateStatus("Service is running", true)
+                        updateStartButton("Stop Service", true, true)
+                        appendLog("✅ Mint service is already running")
+                        isMintRunning = true
+                        
+                        // Show appropriate address based on current mode
+                        if (currentMode == PurrmintManager.ServiceMode.TOR) {
+                            showOnionAddress()
+                        } else {
+                            showLocalAddress()
+                        }
+                    } else {
+                        appendLog("ℹ️ Service connected but mint service is not running")
+                        appendLog("💡 You can start the service manually")
+                    }
+                } catch (e: Exception) {
+                    appendLog("⚠️ Could not check service status after connection: ${e.message}")
+                    Log.e(TAG, "Error checking service status", e)
+                }
+            }, 1000) // Wait 1 second for service to initialize
+        }
+    }
+    
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         
@@ -530,6 +570,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     // Enable start button after service is bound
                     runOnUiThread {
                         enableStartButton()
+                        // Check service status after connection
+                        checkServiceStatusAfterConnection()
                     }
                 } else {
                     isServiceBound = true
@@ -539,6 +581,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     // Enable start button after service is bound
                     runOnUiThread {
                         enableStartButton()
+                        // Check service status after connection
+                        checkServiceStatusAfterConnection()
                     }
                 }
             } catch (e: Exception) {
@@ -1001,7 +1045,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 val status = purrmintManager.getServiceStatus()
                 try {
                     val statusJson = org.json.JSONObject(status.toString())
-                    val isRunning = statusJson.optString("status") == "running"
+                    val isRunning = statusJson.optBoolean("running", false)
                     if (isRunning) {
                         updateStatus("Service is running", true)
                         updateStartButton("Stop Service", true, true)
