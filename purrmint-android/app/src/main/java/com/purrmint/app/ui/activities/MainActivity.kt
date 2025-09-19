@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -122,6 +123,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         private const val REQUEST_LOGIN = 1002
         private const val REQUEST_ACCOUNT = 1003
         private const val REQUEST_LANGUAGE = 1004
+        private const val REQUEST_NOTIFICATION_PERMISSION = 1005
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -145,6 +147,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             return
         }
         
+        // Request notification permission for Android 13+
+        requestNotificationPermission()
+        
         // Already logged in, show main interface
         setContentView(R.layout.activity_main)
 
@@ -155,11 +160,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setupWindowInsets()
         
         // Start foreground service (only after login)
-        val intent = Intent(this, PurrmintService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
+        // Check notification permission before starting service
+        if (hasNotificationPermission()) {
+            val intent = Intent(this, PurrmintService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            appendLog("🚀 Starting/ensuring foreground service is running...")
         } else {
-            startService(intent)
+            appendLog("⚠️ Notification permission required for foreground service")
+            appendLog("💡 Please grant notification permission to start the service")
         }
 
         // Bind to PurrmintService
@@ -188,6 +200,37 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun startLoginActivity() {
         val intent = Intent(this, LoginActivity::class.java)
         startActivityForResult(intent, REQUEST_LOGIN)
+    }
+    
+    /**
+     * Request notification permission for Android 13+
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) 
+                != PackageManager.PERMISSION_GRANTED) {
+                
+                Log.i(TAG, "Requesting notification permission for Android 13+")
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_NOTIFICATION_PERMISSION
+                )
+            } else {
+                Log.i(TAG, "Notification permission already granted")
+            }
+        }
+    }
+    
+    /**
+     * Check if notification permission is granted
+     */
+    private fun hasNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) 
+                == PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Android 12 and below don't need this permission
+        }
     }
     
     /**
@@ -227,6 +270,27 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     Log.e(TAG, "Error checking service status", e)
                 }
             }, 1000) // Wait 1 second for service to initialize
+        }
+    }
+    
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        
+        when (requestCode) {
+            REQUEST_NOTIFICATION_PERMISSION -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.i(TAG, "Notification permission granted")
+                    appendLog("✅ Notification permission granted")
+                } else {
+                    Log.w(TAG, "Notification permission denied")
+                    appendLog("⚠️ Notification permission denied - foreground service notification may not be visible")
+                    appendLog("💡 You can enable notifications in app settings")
+                }
+            }
         }
     }
     
