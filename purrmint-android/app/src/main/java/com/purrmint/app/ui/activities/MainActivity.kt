@@ -698,6 +698,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             val packageName = packageName
             
             if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                // Add user-friendly prompts
+                appendLog("🔋 Requesting battery optimization exemption...")
+                appendLog("💡 This helps keep the mint service running reliably")
+                appendLog("📱 You'll be redirected to system settings")
+                
                 try {
                     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                         data = Uri.parse("package:$packageName")
@@ -705,7 +710,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     startActivity(intent)
                 } catch (e: Exception) {
                     Log.w(TAG, "Could not request battery optimization exemption", e)
+                    appendLog("⚠️ Could not open battery optimization settings")
+                    appendLog("💡 Please manually enable battery optimization exemption in system settings")
                 }
+            } else {
+                appendLog("✅ Battery optimization exemption already granted")
+                appendLog("🔋 Mint service will run reliably in background")
             }
         }
     }
