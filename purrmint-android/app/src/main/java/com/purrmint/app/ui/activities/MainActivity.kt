@@ -210,13 +210,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) 
                 != PackageManager.PERMISSION_GRANTED) {
                 
-                Log.i(TAG, "Requesting notification permission for Android 13+")
                 requestPermissions(
                     arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
                     REQUEST_NOTIFICATION_PERMISSION
                 )
             } else {
-                Log.i(TAG, "Notification permission already granted")
             }
         }
     }
@@ -244,7 +242,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     val status = purrmintManager.getServiceStatus()
-                    Log.d(TAG, "Service status after connection: $status")
                     
                     val statusJson = org.json.JSONObject(status.toString())
                     val isRunning = statusJson.optBoolean("running", false)
@@ -283,10 +280,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         when (requestCode) {
             REQUEST_NOTIFICATION_PERMISSION -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.i(TAG, "Notification permission granted")
                     appendLog("✅ Notification permission granted")
                 } else {
-                    Log.w(TAG, "Notification permission denied")
                     appendLog("⚠️ Notification permission denied - foreground service notification may not be visible")
                     appendLog("💡 You can enable notifications in app settings")
                 }
@@ -590,18 +585,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         
         // Show account info
         val npubAddress = loginManager.getNpubAddress()
-        val nsecKey = loginManager.getNsecKey()
         val accountInfo = loginManager.getAccountInfo()
-        
-        appendLog("🔐 Login state debug:")
-        appendLog("  - NPUB: ${npubAddress ?: "Not found"}")
-        appendLog("  - NSEC: ${if (nsecKey != null) "[Present]" else "Not found"}")
-        appendLog("  - Account Info: ${accountInfo ?: "Not found"}")
         
         if (npubAddress != null) {
             updateAccountInfo("Account: $npubAddress")
         } else if (accountInfo != null) {
-                updateAccountInfo("Account: $accountInfo")
+            updateAccountInfo("Account: $accountInfo")
         }
         
         // Enable start button
@@ -628,7 +617,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if (service is PurrmintService.LocalBinder) {
                     purrmintService = service
                     isServiceBound = true
-                    Log.i(TAG, "PurrmintService connected (same process)")
                     appendLog("✅ Service connected successfully")
                     
                     // Enable start button after service is bound
@@ -639,7 +627,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     }
                 } else {
                     isServiceBound = true
-                    Log.i(TAG, "PurrmintService connected (different process)")
                     appendLog("✅ Service connected (different process)")
                     
                     // Enable start button after service is bound
@@ -659,7 +646,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         override fun onServiceDisconnected(name: ComponentName?) {
             purrmintService = null
             isServiceBound = false
-            Log.i(TAG, "PurrmintService disconnected")
             appendLog("⚠️ Service disconnected")
             
             // Disable start button when service is disconnected
@@ -1077,7 +1063,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun appendLog(message: String) {
-        Log.i(TAG, message)
         
         // Update UI on main thread
         runOnUiThread {
@@ -1389,23 +1374,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             appendLog("💡 Try reconnecting to WiFi or check network settings")
                         }
                     }
-                    appendLog("📱 Address layout visibility set to VISIBLE")
-                    appendLog("🔧 Port used: $port")
                     
-                    // Show all available addresses for debugging
-                    val allAddresses = NetworkUtils.getAllLocalNetworkAddresses(port)
-                    if (allAddresses.isNotEmpty()) {
-                        appendLog("📋 All available addresses:")
-                        allAddresses.forEach { addr ->
-                            val ip = addr.replace("http://", "").split(":")[0]
-                            val type = when {
-                                NetworkUtils.isEmulatorAddress(ip) -> "📱 Emulator"
-                                ip == "127.0.0.1" -> "🏠 Localhost"
-                                else -> "🌐 Network"
-                            }
-                            appendLog("  $type: $addr")
-                        }
-                    }
                     
                     // Force a layout update
                     addressLayout.requestLayout()
