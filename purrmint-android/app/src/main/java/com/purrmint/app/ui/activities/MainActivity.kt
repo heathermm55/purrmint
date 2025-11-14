@@ -251,10 +251,26 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         appendLog("✅ Mint service is already running")
                         isMintRunning = true
                         
-                        // Show appropriate address based on current mode
-                        if (currentMode == PurrmintManager.ServiceMode.TOR) {
+                        // Detect actual running mode by checking for onion address
+                        // If onion address is available, service is running in TOR mode
+                        val onionAddr = purrmintManager.getOnionAddress()
+                        if (!onionAddr.isNullOrEmpty() && onionAddr != "No onion address available") {
+                            // Service is running in TOR mode
+                            if (currentMode != PurrmintManager.ServiceMode.TOR) {
+                                currentMode = PurrmintManager.ServiceMode.TOR
+                                torModeChip.isChecked = true
+                                localModeChip.isChecked = false
+                                appendLog("🧅 Detected Tor mode - switching to Tor mode")
+                            }
                             showOnionAddress()
                         } else {
+                            // Service is running in LOCAL mode
+                            if (currentMode != PurrmintManager.ServiceMode.LOCAL) {
+                                currentMode = PurrmintManager.ServiceMode.LOCAL
+                                localModeChip.isChecked = true
+                                torModeChip.isChecked = false
+                                appendLog("🌐 Detected Local mode - switching to Local mode")
+                            }
                             showLocalAddress()
                         }
                     } else {
@@ -1108,6 +1124,30 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         updateStatus("Service is running", true)
                         updateStartButton("Stop Service", true, true)
                         appendLog("✅ Mint service is already running")
+                        isMintRunning = true
+                        
+                        // Detect actual running mode by checking for onion address
+                        // If onion address is available, service is running in TOR mode
+                        val onionAddr = purrmintManager.getOnionAddress()
+                        if (!onionAddr.isNullOrEmpty() && onionAddr != "No onion address available") {
+                            // Service is running in TOR mode
+                            if (currentMode != PurrmintManager.ServiceMode.TOR) {
+                                currentMode = PurrmintManager.ServiceMode.TOR
+                                torModeChip.isChecked = true
+                                localModeChip.isChecked = false
+                                appendLog("🧅 Detected Tor mode - switching to Tor mode")
+                            }
+                            showOnionAddress()
+                        } else {
+                            // Service is running in LOCAL mode
+                            if (currentMode != PurrmintManager.ServiceMode.LOCAL) {
+                                currentMode = PurrmintManager.ServiceMode.LOCAL
+                                localModeChip.isChecked = true
+                                torModeChip.isChecked = false
+                                appendLog("🌐 Detected Local mode - switching to Local mode")
+                            }
+                            showLocalAddress()
+                        }
                     }
                 } catch (e: Exception) {
                     appendLog("⚠️ Could not check service status: ${e.message}")

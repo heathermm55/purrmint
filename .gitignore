@@ -16,3 +16,4 @@ purrmint-android/release-apks/app-x86-release-signed.apk.idsig
 purrmint-android/release-apks/app-x86_64-release-signed.apk.idsig
 purrmint-android/app/src/main/res/raw/purrmint_cert_pem
 purrmint-android/app/src/main/res/raw/purrmint_key_pem
+/zapstore
